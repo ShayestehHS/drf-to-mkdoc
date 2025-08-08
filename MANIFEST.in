@@ -1,0 +1,18 @@
+include README.md
+include LICENSE
+include MANIFEST.in
+include pyproject.toml
+
+recursive-include drf_to_mkdoc/conf *.py
+recursive-include drf_to_mkdoc/utils *.py
+recursive-include drf_to_mkdoc/management *.py
+
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude .idea
+global-exclude .venv
+global-exclude .env
+global-exclude *.log

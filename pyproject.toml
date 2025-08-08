@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drf-to-mkdoc"
+version = "0.1.0"
+description = "Generate Markdown API docs from Django/DRF OpenAPI schema for MkDocs"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your@email.com"}
+]
+maintainers = [
+    {name = "Your Name", email = "your@email.com"}
+]
+keywords = ["django", "django-rest-framework", "documentation", "mkdocs", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "Django>=3.2,<6.0",
+    "djangorestframework>=3.12,<4.0",
+    "PyYAML>=6.0",
+    "drf-spectacular>=0.26.0",
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=9.0.0",
+    "coreapi>=2.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/drf-to-mkdoc"
+Repository = "https://github.com/yourusername/drf-to-mkdoc"
+Documentation = "https://github.com/yourusername/drf-to-mkdoc#readme"
+"Bug Tracker" = "https://github.com/yourusername/drf-to-mkdoc/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-django>=4.5.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["drf_to_mkdoc*"]
+
+[tool.setuptools.package-data]
+"drf_to_mkdoc" = [
+    "conf/*.py",
+    "utils/**/*.py",
+    "management/**/*.py",
+]
+
