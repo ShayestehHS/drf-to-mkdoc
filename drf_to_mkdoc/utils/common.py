@@ -1,14 +1,16 @@
+from asyncio.log import logger
 import importlib
 import yaml
 import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from django.apps import apps
 from django.core.exceptions import AppRegistryNotReady
 from django.urls import resolve
+from django.utils.module_loading import import_string
 from drf_spectacular.generators import SchemaGenerator
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
@@ -24,13 +26,20 @@ class QueryParamTypeError(Exception):
     pass
 
 
-def substitute_path_params(path: str) -> str:
-    # Replace all path variables like <clinic_id> with dummy values
-    path = path.replace("{", "<").replace("}", ">")
-    return re.sub(r"<[^>]+>", "1", path)
+def substitute_path_params(path: str, parameters: list[dict[str, Any]]) -> str:
+    django_path = convert_to_django_path(path, parameters)
 
+    django_path = re.compile(r"\{[^}]+\}").sub("1", django_path)
+    django_path = re.sub(r"<int:[^>]+>", "1", django_path)
+    django_path = re.sub(r"<uuid:[^>]+>", "12345678-1234-5678-9abc-123456789012", django_path)
+    django_path = re.sub(r"<float:[^>]+>", "1.0", django_path)
+    django_path = re.sub(r"<(?:string|str):[^>]+>", "dummy", django_path)
+    django_path = re.sub(r"<path:[^>]+>", "dummy/path", django_path)
+    django_path = re.sub(r"<[^:>]+>", "dummy", django_path)  # Catch remaining simple params
 
-def load_schema() -> dict[str, Any] | None:
+    return django_path
+
+def load_schema() -> Optional[dict[str, Any]]:
     """Load the OpenAPI schema from doc-schema.yaml"""
     schema_file = Path(drf_to_mkdoc_settings.CONFIG_DIR) / "doc-schema.yaml"
     if not schema_file.exists():
@@ -40,7 +49,7 @@ def load_schema() -> dict[str, Any] | None:
         return yaml.safe_load(f)
 
 
-def load_model_json_data() -> dict[str, Any] | None:
+def load_model_json_data() -> Optional[dict[str, Any]]:
     """Load the JSON mapping data for model information"""
     json_file = Path(drf_to_mkdoc_settings.MODEL_DOCS_FILE)
     if not json_file.exists():
@@ -50,7 +59,7 @@ def load_model_json_data() -> dict[str, Any] | None:
         return json.load(f)
 
 
-def load_doc_config() -> dict[str, Any] | None:
+def load_doc_config() -> Optional[dict[str, Any]]:
     """Load the documentation configuration file"""
     config_file = Path(drf_to_mkdoc_settings.DOC_CONFIG_FILE)
     if not config_file.exists():
@@ -60,7 +69,7 @@ def load_doc_config() -> dict[str, Any] | None:
         return json.load(f)
 
 
-def get_model_docstring(class_name: str) -> str | None:
+def get_model_docstring(class_name: str) -> Optional[str]:
     """Extract docstring from Django model class"""
     try:
         # Check if Django is properly initialized
@@ -158,6 +167,51 @@ def get_custom_schema():
                     raise QueryParamTypeError("Invalid queryparam_type")
     return data
 
+def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
+    """
+    Convert a path with {param} to a Django-style path with <type:param>.
+    If DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR is set, use that function instead.
+    """
+    function = None
+    func_path = getattr(drf_to_mkdoc_settings, "DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR", None)
+
+    if func_path:
+        try:
+            function = import_string(func_path)
+        except ImportError:
+            logger.warning("DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR is not a valid import path")
+
+    # If custom function exists and returns a valid value, use it
+    if callable(function):
+        try:
+            value = function(path, parameters)
+            if isinstance(value, str) and value.strip():
+                return value
+        except Exception as e:
+            logger.exception("Error in custom path substitutor: %s", e)
+
+    # Default Django path conversion
+    def replacement(match):
+        param_name = match.group(1)
+        param_info = next((p for p in parameters if p.get('name') == param_name), {})
+        param_type = param_info.get('schema', {}).get('type')
+        param_format = param_info.get('schema', {}).get('format')
+
+        if param_type == 'integer':
+            converter = 'int'
+        elif param_type == 'string' and param_format == 'uuid':
+            converter = 'uuid'
+        else:
+            converter = 'str'
+
+        return f'<{converter}:{param_name}>'
+
+    django_path = re.sub(r'{(\w+)}', replacement, path)
+
+    if not django_path.endswith('/'):
+        django_path += '/'
+
+    return django_path
 
 @lru_cache
 def get_schema():
@@ -209,7 +263,7 @@ def get_operation_id_path_map() -> dict[str, str]:
         for _http_method_name, action_data in actions.items():
             operation_id = action_data.get("operationId")
             if operation_id:
-                mapping[operation_id] = path
+                mapping[operation_id] = path, action_data.get("parameters", [])
 
     return mapping
 
@@ -217,13 +271,13 @@ def get_operation_id_path_map() -> dict[str, str]:
 def extract_viewset_from_operation_id(operation_id: str):
     """Extract the ViewSet class from an OpenAPI operation ID."""
     operation_map = get_operation_id_path_map()
-    django_path = operation_map.get(operation_id)
+    path, parameters = operation_map.get(operation_id)
 
-    if not django_path:
+    if not path:
         raise ValueError(f"Path not found for operation ID: {operation_id}")
 
     try:
-        resolved_path = substitute_path_params(django_path)
+        resolved_path = substitute_path_params(path, parameters)
         match = resolve(resolved_path)
         view_func = match.func
         if hasattr(view_func, "view_class"):
