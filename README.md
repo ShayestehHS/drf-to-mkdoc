@@ -111,7 +111,7 @@ Under the hood, drf-to-mkdoc introspects your models and reads your DRF OpenAPI 
 ### Setup Development Environment
 
 ```bash
-git clone https://github.com/yourusername/drf-to-mkdoc.git
+git clone https://github.com/Shayestehhs/drf-to-mkdoc.git
 cd drf-to-mkdoc
 pip install -e ".[dev]"
 ```

@@ -47,10 +47,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/drf-to-mkdoc"
-Repository = "https://github.com/yourusername/drf-to-mkdoc"
-Documentation = "https://github.com/yourusername/drf-to-mkdoc#readme"
-"Bug Tracker" = "https://github.com/yourusername/drf-to-mkdoc/issues"
+Homepage = "https://github.com/shayestehhs/drf-to-mkdoc"
+Repository = "https://github.com/shayestehhs/drf-to-mkdoc"
+Documentation = "https://github.com/shayestehhs/drf-to-mkdoc#readme"
+"Bug Tracker" = "https://github.com/shayestehhs/drf-to-mkdoc/issues"
 
 [project.optional-dependencies]
 dev = [
