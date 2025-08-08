@@ -35,22 +35,15 @@ class Command(BaseCommand):
             # Generate the model documentation JSON first
             self.stdout.write("Generating model documentation...")
 
-            try:
-                call_command(
-                    "generate_model_docs", "--pretty"
-                )
-                self.stdout.write(self.style.SUCCESS("Model documentation generated."))
-            except Exception as e:
-                self.stdout.write(self.style.WARNING(f"Failed to generate model docs: {e}"))
+            call_command(
+                "generate_model_docs", "--pretty"
+            )
+            self.stdout.write(self.style.SUCCESS("Model documentation generated."))
 
             # Generate the documentation content
             self.stdout.write("Generating documentation content...")
-            try:
-                call_command("generate_docs")
-                self.stdout.write(self.style.SUCCESS("Documentation content generated."))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Failed to generate docs: {e}"))
-                raise
+            call_command("generate_docs")
+            self.stdout.write(self.style.SUCCESS("Documentation content generated."))
 
             # Build the MkDocs site
             self.stdout.write("Building MkDocs site...")
@@ -72,5 +65,3 @@ class Command(BaseCommand):
             raise CommandError(
                 "MkDocs not found. Please install it with: pip install mkdocs mkdocs-material"
             ) from e
-        except Exception as e:
-            raise CommandError(f"Error building documentation: {e!s}") from e
