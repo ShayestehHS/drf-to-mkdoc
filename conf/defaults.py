@@ -7,4 +7,5 @@ DEFAULTS = {
     },
     "INDEX_TEMPLATE": "index.md",
     "AUTH_TEMPLATE": "auth.md",
+    "PATH_PARAM_SUBSTITUTOR": None,
 }

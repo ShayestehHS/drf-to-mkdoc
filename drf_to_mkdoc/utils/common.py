@@ -170,16 +170,16 @@ def get_custom_schema():
 def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
     """
     Convert a path with {param} to a Django-style path with <type:param>.
-    If DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR is set, use that function instead.
+    If PATH_PARAM_SUBSTITUTOR is set, use that function instead.
     """
     function = None
-    func_path = getattr(drf_to_mkdoc_settings, "DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR", None)
+    func_path = getattr(drf_to_mkdoc_settings, "PATH_PARAM_SUBSTITUTOR", None)
 
     if func_path:
         try:
             function = import_string(func_path)
         except ImportError:
-            logger.warning("DRF_TO_MKDOC_PATH_PARAM_SUBSTITUTOR is not a valid import path")
+            logger.warning("PATH_PARAM_SUBSTITUTOR is not a valid import path")
 
     # If custom function exists and returns a valid value, use it
     if callable(function):
