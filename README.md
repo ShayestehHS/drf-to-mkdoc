@@ -52,8 +52,8 @@ DRF_TO_MKDOC = {
 }
 ```
 
-2. **Create MkDocs configuration**:
-   Copy the `docs/mkdocs.yml` file to your project root and customize it as needed.
+2. **Create MkDocs configuration**:  
+   Copy the [`docs/mkdocs.yml`](docs/mkdocs.yml) file to your project root and customize it as needed.
 
 3. **Build documentation**:
 
