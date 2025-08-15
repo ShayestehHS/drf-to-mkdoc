@@ -53,29 +53,7 @@ DRF_TO_MKDOC = {
 ```
 
 2. **Create MkDocs configuration**:
-
-```yaml
-# mkdocs.yml
-site_name: Your API Documentation
-theme:
-  name: material
-  features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
-    - search.highlight
-    - search.share
-
-plugins:
-  - search
-
-nav:
-  - Home: index.md
-  - About: about.md
-  - Models: models/index.md
-  - API Endpoints: endpoints/index.md
-  - Pagination: pagination.md
-```
+   Copy the `docs/mkdocs.yml` file to your project root and customize it as needed.
 
 3. **Build documentation**:
 
