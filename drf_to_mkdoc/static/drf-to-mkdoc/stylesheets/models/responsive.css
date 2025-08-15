@@ -1,0 +1,51 @@
+/* ===== RESPONSIVE DESIGN FOR MODELS ===== */
+
+/* Responsive design improvements */
+@media screen and (max-width: 768px) {
+    .field-grid, .method-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .endpoint-path {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Responsive adjustments for model cards */
+@media screen and (max-width: 768px) {
+    .model-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .model-card {
+        padding: 1rem;
+    }
+
+    .model-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .model-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .model-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .model-badge {
+        align-self: flex-start;
+    }
+}

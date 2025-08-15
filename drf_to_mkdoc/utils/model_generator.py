@@ -1,6 +1,9 @@
 from pathlib import Path
 from typing import Any
 
+from django.templatetags.static import static
+
+from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.common import get_app_descriptions, get_model_description, write_file
 
 
@@ -13,15 +16,33 @@ def create_models_index(models_data: dict[str, Any], docs_dir: Path) -> None:
             models_by_app[app_name] = []
         models_by_app[app_name].append((class_name, model_name, model_info))
 
-    content = """# Django Models\n\nThis section contains documentation for
-     all Django models in the system, organized by Django application.\n\n"""
+    stylesheets = [
+        "stylesheets/models/variables.css",
+        "stylesheets/models/base.css",
+        "stylesheets/models/model-cards.css",
+        "stylesheets/models/responsive.css",
+        "stylesheets/models/animations.css",
+    ]
+    prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
+    css_links = "\n".join(
+        f'<link rel="stylesheet" href="{static(prefix_path + path)}">' for path in stylesheets
+    )
+    content = f"""# Django Models
+
+This section contains documentation for all Django models in the system, organized by Django application.
+
+<!-- inject CSS directly -->
+{css_links}
+
+<div class="models-container">
+"""
 
     app_descriptions = get_app_descriptions()
 
     for app_name in sorted(models_by_app.keys()):
         app_desc = app_descriptions.get(app_name, f"{app_name.title()} application models")
-        content += f'<div class="app-header">{app_name.title()} App</div>\n\n'
-        content += f"*{app_desc}*\n\n"
+        content += f'<div class="app-header">{app_name.title()} App</div>\n'
+        content += f'<div class="app-description">{app_desc}</div>\n\n'
 
         content += '<div class="model-cards">\n'
 
@@ -33,17 +54,19 @@ def create_models_index(models_data: dict[str, Any], docs_dir: Path) -> None:
 
         content += "</div>\n\n"
 
-    content += """## Model Relationships\n\nThe models are interconnected through foreign keys
-     and many-to-many relationships:\n\n- **Users** can be associated
-     with multiple **Clinics** through **ClinicUser**
-     \n- **Doctors** belong to **Clinics**
-     and offer **Services** through **DoctorService**
-     \n- **Appointments** connect **Patients**
-     with **Doctors** and **Services**
-     \n- **Schedules** define **Doctor** availability in specific **Rooms**
-     \n- **Rooms** belong to **Clinics** and host **Appointments**\n
-     \nEach model page contains detailed field documentation,
-     method signatures, and relationships to other models.\n"""
+    content += """</div>
+
+## Model Relationships
+
+The models are interconnected through foreign keys and many-to-many relationships:
+
+- **Users** can be associated with multiple **Clinics** through **ClinicUser**
+- **Doctors** belong to **Clinics** and offer **Services** through **DoctorService**
+- **Appointments** connect **Patients** with **Doctors** and **Services**
+- **Schedules** define **Doctor** availability in specific **Rooms**
+- **Rooms** belong to **Clinics** and host **Appointments**
+
+Each model page contains detailed field documentation, method signatures, and relationships to other models."""
 
     models_index_path = docs_dir / "models" / "index.md"
     models_index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,10 +161,23 @@ def create_model_page(model_info: dict[str, Any]) -> str:
 
 def _create_model_header(name: str, app_label: str, table_name: str, description: str) -> str:
     """Create the header section of the model documentation."""
+    stylesheets = [
+        "stylesheets/models/variables.css",
+        "stylesheets/models/base.css",
+        "stylesheets/models/model-tables.css",
+        "stylesheets/models/responsive.css",
+    ]
+    prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
+    css_links = "\n".join(
+        f'<link rel="stylesheet" href="{static(prefix_path + path)}">' for path in stylesheets
+    )
     return f"""# {name}
 
-**App:** {app_label}\n
-**Table:** `{table_name}`\n
+<!-- inject CSS directly -->
+{css_links}
+
+**App:** {app_label}
+**Table:** `{table_name}`
 
 ## Description
 

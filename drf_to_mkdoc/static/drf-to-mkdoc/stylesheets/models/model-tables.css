@@ -1,0 +1,57 @@
+/* ===== MODEL TABLES AND FIELD GRIDS ===== */
+
+/* Model field tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+}
+
+table th {
+    background-color: var(--md-primary-fg-color--light);
+    color: var(--md-primary-bg-color);
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+table tr:hover {
+    background-color: var(--md-accent-fg-color--transparent);
+}
+
+/* Field and method grids */
+.field-grid, .method-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.field-item, .method-item {
+    background-color: var(--md-default-bg-color);
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 0.2rem;
+    padding: 1rem;
+}
+
+.field-item h4, .method-item h4 {
+    margin-top: 0;
+    color: var(--md-primary-fg-color);
+}
+
+/* Dark mode adjustments for tables and grids */
+[data-md-color-scheme="slate"] .field-item,
+[data-md-color-scheme="slate"] .method-item {
+    background-color: var(--md-code-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+}
+
+[data-md-color-scheme="slate"] table th {
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+}

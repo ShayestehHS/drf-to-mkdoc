@@ -1,0 +1,46 @@
+/* ===== CSS VARIABLES FOR MODELS ===== */
+:root {
+    /* Colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    
+    --accent-primary: #3b82f6;
+    --accent-secondary: #1d4ed8;
+    --accent-hover: #2563eb;
+    
+    /* Shadows */
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
+/* Dark mode */
+[data-md-color-scheme="slate"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    
+    --text-primary: #ffffff;
+    --text-secondary: #e5e5e5;
+    --text-muted: #cccccc;
+    
+    --border-color: #404040;
+    --border-hover: #555555;
+    
+    --accent-primary: #60a5fa;
+    --accent-secondary: #3b82f6;
+    --accent-hover: #93c5fd;
+}

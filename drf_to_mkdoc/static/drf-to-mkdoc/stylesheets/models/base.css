@@ -1,0 +1,83 @@
+/* ===== BASE STYLES FOR MODELS ===== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* Enhanced code blocks */
+.highlight pre {
+    border-left: 4px solid var(--md-primary-fg-color);
+    background-color: var(--md-code-bg-color);
+    padding: 1rem;
+    border-radius: 0.2rem;
+}
+
+/* Navigation enhancements */
+.md-nav__item--active > .md-nav__link {
+    font-weight: 600;
+}
+
+/* Admonition customizations */
+.admonition.note {
+    border-left-color: var(--md-primary-fg-color);
+}
+
+.admonition.tip {
+    border-left-color: #00c853;
+}
+
+.admonition.warning {
+    border-left-color: #ff9800;
+}
+
+.admonition.danger {
+    border-left-color: #f44336;
+}
+
+/* Search result enhancements */
+.md-search-result__meta {
+    color: var(--md-default-fg-color--light);
+}
+
+/* Code syntax highlighting enhancements */
+.codehilite .k { color: #0066cc; }  /* Keywords */
+.codehilite .s { color: #009900; }  /* Strings */
+.codehilite .c { color: #999999; }  /* Comments */
+.codehilite .n { color: #333333; }  /* Names */
+.codehilite .o { color: #666666; }  /* Operators */
+
+/* Custom icons for different sections */
+.md-nav__item[data-md-level="1"] > .md-nav__link[href*="models"] {
+    position: relative;
+}
+
+.md-nav__item[data-md-level="1"] > .md-nav__link[href*="models"]::before {
+    content: "🗃️";
+    margin-right: 0.5rem;
+}
+
+/* Print styles */
+@media print {
+    .md-header, .md-sidebar, .md-footer {
+        display: none;
+    }
+
+    .md-content {
+        margin: 0;
+    }
+
+    .highlight pre {
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+    }
+}
