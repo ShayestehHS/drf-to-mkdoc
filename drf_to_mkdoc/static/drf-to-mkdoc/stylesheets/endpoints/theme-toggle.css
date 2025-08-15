@@ -28,3 +28,15 @@
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
 }
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] .field-item,
+[data-md-color-scheme="slate"] .method-item {
+    background-color: var(--md-code-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+}
+
+[data-md-color-scheme="slate"] table th {
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+}

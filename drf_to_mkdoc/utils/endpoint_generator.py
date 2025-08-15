@@ -551,7 +551,27 @@ def _create_endpoint_header(
     path: str, method: str, operation_id: str, summary: str, description: str
 ) -> str:
     """Create the header section of the endpoint documentation."""
-    content = f"# {method.upper()} {path}\n\n"
+    stylesheets = [
+        "stylesheets/endpoints/endpoint-content.css",
+        "stylesheets/endpoints/badges.css",
+        "stylesheets/endpoints/base.css",
+        "stylesheets/endpoints/responsive.css",
+        "stylesheets/endpoints/theme-toggle.css",
+        "stylesheets/endpoints/layout.css",
+        "stylesheets/endpoints/sections.css",
+        "stylesheets/endpoints/animations.css",
+        "stylesheets/endpoints/accessibility.css",
+        "stylesheets/endpoints/loading.css",
+    ]
+    prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
+    css_links = "\n".join(
+        f'<link rel="stylesheet" href="{static(prefix_path + path)}">' for path in stylesheets
+    )
+    content = f"""
+<!-- inject CSS directly -->
+{css_links}
+"""
+    content += f"# {method.upper()} {path}\n\n"
     content += f"{format_method_badge(method)} `{path}`\n\n"
     content += f"**View class:** {extract_viewset_name_from_operation_id(operation_id)}\n\n"
 
