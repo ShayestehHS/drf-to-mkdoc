@@ -1,0 +1,21 @@
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-contrast: high) {
+    :root {
+        --border-color: #000000;
+        --text-secondary: #000000;
+    }
+
+    [data-theme="dark"],
+    [data-md-color-scheme="slate"] {
+        --border-color: #ffffff;
+        --text-secondary: #ffffff;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

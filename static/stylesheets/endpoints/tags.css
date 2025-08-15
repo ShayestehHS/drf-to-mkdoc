@@ -1,0 +1,92 @@
+/* ===== TAGS ===== */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tag Types - Light Mode */
+.tag.auth {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fbbf24;
+}
+
+.tag.pagination {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #3b82f6;
+}
+
+.tag.search {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #22c55e;
+}
+
+.tag.ordering {
+    background: #fce7f3;
+    color: #be185d;
+    border-color: #ec4899;
+}
+
+.tag.permission {
+    background: #f3e8ff;
+    color: #7c3aed;
+    border-color: #a855f7;
+}
+
+/* Tag Types - Dark Mode */
+[data-theme="dark"] .tag.auth,
+[data-md-color-scheme="slate"] .tag.auth {
+    background: #451a03;
+    color: #fbbf24;
+    border-color: #92400e;
+}
+
+[data-theme="dark"] .tag.pagination,
+[data-md-color-scheme="slate"] .tag.pagination {
+    background: #1e3a8a;
+    color: #60a5fa;
+    border-color: #1e40af;
+}
+
+[data-theme="dark"] .tag.search,
+[data-md-color-scheme="slate"] .tag.search {
+    background: #14532d;
+    color: #4ade80;
+    border-color: #166534;
+}
+
+[data-theme="dark"] .tag.ordering,
+[data-md-color-scheme="slate"] .tag.ordering {
+    background: #831843;
+    color: #f472b6;
+    border-color: #be185d;
+}
+
+[data-theme="dark"] .tag.permission,
+[data-md-color-scheme="slate"] .tag.permission {
+    background: #581c87;
+    color: #c4b5fd;
+    border-color: #7c3aed;
+}

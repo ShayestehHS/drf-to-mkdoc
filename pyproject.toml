@@ -71,6 +71,7 @@ include = ["drf_to_mkdoc*"]
     "conf/*.py",
     "utils/**/*.py",
     "management/**/*.py",
+    "static/**/*",
 ]
 
 [tool.setuptools_scm]

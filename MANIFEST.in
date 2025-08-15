@@ -6,6 +6,7 @@ include pyproject.toml
 recursive-include drf_to_mkdoc/conf *.py
 recursive-include drf_to_mkdoc/utils *.py
 recursive-include drf_to_mkdoc/management *.py
+recursive-include static *
 
 global-exclude *.pyc
 global-exclude *.pyo

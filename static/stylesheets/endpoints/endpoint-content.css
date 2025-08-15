@@ -1,0 +1,48 @@
+/* ===== ENDPOINT CONTENT ===== */
+.endpoint-path {
+    font-family: 'Monaco', 'Menlo', 'SF Mono', monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+    margin-bottom: 8px;
+    word-break: break-all;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    flex: 1;
+    min-width: 0;
+}
+
+.endpoint-description {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.related-models {
+    margin-bottom: 12px;
+}
+
+.related-models-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.models-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.model-badge {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+    border: 1px solid var(--border-color);
+}

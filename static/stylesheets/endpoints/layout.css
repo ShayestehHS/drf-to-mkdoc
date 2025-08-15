@@ -1,0 +1,31 @@
+/* ===== LAYOUT ===== */
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 20px 40px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.page-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+    background: linear-gradient(135deg, var(--accent-primary), #9333ea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin: 0 auto;
+    max-width: 600px;
+}

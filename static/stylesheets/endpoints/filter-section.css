@@ -1,0 +1,209 @@
+/* Filter Section - Fixed Layout */
+.filter-section,
+.filter-sidebar {
+    background: linear-gradient(135deg, #e0f2ff, #ffffff);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box; /* Prevents overflow */
+    position: relative; /* Ensures proper positioning */
+    z-index: 1; /* Prevents overlap with other elements */
+}
+
+.filter-sidebar.collapsed {
+    /* Add styles for collapsed state if needed */
+    overflow: hidden;
+}
+
+.filter-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.filter-input,
+.filter-select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: none;
+    min-height: 40px; /* Consistent height */
+}
+
+.filter-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input:hover,
+.filter-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 20px;
+}
+
+.filter-apply,
+.filter-clear {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-apply {
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+.filter-clear {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.filter-apply:hover {
+    background: var(--accent-secondary);
+    transform: translateY(-1px);
+}
+
+.filter-clear:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.filter-apply:active,
+.filter-clear:active {
+    transform: translateY(0);
+}
+
+.filter-results {
+    margin-top: 16px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Main content layout to prevent overlap */
+.main-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .filter-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .filter-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .filter-apply,
+    .filter-clear {
+        width: 100%;
+    }
+
+    .filter-sidebar {
+        padding: 16px;
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-title {
+        font-size: 18px;
+    }
+
+    .filter-input,
+    .filter-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* Ensure proper spacing with endpoint cards */
+.endpoints-grid {
+    margin-top: 24px;
+    clear: both;
+}
+
+/* Fix any potential z-index issues */
+.filter-sidebar {
+    position: relative;
+    z-index: 10;
+}
+
+.endpoint-card {
+    position: relative;
+    z-index: 1;
+}

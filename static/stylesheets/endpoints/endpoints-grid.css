@@ -1,0 +1,75 @@
+/* ===== ENDPOINTS GRID ===== */
+.endpoints-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 24px 0;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.endpoints-grid.filtering {
+    opacity: 0.7;
+}
+
+/* ===== ENDPOINT CARDS ===== */
+.endpoint-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: var(--text-primary);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.endpoint-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.endpoint-card:hover::before {
+    opacity: 1;
+}
+
+.endpoint-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.endpoint-card:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.endpoint-card.hidden {
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
+    position: absolute;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.endpoint-card > * {
+    position: relative;
+    z-index: 2;
+}

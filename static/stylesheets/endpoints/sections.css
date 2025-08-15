@@ -1,0 +1,35 @@
+/* ===== SECTIONS ===== */
+.app-section,
+.viewset-section {
+    margin-bottom: 48px;
+    transition: opacity 0.3s ease;
+}
+
+.app-title,
+.viewset-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-color);
+    position: relative;
+}
+
+.app-title::before,
+.viewset-title::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(135deg, var(--accent-primary), #9333ea);
+}
+
+.app-description {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+}

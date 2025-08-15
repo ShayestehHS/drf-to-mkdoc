@@ -1,0 +1,44 @@
+/* ===== CONTAINER FIXES ===== */
+.container,
+.content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* ===== FILTER VISIBILITY FIXES ===== */
+.filter-section {
+    position: relative;
+    z-index: 10;
+}
+
+.filter-toggle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Custom dropdown arrow for better cross-browser support */
+.filter-select {
+    cursor: pointer;
+}
+
+.filter-select::-ms-expand {
+    display: none;
+}
+
+/* Ensure proper stacking context */
+.main-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix for potential parent container issues */
+html {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+}
