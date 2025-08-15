@@ -56,15 +56,6 @@ This section contains documentation for all Django models in the system, organiz
 
     content += """</div>
 
-## Model Relationships
-
-The models are interconnected through foreign keys and many-to-many relationships:
-
-- **Users** can be associated with multiple **Clinics** through **ClinicUser**
-- **Doctors** belong to **Clinics** and offer **Services** through **DoctorService**
-- **Appointments** connect **Patients** with **Doctors** and **Services**
-- **Schedules** define **Doctor** availability in specific **Rooms**
-- **Rooms** belong to **Clinics** and host **Appointments**
 
 Each model page contains detailed field documentation, method signatures, and relationships to other models."""
 
