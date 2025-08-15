@@ -186,6 +186,10 @@ def _extract_filterset_fields_from_internal_attrs(filterset_class: Any) -> list[
 
 
 def _extract_filterset_fields_from_get_fields(filterset_class: Any) -> list[str]:
+    if not hasattr(filterset_class, "_meta"):
+        # If the Meta class is not defined in the Filter class,
+        # the get_fields function is raise error
+        return []
     fields = []
 
     # Try get_fields() method if available (for dynamic filters)
