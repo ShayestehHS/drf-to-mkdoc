@@ -292,7 +292,7 @@ def extract_viewset_from_operation_id(operation_id: str):
             return view_func
 
     except Exception as e:
-        raise RuntimeError(f"Failed to resolve path {django_path}: {e}") from e
+        logger.error(f"Failed to resolve path {path}")
 
 
 def extract_viewset_name_from_operation_id(operation_id: str):
