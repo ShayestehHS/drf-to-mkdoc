@@ -334,7 +334,7 @@ def _get_serializer_class_from_schema_name(schema_name: str):
                 continue
 
     except Exception:
-        logger.exception("Failed to get serializser.")
+        logger.exception("Failed to get serializer.")
     return None
 
 
