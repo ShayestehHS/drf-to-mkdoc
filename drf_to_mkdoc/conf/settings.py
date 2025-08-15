@@ -5,6 +5,7 @@ from drf_to_mkdoc.conf.defaults import DEFAULTS
 
 class DRFToMkDocSettings:
     required_settings = ["DJANGO_APPS"]
+    project_settings = {"PROJECT_NAME": "drf-to-mkdoc"}
 
     def __init__(self, user_settings_key="DRF_TO_MKDOC", defaults=None):
         self.user_settings_key = user_settings_key
@@ -13,6 +14,8 @@ class DRFToMkDocSettings:
 
     def get(self, key):
         if key not in self.defaults:
+            if key in self.project_settings:
+                return self.project_settings[key]
             raise AttributeError(f"Invalid DRF_TO_MKDOC setting: '{key}'")
 
         value = self._user_settings.get(key, self.defaults[key])

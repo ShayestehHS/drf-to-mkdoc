@@ -1,89 +1,96 @@
 /* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 1024px) {
-    .filter-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-
-    .main-content {
-        padding: 20px 16px 40px;
+@media (max-width: 1200px) {
+    .endpoints-grid {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
-    .main-content {
-        padding: 70px 16px 40px;
-    }
-
-    .page-title {
-        font-size: 32px;
-    }
-
     .endpoints-grid {
         grid-template-columns: 1fr;
-    }
-
-    .filter-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .filter-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 16px;
-    }
-
-    .filter-title {
-        text-align: center;
-    }
-
-    .theme-toggle {
-        top: 16px;
-        right: 16px;
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-
-    .filter-actions {
-        flex-direction: column;
-        gap: 8px;
+        gap: 12px;
     }
 
     .endpoint-card {
+        padding: 16px;
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
     }
 
-    .method-badge {
-        align-self: flex-start;
+    .endpoint-path {
+        font-size: 14px;
+        padding: 8px;
     }
 
-    .endpoint-path {
-        word-break: break-word;
-        overflow-wrap: break-word;
+    .method-badge {
+        align-self: flex-start;
     }
 }
 
 @media (max-width: 480px) {
-    .main-content {
-        padding: 70px 12px 40px;
-    }
-
-    .filter-section {
-        padding: 16px;
-        margin-bottom: 24px;
-    }
-
-    .page-title {
-        font-size: 28px;
-    }
-
-    .filter-apply,
-    .filter-clear {
-        padding: 12px 16px;
-    }
-
     .endpoint-card {
-        padding: 16px;
+        padding: 12px;
+    }
+
+    .endpoint-path {
+        font-size: 13px;
+        padding: 6px;
+    }
+
+    .method-badge {
+        font-size: 10px;
+        padding: 4px 6px;
+        min-width: 50px;
+    }
+}
+
+/* Responsive design improvements  */
+@media screen and (max-width: 768px) {
+    .field-grid, .method-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .endpoint-path {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Responsive adjustments for model cards  */
+@media screen and (max-width: 768px) {
+    .model-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .model-card {
+        padding: 1rem;
+    }
+
+    .model-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .model-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .model-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .model-badge {
+        align-self: flex-start;
     }
 }

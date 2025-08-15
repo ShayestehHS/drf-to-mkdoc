@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from django.apps import apps
+from django.templatetags.static import static
 from rest_framework import serializers
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
@@ -891,29 +892,44 @@ class EndpointsIndexGenerator:
     def create_endpoints_index(
         self, endpoints_by_app: dict[str, list[dict[str, Any]]], docs_dir: Path
     ) -> None:
-        content = """# API Endpoints
+        stylesheets = [
+            "stylesheets/endpoints/variables.css",
+            "stylesheets/endpoints/base.css",
+            "stylesheets/endpoints/theme-toggle.css",
+            "stylesheets/endpoints/filter-section.css",
+            "stylesheets/endpoints/layout.css",
+            "stylesheets/endpoints/endpoints-grid.css",
+            "stylesheets/endpoints/badges.css",
+            "stylesheets/endpoints/endpoint-content.css",
+            "stylesheets/endpoints/tags.css",
+            "stylesheets/endpoints/sections.css",
+            "stylesheets/endpoints/stats.css",
+            "stylesheets/endpoints/loading.css",
+            "stylesheets/endpoints/animations.css",
+            "stylesheets/endpoints/responsive.css",
+            "stylesheets/endpoints/accessibility.css",
+            "stylesheets/endpoints/fixes.css",
+        ]
 
+        scripts = [
+            "javascripts/endpoints-filter.js",
+        ]
+        prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
+        css_links = "\n".join(
+            f'<link rel="stylesheet" href="{static(prefix_path + path)}">'
+            for path in stylesheets
+        )
+        js_scripts = "\n".join(
+            f'<script src="{static(prefix_path + path)}" defer></script>' for path in scripts
+        )
+
+        content = f"""# API Endpoints
 <!-- inject CSS and JS directly -->
-<link rel="stylesheet" href="../stylesheets/endpoints/variables.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/base.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/theme-toggle.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/filter-section.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/layout.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/endpoints-grid.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/badges.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/endpoint-content.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/tags.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/sections.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/stats.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/loading.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/animations.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/responsive.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/accessibility.css">
-<link rel="stylesheet" href="../stylesheets/endpoints/fixes.css">
-<script src="../javascripts/endpoints-filter.js" defer></script>
+{css_links}
+{js_scripts}
 
 <div class="main-content">
-"""
+        """
         content += self.create_filter_section()
 
         for app_name, endpoints in endpoints_by_app.items():
