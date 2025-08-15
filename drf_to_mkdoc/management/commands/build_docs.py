@@ -6,7 +6,8 @@ from django.apps import apps
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from your_app import drf_to_mkdoc_settings  # Replace with your actual import
+
+from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
 
 class Command(BaseCommand):
