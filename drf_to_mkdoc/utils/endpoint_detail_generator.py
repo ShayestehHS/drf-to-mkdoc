@@ -338,7 +338,9 @@ def _get_serializer_class_from_schema_name(schema_name: str):
     return None
 
 
-def schema_to_example_json(schema: dict, components: dict, for_response: bool = True):
+def schema_to_example_json(
+    operation_id: str, schema: dict, components: dict, for_response: bool = True
+):
     """Recursively generate a JSON example, respecting readOnly/writeOnly based on context."""
     # Ensure schema is a dictionary
     if not isinstance(schema, dict):
@@ -352,13 +354,13 @@ def schema_to_example_json(schema: dict, components: dict, for_response: bool = 
     if explicit_value is not None:
         return explicit_value
 
-    # ENHANCED: Check if this looks like an unanalyzed SerializerMethodField
-    schema = _enhance_method_field_schema(schema, components)
+    # ENHANCED: Check if this looks like a not analyzed SerializerMethodField
+    schema = _enhance_method_field_schema(operation_id, schema, components)
 
-    return _generate_example_by_type(schema, components, for_response)
+    return _generate_example_by_type(operation_id, schema, components, for_response)
 
 
-def _enhance_method_field_schema(schema: dict, _components: dict) -> dict:
+def _enhance_method_field_schema(_operation_id, schema: dict, _components: dict) -> dict:
     """Enhance schema by analyzing SerializerMethodField types."""
     if not isinstance(schema, dict) or "properties" not in schema:
         return schema
@@ -372,7 +374,7 @@ def _enhance_method_field_schema(schema: dict, _components: dict) -> dict:
 
     enhanced_properties = {}
     for prop_name, prop_schema in schema["properties"].items():
-        # Check if this looks like an unanalyzed SerializerMethodField
+        # Check if this looks like a not analyzed SerializerMethodField
         if (
             isinstance(prop_schema, dict)
             and prop_schema.get("type") == "string"
@@ -443,18 +445,22 @@ def _get_explicit_value(schema: dict):
     return None
 
 
-def _generate_example_by_type(schema: dict, components: dict, for_response: bool):
+def _generate_example_by_type(
+    operation_id: str, schema: dict, components: dict, for_response: bool
+):
     """Generate example based on schema type."""
     schema_type = schema.get("type", "object")
 
     if schema_type == "object":
-        return _generate_object_example(schema, components, for_response)
+        return _generate_object_example(operation_id, schema, components, for_response)
     if schema_type == "array":
-        return _generate_array_example(schema, components, for_response)
+        return _generate_array_example(operation_id, schema, components, for_response)
     return _generate_primitive_example(schema_type)
 
 
-def _generate_object_example(schema: dict, components: dict, for_response: bool) -> dict:
+def _generate_object_example(
+    operation_id: str, schema: dict, components: dict, for_response: bool
+) -> dict:
     """Generate example for object type schema."""
     props = schema.get("properties", {})
     result = {}
@@ -462,7 +468,9 @@ def _generate_object_example(schema: dict, components: dict, for_response: bool)
     for prop_name, prop_schema in props.items():
         if _should_skip_property(prop_schema, for_response):
             continue
-        result[prop_name] = schema_to_example_json(prop_schema, components, for_response)
+        result[prop_name] = schema_to_example_json(
+            operation_id, prop_schema, components, for_response
+        )
 
     return result
 
@@ -484,10 +492,12 @@ def _should_skip_property(prop_schema: dict, for_response: bool) -> bool:
     return is_read_only
 
 
-def _generate_array_example(schema: dict, components: dict, for_response: bool) -> list:
+def _generate_array_example(
+    operation_id: str, schema: dict, components: dict, for_response: bool
+) -> list:
     """Generate example for array type schema."""
     items = schema.get("items", {})
-    return [schema_to_example_json(items, components, for_response)]
+    return [schema_to_example_json(operation_id, items, components, for_response)]
 
 
 def _generate_primitive_example(schema_type: str):
@@ -497,7 +507,7 @@ def _generate_primitive_example(schema_type: str):
 
 
 def format_schema_as_json_example(
-    schema_ref: str, components: dict[str, Any], for_response: bool = True
+    operation_id: str, schema_ref: str, components: dict[str, Any], for_response: bool = True
 ) -> str:
     """
     Format a schema as a JSON example, resolving $ref and respecting readOnly/writeOnly flags.
@@ -512,7 +522,9 @@ def format_schema_as_json_example(
         return f"**Error**: Schema `{schema_name}` not found in components."
 
     description = schema.get("description", "")
-    example_json = schema_to_example_json(schema, components, for_response=for_response)
+    example_json = schema_to_example_json(
+        operation_id, schema, components, for_response=for_response
+    )
 
     result = ""
     if description:
@@ -539,8 +551,8 @@ def create_endpoint_page(
     content = _create_endpoint_header(path, method, operation_id, summary, description)
     content += _add_path_parameters(parameters)
     content += _add_query_parameters(method, path, operation_id)
-    content += _add_request_body(request_body, components)
-    content += _add_responses(responses, components)
+    content += _add_request_body(operation_id, request_body, components)
+    content += _add_responses(operation_id, responses, components)
 
     return content
 
@@ -639,7 +651,7 @@ def _add_custom_parameters(operation_id: str, query_params: dict) -> None:
         query_params[queryparam_type].append(parameter["name"])
 
 
-def _add_request_body(request_body: dict, components: dict[str, Any]) -> str:
+def _add_request_body(operation_id: str, request_body: dict, components: dict[str, Any]) -> str:
     """Add request body section to the documentation."""
     if not request_body:
         return ""
@@ -649,27 +661,29 @@ def _add_request_body(request_body: dict, components: dict[str, Any]) -> str:
 
     if req_schema and "$ref" in req_schema:
         content += (
-            format_schema_as_json_example(req_schema["$ref"], components, for_response=False)
+            format_schema_as_json_example(
+                operation_id, req_schema["$ref"], components, for_response=False
+            )
             + "\n"
         )
 
     return content
 
 
-def _add_responses(responses: dict, components: dict[str, Any]) -> str:
+def _add_responses(operation_id: str, responses: dict, components: dict[str, Any]) -> str:
     """Add responses section to the documentation."""
     if not responses:
         return ""
 
     content = "## Responses\n\n"
     for status_code, response_data in responses.items():
-        content += _format_single_response(status_code, response_data, components)
+        content += _format_single_response(operation_id, status_code, response_data, components)
 
     return content
 
 
 def _format_single_response(
-    status_code: str, response_data: dict, components: dict[str, Any]
+    operation_id: str, status_code: str, response_data: dict, components: dict[str, Any]
 ) -> str:
     """Format a single response entry."""
     content = f"### {status_code}\n\n"
@@ -679,22 +693,31 @@ def _format_single_response(
 
     resp_schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
 
-    content += _format_response_schema(resp_schema, components)
+    content += _format_response_schema(operation_id, resp_schema, components)
     return content
 
 
-def _format_response_schema(resp_schema: dict, components: dict[str, Any]) -> str:
+def _format_response_schema(
+    operation_id: str, resp_schema: dict, components: dict[str, Any]
+) -> str:
     """Format the response schema as JSON example."""
     if "$ref" in resp_schema:
         return (
-            format_schema_as_json_example(resp_schema["$ref"], components, for_response=True)
+            format_schema_as_json_example(
+                operation_id, resp_schema["$ref"], components, for_response=True
+            )
             + "\n"
         )
     if resp_schema.get("type") == "array" and "$ref" in resp_schema.get("items", {}):
         item_ref = resp_schema["items"]["$ref"]
-        return format_schema_as_json_example(item_ref, components, for_response=True) + "\n"
+        return (
+            format_schema_as_json_example(operation_id, item_ref, components, for_response=True)
+            + "\n"
+        )
     content = "```json\n"
-    content += json.dumps(schema_to_example_json(resp_schema, components), indent=2)
+    content += json.dumps(
+        schema_to_example_json(operation_id, resp_schema, components), indent=2
+    )
     content += "\n```\n"
     return content
 
