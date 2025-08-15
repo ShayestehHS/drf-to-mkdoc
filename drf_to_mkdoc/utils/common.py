@@ -210,12 +210,7 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
 
         return f"<{converter}:{param_name}>"
 
-    django_path = re.sub(r"{(\w+)}", replacement, path)
-
-    if not django_path.endswith("/"):
-        django_path += "/"
-
-    return django_path
+    return re.sub(r"{(\w+)}", replacement, path)
 
 
 @lru_cache
@@ -281,8 +276,8 @@ def extract_viewset_from_operation_id(operation_id: str):
     if not path:
         raise ValueError(f"Path not found for operation ID: {operation_id}")
 
+    resolved_path = substitute_path_params(path, parameters)
     try:
-        resolved_path = substitute_path_params(path, parameters)
         match = resolve(resolved_path)
         view_func = match.func
         if hasattr(view_func, "view_class"):
@@ -297,7 +292,9 @@ def extract_viewset_from_operation_id(operation_id: str):
             return view_func
 
     except Exception:
-        logger.error(f"Failed to resolve path {path}")
+        logger.error(
+            f"Failed to resolve path.\nschema_path{path}\ntried_path={resolved_path}\n---"
+        )
 
 
 def extract_viewset_name_from_operation_id(operation_id: str):
