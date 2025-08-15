@@ -11,7 +11,8 @@ from drf_to_mkdoc.utils.endpoint_generator import (
     generate_endpoint_files,
     parse_endpoints_from_schema,
 )
-from drf_to_mkdoc.utils.model_generator import create_models_index, generate_model_docs
+from drf_to_mkdoc.utils.model_detail_generator import generate_model_docs
+from drf_to_mkdoc.utils.model_list_generator import create_models_index
 
 
 class Command(BaseCommand):
