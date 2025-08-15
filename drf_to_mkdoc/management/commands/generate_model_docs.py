@@ -9,6 +9,7 @@ from django.db import models
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
+
 class Command(BaseCommand):
     help = "Generate model documentation JSON from Django model introspection"
 

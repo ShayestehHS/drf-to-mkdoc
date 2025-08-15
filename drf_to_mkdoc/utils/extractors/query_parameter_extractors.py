@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
-"""Query parameter extraction utilities for Django views."""
-
 from typing import Any
+
+import django_filters
 
 from drf_to_mkdoc.utils.common import extract_viewset_from_operation_id
 
@@ -116,8 +114,6 @@ def _extract_filterset_fields_from_class_attributes(filterset_class: Any) -> lis
     fields = []
 
     try:
-        import django_filters
-
         # Get all class attributes, including inherited ones
         for attr_name in dir(filterset_class):
             # Skip private attributes and known non-filter attributes

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
+from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.common import get_schema, load_model_json_data
 from drf_to_mkdoc.utils.endpoint_generator import (
     create_endpoints_index,
@@ -11,8 +12,6 @@ from drf_to_mkdoc.utils.endpoint_generator import (
     parse_endpoints_from_schema,
 )
 from drf_to_mkdoc.utils.model_generator import create_models_index, generate_model_docs
-from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-
 
 
 class Command(BaseCommand):

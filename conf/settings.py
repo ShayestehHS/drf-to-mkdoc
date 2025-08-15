@@ -1,5 +1,7 @@
 from django.conf import settings
+
 from .defaults import DEFAULTS
+
 
 class DocBuilderSettings:
     def __init__(self, user_settings_key="DOC_BUILDER", defaults=None):
@@ -14,5 +16,6 @@ class DocBuilderSettings:
 
     def __getattr__(self, key):
         return self.get(key)
+
 
 drf_to_mkdoc_settings = DocBuilderSettings(defaults=DEFAULTS)

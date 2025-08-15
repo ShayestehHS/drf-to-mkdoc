@@ -1,11 +1,13 @@
-#!/usr/bin/env python3
-
 import ast
 import inspect
 import json
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+
+from django.apps import apps
+from rest_framework import serializers
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.common import (
@@ -17,30 +19,35 @@ from drf_to_mkdoc.utils.common import (
     get_custom_schema,
     write_file,
 )
-from drf_to_mkdoc.utils.extractors.query_parameter_extractors import extract_query_parameters_from_view
-from drf_to_mkdoc.utils.md_generators.query_parameters_generators import generate_query_parameters_md
+from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
+    extract_query_parameters_from_view,
+)
+from drf_to_mkdoc.utils.md_generators.query_parameters_generators import (
+    generate_query_parameters_md,
+)
+
+logger = logging.getLogger()
 
 
 def analyze_serializer_method_field_schema(serializer_class, field_name: str) -> dict:
     """Analyze a SerializerMethodField to determine its actual return type schema."""
     method_name = f"get_{field_name}"
 
-
     # Strategy 2: Check type annotations
     schema_from_annotations = _extract_schema_from_type_hints(serializer_class, method_name)
     if schema_from_annotations:
         return schema_from_annotations
-    
+
     # Strategy 3: Analyze method source code
     schema_from_source = _analyze_method_source_code(serializer_class, method_name)
     if schema_from_source:
         return schema_from_source
-    
+
     # Strategy 4: Runtime analysis (sample execution)
     schema_from_runtime = _analyze_method_runtime(serializer_class, method_name)
     if schema_from_runtime:
         return schema_from_runtime
-    
+
     # Fallback to string
     return {"type": "string"}
 
@@ -51,24 +58,24 @@ def _extract_schema_from_decorator(serializer_class, method_name: str) -> dict:
         method = getattr(serializer_class, method_name, None)
         if not method:
             return None
-            
+
         # Check if method has the decorator attribute (drf-spectacular)
-        if hasattr(method, '_spectacular_annotation'):
+        if hasattr(method, "_spectacular_annotation"):
             annotation = method._spectacular_annotation
             # Handle OpenApiTypes
-            if hasattr(annotation, 'type'):
+            if hasattr(annotation, "type"):
                 return {"type": annotation.type}
-            elif isinstance(annotation, dict):
+            if isinstance(annotation, dict):
                 return annotation
-            
+
         # Check for drf-yasg decorator
-        if hasattr(method, '_swagger_serializer_method'):
+        if hasattr(method, "_swagger_serializer_method"):
             swagger_info = method._swagger_serializer_method
-            if hasattr(swagger_info, 'many') and hasattr(swagger_info, 'child'):
+            if hasattr(swagger_info, "many") and hasattr(swagger_info, "child"):
                 return {"type": "array", "items": {"type": "object"}}
-            
+
     except Exception:
-        pass
+        logger.exception("Failed to extract schema from decorator")
     return None
 
 
@@ -78,30 +85,30 @@ def _extract_schema_from_type_hints(serializer_class, method_name: str) -> dict:
         method = getattr(serializer_class, method_name, None)
         if not method:
             return None
-            
+
         signature = inspect.signature(method)
         return_annotation = signature.return_annotation
-        
+
         if return_annotation and return_annotation != inspect.Signature.empty:
             # Handle common type hints
-            if return_annotation == int:
-                return {"type": "integer"}
-            elif return_annotation == str:
-                return {"type": "string"}
-            elif return_annotation == bool:
-                return {"type": "boolean"}
-            elif return_annotation == float:
-                return {"type": "number"}
-            elif hasattr(return_annotation, '__origin__'):
+            if return_annotation in (int, str, bool, float):
+                return {
+                    int: {"type": "integer"},
+                    str: {"type": "string"},
+                    bool: {"type": "boolean"},
+                    float: {"type": "number"},
+                }[return_annotation]
+
+            if hasattr(return_annotation, "__origin__"):
                 # Handle generic types like List[str], Dict[str, Any]
                 origin = return_annotation.__origin__
                 if origin is list:
                     return {"type": "array", "items": {"type": "string"}}
-                elif origin is dict:
+                if origin is dict:
                     return {"type": "object"}
-            
+
     except Exception:
-        pass
+        logger.exception("Failed to extract schema from type hints")
     return None
 
 
@@ -111,18 +118,18 @@ def _analyze_method_source_code(serializer_class, method_name: str) -> dict:
         method = getattr(serializer_class, method_name, None)
         if not method:
             return None
-            
+
         source = inspect.getsource(method)
         tree = ast.parse(source)
-        
+
         # Find return statements and analyze them
         return_analyzer = ReturnStatementAnalyzer()
         return_analyzer.visit(tree)
-        
+
         return _infer_schema_from_return_patterns(return_analyzer.return_patterns)
-        
+
     except Exception:
-        pass
+        logger.exception("Failed to analyze method source code")
     return None
 
 
@@ -130,32 +137,39 @@ def _analyze_method_runtime(serializer_class, method_name: str) -> dict:
     """Analyze method by creating mock instances and examining return values."""
     try:
         # Create a basic mock object with common attributes
-        mock_obj = type('MockObj', (), {
-            'id': 1, 'pk': 1, 'name': 'test', 'count': lambda: 5,
-            'items': type('items', (), {'count': lambda: 3, 'all': lambda: []})()
-        })()
-        
+        mock_obj = type(
+            "MockObj",
+            (),
+            {
+                "id": 1,
+                "pk": 1,
+                "name": "test",
+                "count": lambda: 5,
+                "items": type("items", (), {"count": lambda: 3, "all": lambda: []})(),
+            },
+        )()
+
         serializer_instance = serializer_class()
         method = getattr(serializer_instance, method_name, None)
-        
+
         if not method:
             return None
-            
+
         # Execute method with mock data
         result = method(mock_obj)
         return _infer_schema_from_value(result)
-        
+
     except Exception:
-        pass
+        logger.exception("Failed to analyse method runtime")
     return None
 
 
 class ReturnStatementAnalyzer(ast.NodeVisitor):
     """AST visitor to analyze return statements in method source code."""
-    
+
     def __init__(self):
         self.return_patterns = []
-    
+
     def visit_Return(self, node):
         """Visit return statements and extract patterns."""
         if node.value:
@@ -163,92 +177,86 @@ class ReturnStatementAnalyzer(ast.NodeVisitor):
             if pattern:
                 self.return_patterns.append(pattern)
         self.generic_visit(node)
-    
+
     def _analyze_return_value(self, node) -> dict:
         """Analyze different types of return value patterns."""
         if isinstance(node, ast.Dict):
             return self._analyze_dict_return(node)
-        elif isinstance(node, ast.List):
+        if isinstance(node, ast.List):
             return self._analyze_list_return(node)
-        elif isinstance(node, ast.Constant):
+        if isinstance(node, ast.Constant):
             return self._analyze_constant_return(node)
-        elif isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
             return self._analyze_method_call_return(node)
-        elif isinstance(node, ast.Attribute):
+        if isinstance(node, ast.Attribute):
             return self._analyze_attribute_return(node)
         return None
-    
+
     def _analyze_dict_return(self, node) -> dict:
         """Analyze dictionary return patterns."""
         properties = {}
-        for key, value in zip(node.keys, node.values):
+        for key, value in zip(node.keys, node.values, strict=False):
             if isinstance(key, ast.Constant) and isinstance(key.value, str):
                 prop_schema = self._infer_value_type(value)
                 if prop_schema:
                     properties[key.value] = prop_schema
-        
-        return {
-            "type": "object",
-            "properties": properties
-        }
-    
+
+        return {"type": "object", "properties": properties}
+
     def _analyze_list_return(self, node) -> dict:
         """Analyze list return patterns."""
         if node.elts:
             # Analyze first element to determine array item type
             first_element_schema = self._infer_value_type(node.elts[0])
-            return {
-                "type": "array",
-                "items": first_element_schema or {"type": "string"}
-            }
+            return {"type": "array", "items": first_element_schema or {"type": "string"}}
         return {"type": "array", "items": {"type": "string"}}
-    
+
     def _analyze_constant_return(self, node) -> dict:
         """Analyze constant return values."""
         return self._python_type_to_schema(type(node.value))
-    
+
     def _analyze_method_call_return(self, node) -> dict:
         """Analyze method call returns (like obj.count(), obj.items.all())."""
         if isinstance(node.func, ast.Attribute):
             method_name = node.func.attr
-            
+
             # Common Django ORM patterns
-            if method_name in ['count']:
+            if method_name in ["count"]:
                 return {"type": "integer"}
-            elif method_name in ['all', 'filter', 'exclude']:
+            if method_name in ["all", "filter", "exclude"]:
                 return {"type": "array", "items": {"type": "object"}}
-            elif method_name in ['first', 'last', 'get']:
+            if method_name in ["first", "last", "get"]:
                 return {"type": "object"}
-            elif method_name in ['exists']:
+            if method_name in ["exists"]:
                 return {"type": "boolean"}
-        
+
         return None
-    
+
     def _analyze_attribute_return(self, node) -> dict:
         """Analyze attribute access returns (like obj.name, obj.id)."""
         if isinstance(node, ast.Attribute):
             attr_name = node.attr
-            
+
             # Common field name patterns
-            if attr_name in ['id', 'pk', 'count']:
+            if attr_name in ["id", "pk", "count"]:
                 return {"type": "integer"}
-            elif attr_name in ['name', 'title', 'description', 'slug']:
+            if attr_name in ["name", "title", "description", "slug"]:
                 return {"type": "string"}
-            elif attr_name in ['is_active', 'is_published', 'enabled']:
+            if attr_name in ["is_active", "is_published", "enabled"]:
                 return {"type": "boolean"}
-        
+
         return None
-    
+
     def _infer_value_type(self, node) -> dict:
         """Infer schema type from AST node."""
         if isinstance(node, ast.Constant):
             return self._python_type_to_schema(type(node.value))
-        elif isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
             return self._analyze_method_call_return(node)
-        elif isinstance(node, ast.Attribute):
+        if isinstance(node, ast.Attribute):
             return self._analyze_attribute_return(node)
         return {"type": "string"}  # Default fallback
-    
+
     def _python_type_to_schema(self, python_type) -> dict:
         """Convert Python type to OpenAPI schema."""
         type_mapping = {
@@ -266,20 +274,17 @@ def _infer_schema_from_return_patterns(patterns: list) -> dict:
     """Infer final schema from collected return patterns."""
     if not patterns:
         return None
-    
+
     # If all patterns are the same type, use that
-    if len(set(p.get("type") for p in patterns)) == 1:
+    if all(p.get("type") == patterns[0].get("type") for p in patterns):
         # Merge object properties if multiple object returns
         if patterns[0]["type"] == "object":
             merged_properties = {}
             for pattern in patterns:
                 merged_properties.update(pattern.get("properties", {}))
-            return {
-                "type": "object",
-                "properties": merged_properties
-            }
+            return {"type": "object", "properties": merged_properties}
         return patterns[0]
-    
+
     # Mixed types - could be union, but default to string for OpenAPI compatibility
     return {"type": "string"}
 
@@ -290,55 +295,47 @@ def _infer_schema_from_value(value: Any) -> dict:
         properties = {}
         for key, val in value.items():
             properties[str(key)] = _infer_schema_from_value(val)
-        return {
-            "type": "object",
-            "properties": properties
-        }
-    elif isinstance(value, list):
+        return {"type": "object", "properties": properties}
+    if isinstance(value, list):
         if value:
-            return {
-                "type": "array",
-                "items": _infer_schema_from_value(value[0])
-            }
+            return {"type": "array", "items": _infer_schema_from_value(value[0])}
         return {"type": "array", "items": {"type": "string"}}
-    elif isinstance(value, (int, float, str, bool)):
+    if type(value) in (int, float, str, bool):
         return {
             int: {"type": "integer"},
             float: {"type": "number"},
             str: {"type": "string"},
-            bool: {"type": "boolean"}
+            bool: {"type": "boolean"},
         }[type(value)]
-    else:
-        return {"type": "string"}
+    return {"type": "string"}
 
 
 def _get_serializer_class_from_schema_name(schema_name: str):
     """Try to get the serializer class from schema name."""
     try:
-        # Import Django and get all installed apps
-        import django
-        from django.apps import apps
-        from rest_framework import serializers
-        
         # Search through all apps for the serializer
         for app in apps.get_app_configs():
             app_module = app.module
             try:
                 # Try to import serializers module from the app
-                serializers_module = __import__(f"{app_module.__name__}.serializers", fromlist=[''])
-                
+                serializers_module = __import__(
+                    f"{app_module.__name__}.serializers", fromlist=[""]
+                )
+
                 # Look for serializer class matching the schema name
                 for attr_name in dir(serializers_module):
                     attr = getattr(serializers_module, attr_name)
-                    if (isinstance(attr, type) and 
-                        issubclass(attr, serializers.Serializer) and
-                        attr.__name__.replace('Serializer', '') in schema_name):
+                    if (
+                        isinstance(attr, type)
+                        and issubclass(attr, serializers.Serializer)
+                        and attr.__name__.replace("Serializer", "") in schema_name
+                    ):
                         return attr
             except ImportError:
                 continue
-                
+
     except Exception:
-        pass
+        logger.exception("Failed to get serializser.")
     return None
 
 
@@ -362,35 +359,38 @@ def schema_to_example_json(schema: dict, components: dict, for_response: bool = 
     return _generate_example_by_type(schema, components, for_response)
 
 
-def _enhance_method_field_schema(schema: dict, components: dict) -> dict:
+def _enhance_method_field_schema(schema: dict, _components: dict) -> dict:
     """Enhance schema by analyzing SerializerMethodField types."""
-    if not isinstance(schema, dict) or 'properties' not in schema:
+    if not isinstance(schema, dict) or "properties" not in schema:
         return schema
-    
+
     # Try to get serializer class from schema title or other hints
-    schema_title = schema.get('title', '')
+    schema_title = schema.get("title", "")
     serializer_class = _get_serializer_class_from_schema_name(schema_title)
-    
+
     if not serializer_class:
         return schema
-    
+
     enhanced_properties = {}
-    for prop_name, prop_schema in schema['properties'].items():
+    for prop_name, prop_schema in schema["properties"].items():
         # Check if this looks like an unanalyzed SerializerMethodField
-        if (isinstance(prop_schema, dict) and 
-            prop_schema.get('type') == 'string' and 
-            not prop_schema.get('enum') and 
-            not prop_schema.get('format') and
-            not prop_schema.get('example')):
-            
+        if (
+            isinstance(prop_schema, dict)
+            and prop_schema.get("type") == "string"
+            and not prop_schema.get("enum")
+            and not prop_schema.get("format")
+            and not prop_schema.get("example")
+        ):
             # Try to analyze the method field
-            analyzed_schema = analyze_serializer_method_field_schema(serializer_class, prop_name)
+            analyzed_schema = analyze_serializer_method_field_schema(
+                serializer_class, prop_name
+            )
             enhanced_properties[prop_name] = analyzed_schema
         else:
             enhanced_properties[prop_name] = prop_schema
-    
+
     enhanced_schema = schema.copy()
-    enhanced_schema['properties'] = enhanced_properties
+    enhanced_schema["properties"] = enhanced_properties
     return enhanced_schema
 
 
@@ -942,4 +942,3 @@ def create_endpoints_index(
         ]
     )
     generator.create_endpoints_index(endpoints_by_app, docs_dir)
-

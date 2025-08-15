@@ -1,18 +1,20 @@
-from asyncio.log import logger
 import importlib
-import yaml
 import json
 import re
+from asyncio.log import logger
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
+import yaml
 from django.apps import apps
 from django.core.exceptions import AppRegistryNotReady
 from django.urls import resolve
 from django.utils.module_loading import import_string
 from drf_spectacular.generators import SchemaGenerator
+
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+
 
 class SchemaValidationError(Exception):
     """Custom exception for schema validation errors."""
@@ -37,9 +39,10 @@ def substitute_path_params(path: str, parameters: list[dict[str, Any]]) -> str:
     django_path = re.sub(r"<path:[^>]+>", "dummy/path", django_path)
     django_path = re.sub(r"<[^:>]+>", "dummy", django_path)  # Catch remaining simple params
 
-    return django_path
+    return django_path  # noqa: RET504
 
-def load_schema() -> Optional[dict[str, Any]]:
+
+def load_schema() -> dict[str, Any] | None:
     """Load the OpenAPI schema from doc-schema.yaml"""
     schema_file = Path(drf_to_mkdoc_settings.CONFIG_DIR) / "doc-schema.yaml"
     if not schema_file.exists():
@@ -49,7 +52,7 @@ def load_schema() -> Optional[dict[str, Any]]:
         return yaml.safe_load(f)
 
 
-def load_model_json_data() -> Optional[dict[str, Any]]:
+def load_model_json_data() -> dict[str, Any] | None:
     """Load the JSON mapping data for model information"""
     json_file = Path(drf_to_mkdoc_settings.MODEL_DOCS_FILE)
     if not json_file.exists():
@@ -59,7 +62,7 @@ def load_model_json_data() -> Optional[dict[str, Any]]:
         return json.load(f)
 
 
-def load_doc_config() -> Optional[dict[str, Any]]:
+def load_doc_config() -> dict[str, Any] | None:
     """Load the documentation configuration file"""
     config_file = Path(drf_to_mkdoc_settings.DOC_CONFIG_FILE)
     if not config_file.exists():
@@ -69,7 +72,7 @@ def load_doc_config() -> Optional[dict[str, Any]]:
         return json.load(f)
 
 
-def get_model_docstring(class_name: str) -> Optional[str]:
+def get_model_docstring(class_name: str) -> str | None:
     """Extract docstring from Django model class"""
     try:
         # Check if Django is properly initialized
@@ -167,6 +170,7 @@ def get_custom_schema():
                     raise QueryParamTypeError("Invalid queryparam_type")
     return data
 
+
 def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
     """
     Convert a path with {param} to a Django-style path with <type:param>.
@@ -193,25 +197,26 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
     # Default Django path conversion
     def replacement(match):
         param_name = match.group(1)
-        param_info = next((p for p in parameters if p.get('name') == param_name), {})
-        param_type = param_info.get('schema', {}).get('type')
-        param_format = param_info.get('schema', {}).get('format')
+        param_info = next((p for p in parameters if p.get("name") == param_name), {})
+        param_type = param_info.get("schema", {}).get("type")
+        param_format = param_info.get("schema", {}).get("format")
 
-        if param_type == 'integer':
-            converter = 'int'
-        elif param_type == 'string' and param_format == 'uuid':
-            converter = 'uuid'
+        if param_type == "integer":
+            converter = "int"
+        elif param_type == "string" and param_format == "uuid":
+            converter = "uuid"
         else:
-            converter = 'str'
+            converter = "str"
 
-        return f'<{converter}:{param_name}>'
+        return f"<{converter}:{param_name}>"
 
-    django_path = re.sub(r'{(\w+)}', replacement, path)
+    django_path = re.sub(r"{(\w+)}", replacement, path)
 
-    if not django_path.endswith('/'):
-        django_path += '/'
+    if not django_path.endswith("/"):
+        django_path += "/"
 
     return django_path
+
 
 @lru_cache
 def get_schema():
@@ -291,7 +296,7 @@ def extract_viewset_from_operation_id(operation_id: str):
         else:
             return view_func
 
-    except Exception as e:
+    except Exception:
         logger.error(f"Failed to resolve path {path}")
 
 
