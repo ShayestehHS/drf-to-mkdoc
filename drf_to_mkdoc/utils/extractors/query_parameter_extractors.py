@@ -51,7 +51,7 @@ def extract_query_parameters_from_view_filter_fields(view_class: Any) -> list[st
     elif hasattr(view_class, "filterset_fields") and view_class.filterset_fields:
         filter_fields = sorted(view_class.filterset_fields)
 
-    return filter_fields
+    return list(set(filter_fields))
 
 
 def extract_query_parameters_from_view_ordering_fields(view_class: Any) -> list[str]:
