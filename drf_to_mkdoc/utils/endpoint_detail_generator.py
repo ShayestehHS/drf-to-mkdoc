@@ -56,7 +56,7 @@ def _extract_schema_from_decorator(serializer_class, method_name: str) -> dict:
     try:
         method = getattr(serializer_class, method_name, None)
         if not method:
-            return None
+            return {}
 
         # Check if method has the decorator attribute (drf-spectacular)
         if hasattr(method, "_spectacular_annotation"):
@@ -75,7 +75,7 @@ def _extract_schema_from_decorator(serializer_class, method_name: str) -> dict:
 
     except Exception:
         logger.exception("Failed to extract schema from decorator")
-    return None
+    return {}
 
 
 def _extract_schema_from_type_hints(serializer_class, method_name: str) -> dict:
@@ -83,7 +83,7 @@ def _extract_schema_from_type_hints(serializer_class, method_name: str) -> dict:
     try:
         method = getattr(serializer_class, method_name, None)
         if not method:
-            return None
+            return {}
 
         signature = inspect.signature(method)
         return_annotation = signature.return_annotation
@@ -108,7 +108,7 @@ def _extract_schema_from_type_hints(serializer_class, method_name: str) -> dict:
 
     except Exception:
         logger.exception("Failed to extract schema from type hints")
-    return None
+    return {}
 
 
 def _analyze_method_source_code(serializer_class, method_name: str) -> dict:
@@ -116,7 +116,7 @@ def _analyze_method_source_code(serializer_class, method_name: str) -> dict:
     try:
         method = getattr(serializer_class, method_name, None)
         if not method:
-            return None
+            return {}
 
         source = inspect.getsource(method)
         tree = ast.parse(source)
@@ -129,7 +129,7 @@ def _analyze_method_source_code(serializer_class, method_name: str) -> dict:
 
     except Exception:
         logger.exception("Failed to analyze method source code")
-    return None
+    return {}
 
 
 def _analyze_method_runtime(serializer_class, method_name: str) -> dict:
@@ -152,7 +152,7 @@ def _analyze_method_runtime(serializer_class, method_name: str) -> dict:
         method = getattr(serializer_instance, method_name, None)
 
         if not method:
-            return None
+            return {}
 
         # Execute method with mock data
         result = method(mock_obj)
@@ -160,7 +160,7 @@ def _analyze_method_runtime(serializer_class, method_name: str) -> dict:
 
     except Exception:
         logger.exception("Failed to analyse method runtime")
-    return None
+    return {}
 
 
 class ReturnStatementAnalyzer(ast.NodeVisitor):
@@ -189,7 +189,7 @@ class ReturnStatementAnalyzer(ast.NodeVisitor):
             return self._analyze_method_call_return(node)
         if isinstance(node, ast.Attribute):
             return self._analyze_attribute_return(node)
-        return None
+        return {}
 
     def _analyze_dict_return(self, node) -> dict:
         """Analyze dictionary return patterns."""
@@ -229,7 +229,7 @@ class ReturnStatementAnalyzer(ast.NodeVisitor):
             if method_name in ["exists"]:
                 return {"type": "boolean"}
 
-        return None
+        return {}
 
     def _analyze_attribute_return(self, node) -> dict:
         """Analyze attribute access returns (like obj.name, obj.id)."""
@@ -244,7 +244,7 @@ class ReturnStatementAnalyzer(ast.NodeVisitor):
             if attr_name in ["is_active", "is_published", "enabled"]:
                 return {"type": "boolean"}
 
-        return None
+        return {}
 
     def _infer_value_type(self, node) -> dict:
         """Infer schema type from AST node."""
@@ -272,7 +272,7 @@ class ReturnStatementAnalyzer(ast.NodeVisitor):
 def _infer_schema_from_return_patterns(patterns: list) -> dict:
     """Infer final schema from collected return patterns."""
     if not patterns:
-        return None
+        return {}
 
     # If all patterns are the same type, use that
     if all(p.get("type") == patterns[0].get("type") for p in patterns):
