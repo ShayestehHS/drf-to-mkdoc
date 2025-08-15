@@ -139,20 +139,49 @@ class Command(BaseCommand):
 
     def introspect_relationship(self, field):
         """Introspect relationship fields"""
-        return {
+        # Safely resolve related model label; can be None for generic relations
+        related_model_label = None
+        try:
+            if getattr(field, "related_model", None) is not None:
+                related_model_label = (
+                    f"{field.related_model._meta.app_label}.{field.related_model.__name__}"
+                )
+        except Exception:
+            related_model_label = None
+
+        relationship_data = {
             "name": field.name,
             "type": field.__class__.__name__,
-            "related_model": f"{field.related_model._meta.app_label}."
-            f"{field.related_model.__name__}",
+            "related_model": related_model_label,
             "related_name": getattr(field, "related_name", None),
             "on_delete": self.get_on_delete_name(field),
             "null": getattr(field, "null", False),
             "blank": getattr(field, "blank", False),
-            "many_to_many": field.many_to_many,
-            "one_to_many": field.one_to_many,
-            "many_to_one": field.many_to_one,
-            "one_to_one": field.one_to_one,
+            "many_to_many": getattr(field, "many_to_many", False),
+            "one_to_many": getattr(field, "one_to_many", False),
+            "many_to_one": getattr(field, "many_to_one", False),
+            "one_to_one": getattr(field, "one_to_one", False),
         }
+
+        # Handle Django generic relations where related_model can be None
+        field_class_name = field.__class__.__name__
+        if field_class_name in ("GenericForeignKey", "GenericRelation"):
+            relationship_data["is_generic"] = True
+            # Capture common generic relation details when available
+            for attr_name in (
+                "ct_field",
+                "fk_field",
+                "object_id_field",
+                "content_type_field",
+                "for_concrete_model",
+                "related_query_name",
+            ):
+                if hasattr(field, attr_name):
+                    relationship_data[attr_name] = getattr(field, attr_name)
+        else:
+            relationship_data["is_generic"] = False
+
+        return relationship_data
 
     def get_on_delete_name(self, field):
         """Get readable name for on_delete option"""
