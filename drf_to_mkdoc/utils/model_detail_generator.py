@@ -20,7 +20,7 @@ def generate_model_docs(models_data: dict[str, Any]) -> None:
         write_file(file_path, content)
 
 
-def render_fields_table(fields: dict[str, Any]) -> str:
+def render_column_fields_table(fields: dict[str, Any]) -> str:
     """Render the fields table for a model."""
     content = "## Fields\n\n"
     content += "| Field | Type | Description | Extra |\n"
@@ -30,6 +30,10 @@ def render_fields_table(fields: dict[str, Any]) -> str:
         field_type = field_info.get("type", "Unknown")
         verbose_name = field_info.get("verbose_name", field_name)
         help_text = field_info.get("help_text", "")
+
+        display_name = field_name
+        if field_type in ["ForeignKey", "OneToOneField"]:
+            display_name = f"{field_name}_id"
 
         extra_info = []
         if field_info.get("null"):
@@ -51,7 +55,7 @@ def render_fields_table(fields: dict[str, Any]) -> str:
         extra_str = ", ".join(extra_info) if extra_info else ""
         description_str = help_text or verbose_name
 
-        content += f"| `{field_name}` | {field_type} | {description_str} | {extra_str} |\n"
+        content += f"| `{display_name}` | {field_type} | {description_str} | {extra_str} |\n"
 
     return content
 
@@ -121,35 +125,29 @@ def _create_model_header(name: str, app_label: str, table_name: str, description
 
 def _add_fields_section(model_info: dict[str, Any]) -> str:
     """Add the fields section to the model documentation."""
-    fields = model_info.get("fields", {})
-    non_relationship_fields = {
-        name: info
-        for name, info in fields.items()
-        if info.get("type", "") not in ["ForeignKey", "OneToOneField", "ManyToManyField"]
-    }
-
-    if not non_relationship_fields:
+    column_fields = model_info.get("column_fields", {})
+    if not column_fields:
         return ""
 
-    content = render_fields_table(non_relationship_fields)
-    content += "\n"
-    content += render_choices_tables(non_relationship_fields)
-    content += "\n"
+    content = ""
+
+    column_fields_content = render_column_fields_table(column_fields)
+    if column_fields_content:
+        content += column_fields_content
+        content += "\n"
+
+    choices_content = render_choices_tables(column_fields)
+    if choices_content:
+        content += choices_content
+        content += "\n"
+
     return content
 
 
 def _add_relationships_section(model_info: dict[str, Any]) -> str:
     """Add the relationships section to the model documentation."""
-    fields = model_info.get("fields", {})
-    relationships = model_info.get("relationships", {})
-
-    relationship_fields = {
-        name: info
-        for name, info in fields.items()
-        if info.get("type", "") in ["ForeignKey", "OneToOneField", "ManyToManyField"]
-    }
-
-    if not (relationships or relationship_fields):
+    relationship_fields = model_info.get("relationships", {})
+    if not relationship_fields:
         return ""
 
     content = "## Relationships\n\n"
@@ -157,7 +155,7 @@ def _add_relationships_section(model_info: dict[str, Any]) -> str:
     content += "|-------|------|---------------|\n"
 
     content += _render_relationship_fields(relationship_fields)
-    content += _render_relationships_from_section(relationships)
+    content += _render_relationships_from_section(relationship_fields)
     content += "\n"
 
     return content

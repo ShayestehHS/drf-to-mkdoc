@@ -100,7 +100,7 @@ class Command(BaseCommand):
             "description": self.get_model_description(model),
             "abstract": meta.abstract,
             "proxy": meta.proxy,
-            "fields": {},
+            "column_fields": {},
             "relationships": {},
             "meta_options": self.get_meta_options(meta),
             "methods": self.get_model_methods(model),
@@ -111,10 +111,9 @@ class Command(BaseCommand):
             if field.many_to_many or field.one_to_many or field.many_to_one or field.one_to_one:
                 # Handle relationships separately
                 model_doc["relationships"][field.name] = self.introspect_relationship(field)
-            else:
-                # Handle regular fields
-                model_doc["fields"][field.name] = self.introspect_field(field)
-
+            if not (field.one_to_many or field.many_to_many):
+                # Handle column fields
+                model_doc["column_fields"][field.name] = self.introspect_field(field)
         return model_doc
 
     def introspect_field(self, field):
