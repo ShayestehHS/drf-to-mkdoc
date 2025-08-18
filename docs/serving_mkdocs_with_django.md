@@ -65,30 +65,45 @@ class DocumentationView(View):
             raise Http404("Invalid path")
 
         file_path = (site_dir / path).resolve()
-        site_root = site_dir.resolve()
 
-        # Ensure file is inside site dir and exists
-        if not str(file_path).startswith(str(site_root)):
-            raise Http404("Access denied")
-        if not file_path.exists() or not file_path.is_file():
-            raise Http404("Documentation file not found")
+        # Ensure the file exists and is within the site directory
+        try:
+            file_path = file_path.resolve()
+            site_dir = site_dir.resolve()
 
+            # Security check: ensure file is within site directory
+            if not str(file_path).startswith(str(site_dir)):
+                return HttpResponseRedirect("/docs/404/index.html?error=access_denied")
+
+            if not file_path.exists() or not file_path.is_file():
+                return HttpResponseRedirect("/docs/404/index.html")
+
+        except (OSError, ValueError) as e:
+                return HttpResponseRedirect("/docs/404/index.html?error=invalid_file_path")
+
+        # Determine content type
         content_type, _ = mimetypes.guess_type(str(file_path))
         if content_type is None:
             content_type = "application/octet-stream"
 
-        with file_path.open("rb") as f:
-            response = HttpResponse(f.read(), content_type=content_type)
+        # Read and serve the file
+        try:
+            with Path(file_path).open("rb") as f:
+                response = HttpResponse(f.read(), content_type=content_type)
 
-        # Cache headers (tweak as needed)
-        if content_type.startswith("text/html"):
-            response["Cache-Control"] = "no-cache, no-store, must-revalidate"
-            response["Pragma"] = "no-cache"
-            response["Expires"] = "0"
+            # Set appropriate headers
+            if content_type.startswith("text/html"):
+                response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                response["Pragma"] = "no-cache"
+                response["Expires"] = "0"
+            else:
+                response["Cache-Control"] = "public, max-age=3600"
+
+        except OSError as e:
+            return HttpResponseRedirect("/docs/404/index.html?error=could_not_read_file")
         else:
-            response["Cache-Control"] = "public, max-age=3600"
+            return response
 
-        return response
 ```
 
 ## Permission options
