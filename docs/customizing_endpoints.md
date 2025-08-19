@@ -1,36 +1,84 @@
-# Customizing Endpoint Documentation
 
-This guide explains how to add and override endpoint documentation using a JSON file.
+# Customizing API Endpoint Documentation
 
-## Overview
+`drf-to-mkdoc` automatically generates API documentation from your Django REST Framework (DRF) project using the OpenAPI schema from **DRF Spectacular**. You can refine and extend that documentation using a **custom JSON file**.
 
-drf-to-mkdoc generates endpoint documentation from the OpenAPI schema produced by DRF Spectacular. You can refine and extend that documentation using a `custom_schema.json` file.
+---
 
-By default the project looks for:
+## 1. Where to put your custom schema
 
-- `docs/configs/custom_schema.json`
+By default, the generator looks for:
+docs/configs/custom\_schema.json
 
-You can change the location via the `CUSTOM_SCHEMA_FILE` setting in `DRF_TO_MKDOC`.
 
-## File format
 
-The file is a JSON object keyed by `operationId`. Each entry can override a subset of fields in the OpenAPI operation and optionally append to list fields.
 
-Supported keys per operation:
-- `description` (string)
-- `parameters` (array of OpenAPI Parameter objects)
-- `requestBody` (OpenAPI RequestBody object)
-- `responses` (OpenAPI Responses object)
-- `append_fields` (array of keys to append instead of replace; currently only applies to list-typed fields)
+You can change this path by setting `CUSTOM_SCHEMA_FILE` in your `DRF_TO_MKDOC` settings.
 
-Example (adapted):
+---
+
+## 2. JSON File Format
+
+The file should be a JSON object where **keys are `operationId`s** from your OpenAPI schema. Each key can override or extend the operation’s documentation.
+
+Supported fields for each operation:
+
+- `description` → Text description of the endpoint  
+- `parameters` → Array of OpenAPI parameter objects  
+- `requestBody` → OpenAPI RequestBody object  
+- `responses` → OpenAPI Responses object  
+- `append_fields` → A list of keys that should **append to existing lists instead of replacing them**.  
+   - Currently, this is only useful for fields that are arrays in the schema (e.g., `parameters`).  
+   - If the target field is not a list (like `description`, `responses`, or `requestBody`), `append_fields` is ignored and the value is replaced as usual.  
+   - Example: If you want to **keep auto-generated query parameters** and add your own, include `"parameters"` in `append_fields`.  
+
+---
+
+### Example `custom_schema.json` using all supported keys
 
 ```json
 {
   "clinic_panel_appointments_available_appointment_times_list": {
+    "description": "Shows all available appointment times for a clinic.",
+    "parameters": [
+      {
+        "name": "date",
+        "in": "query",
+        "description": "Filter appointments by date",
+        "required": false,
+        "schema": { "type": "string", "format": "date" },
+        "queryparam_type": "filter_fields"
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "description": "Search appointments by doctor or patient name",
+        "required": false,
+        "schema": { "type": "string" },
+        "queryparam_type": "search_fields"
+      }
+    ],
+    "requestBody": {
+      "description": "Request body for creating an appointment",
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "doctor_id": { "type": "integer" },
+              "patient_id": { "type": "integer" },
+              "date": { "type": "string", "format": "date" },
+              "time_slot": { "type": "string" }
+            },
+            "required": ["doctor_id", "patient_id", "date", "time_slot"]
+          }
+        }
+      }
+    },
     "responses": {
       "200": {
-        "description": "List of available appointment times grouped by date.",
+        "description": "List of available time slots",
         "content": {
           "application/json": {
             "schema": {
@@ -38,23 +86,14 @@ Example (adapted):
               "items": {
                 "type": "object",
                 "properties": {
-                  "date": {
-                    "type": "string",
-                    "description": "Date in DATE_FORMAT"
-                  },
+                  "date": { "type": "string", "description": "Date in DATE_FORMAT" },
                   "time_slots": {
                     "type": "array",
                     "items": {
                       "type": "object",
                       "properties": {
-                        "start_datetime": {
-                          "type": "string",
-                          "description": "Start datetime in DATETIME_FORMAT"
-                        },
-                        "end_datetime": {
-                          "type": "string",
-                          "description": "End datetime in DATETIME_FORMAT"
-                        }
+                        "start_datetime": { "type": "string", "description": "Start datetime" },
+                        "end_datetime": { "type": "string", "description": "End datetime" }
                       },
                       "required": ["start_datetime", "end_datetime"]
                     },
@@ -66,41 +105,69 @@ Example (adapted):
             }
           }
         }
+      },
+      "404": {
+        "description": "No appointments found for the given filters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "detail": { "type": "string", "example": "Appointments not found" }
+              },
+              "required": ["detail"]
+            }
+          }
+        }
       }
-    }
+    },
+    "append_fields": ["parameters"]
   }
 }
-```
+````
 
-## Query parameter metadata
+---
 
-When adding a query parameter (i.e., `{"in": "query"}`), include a `queryparam_type` so it is categorized properly in the generated docs. Supported values:
+## 3. Adding Query Parameters
 
-- `search_fields`
-- `filter_fields`
-- `ordering_fields`
-- `filter_backends`
-- `pagination_fields`
+If you add a **query parameter** (`"in": "query"`), include a `queryparam_type` so it’s categorized properly in the generated docs.
 
-If missing or invalid, generation raises an error to help you correct the entry.
+Supported `queryparam_type` values:
 
-## How it is applied
+* `search_fields` → Used for search filters
+* `filter_fields` → Standard filters
+* `ordering_fields` → Sort fields
+* `filter_backends` → Backend-specific filters
+* `pagination_fields` → Pagination-related fields
 
-- The generator loads the in-memory OpenAPI schema
-- For each `operationId` found in `custom_schema.json`, it:
-  - Locates the corresponding operation in the schema
-  - Replaces supported fields by default
-  - Appends items instead of replacing, for fields listed in `append_fields` (e.g., `parameters`)
-- The merged schema is then used to produce endpoint markdown files
+> ⚠️ If `queryparam_type` is missing or invalid, the generator will raise an error.
 
-## Finding operationIds
+---
 
-Operation IDs are generated by DRF Spectacular. To discover them:
-- Open the generated API endpoint pages; each page includes the operationId
-- Or inspect your OpenAPI JSON/YAML (via the schema endpoint or export)
+## 4. How the custom schema is applied
 
-## Tips
+1. `drf-to-mkdoc` loads your OpenAPI schema.
+2. It reads your `custom_schema.json`.
+3. For each `operationId` in your JSON:
 
-- Keep `custom_schema.json` in version control so the whole team benefits
-- Start small: add descriptions first, then parameters and examples
-- Use `append_fields` when you want to keep auto-generated items and add your own
+   * Finds the corresponding endpoint in the schema
+   * Replaces fields like `description`, `responses`, `parameters`, etc.
+   * Appends items for fields listed in `append_fields` instead of replacing
+4. Generates your markdown documentation using the merged schema
+
+---
+
+## 5. Finding `operationId`s
+
+`operationId`s are generated by DRF Spectacular. You can find them by:
+
+* Checking your API endpoint pages in the browser (each includes the `operationId`)
+* Inspecting the OpenAPI JSON/YAML schema (via `/schema/` endpoint or export)
+
+---
+
+## 6. Tips for smooth usage
+
+* Keep `custom_schema.json` in version control so your team benefits.
+* Start small: add descriptions first, then parameters, then responses.
+* Use `append_fields` if you want to **add extra info** without overwriting auto-generated items.
