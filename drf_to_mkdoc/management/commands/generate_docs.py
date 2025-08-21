@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
@@ -33,100 +31,68 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting documentation generation..."))
 
-        docs_dir = Path(drf_to_mkdoc_settings.DOCS_DIR)
-        docs_dir.mkdir(parents=True, exist_ok=True)
+        docs_dir = self._setup_docs_directory()
 
-        if options["models_only"]:
-            self._generate_models_only()
-        elif options["endpoints_only"]:
-            self._generate_endpoints_only()
-        else:
-            self._generate_all()
+        generate_models = not options["endpoints_only"]
+        generate_endpoints = not options["models_only"]
+
+        models_data = self._load_models_data() if generate_models else {}
+        schema_data = self._load_schema_data() if generate_endpoints else {}
+
+        if generate_models and models_data:
+            self._generate_models_documentation(models_data, docs_dir)
+
+        if generate_endpoints and schema_data:
+            self._generate_endpoints_documentation(schema_data, docs_dir)
 
         self.stdout.write(self.style.SUCCESS("✅ Documentation generation complete!"))
 
-    def _generate_models_only(self):
-        """Generate only model documentation"""
-        self.stdout.write("📋 Generating model documentation...")
+    def _setup_docs_directory(self):
+        docs_dir = Path(drf_to_mkdoc_settings.DOCS_DIR)
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        return docs_dir
 
-        # Load model data
+    def _load_models_data(self):
         json_data = load_model_json_data()
         models_data = json_data.get("models", {}) if json_data else {}
 
         if not models_data:
             self.stdout.write(self.style.WARNING("⚠️  No model data found"))
-            return
 
-        docs_dir = Path(drf_to_mkdoc_settings.DOCS_DIR)
+        return models_data
 
-        # Generate model documentation
-        generate_model_docs(models_data, docs_dir)
-        create_models_index(models_data, docs_dir)
-
-        self.stdout.write(self.style.SUCCESS("✅ Model documentation generated"))
-
-    def _generate_endpoints_only(self):
-        """Generate only endpoint documentation"""
-        self.stdout.write("🔗 Generating endpoint documentation...")
-
-        # Load schema
+    def _load_schema_data(self):
         schema = get_schema()
         if not schema:
             self.stdout.write(self.style.ERROR("❌ Failed to load OpenAPI schema"))
-            return
+            return {}
 
         paths = schema.get("paths", {})
         components = schema.get("components", {})
 
         self.stdout.write(f"📊 Loaded {len(paths)} API paths")
 
-        docs_dir = Path(drf_to_mkdoc_settings.DOCS_DIR)
+        return {"paths": paths, "components": components}
 
-        # Parse and generate endpoints
-        endpoints_by_app = parse_endpoints_from_schema(paths)
-        total_endpoints = generate_endpoint_files(endpoints_by_app, components)
-        create_endpoints_index(endpoints_by_app, docs_dir)
+    def _generate_models_documentation(self, models_data, docs_dir):
+        self.stdout.write("📋 Generating model documentation...")
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✅ Generated {total_endpoints} endpoint files with Django view introspection"
-            )
-        )
-
-    def _generate_all(self):
-        """Generate complete documentation"""
-        self.stdout.write("📚 Generating complete documentation...")
-
-        docs_dir = Path(drf_to_mkdoc_settings.DOCS_DIR)
-
-        # Load data
-        json_data = load_model_json_data()
-        models_data = json_data.get("models", {}) if json_data else {}
-        schema = get_schema()
-
-        if not schema:
-            self.stdout.write(self.style.ERROR("❌ Failed to load OpenAPI schema"))
-            return
-
-        paths = schema.get("paths", {})
-        components = schema.get("components", {})
-
-        self.stdout.write(f"📊 Loaded {len(paths)} API paths")
-
-        # Generate model documentation
-        if models_data:
-            self.stdout.write("📋 Generating model documentation...")
-            try:
-                generate_model_docs(models_data)
-                create_models_index(models_data, docs_dir)
-            except Exception as e:
-                self.stdout.write(self.style.WARNING(f"⚠️  Failed to generate model docs: {e}"))
+        try:
+            generate_model_docs(models_data)
+            create_models_index(models_data, docs_dir)
+            self.stdout.write(self.style.SUCCESS("✅ Model documentation generated"))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"⚠️  Failed to generate model docs: {e}"))
+            if hasattr(self, "_generating_all"):
                 self.stdout.write(self.style.WARNING("Continuing with endpoint generation..."))
-        else:
-            self.stdout.write(self.style.WARNING("⚠️  No model data found"))
+            raise
 
-        # Generate endpoint documentation
+    def _generate_endpoints_documentation(self, schema_data, docs_dir):
         self.stdout.write("🔗 Generating endpoint documentation...")
+
+        paths = schema_data["paths"]
+        components = schema_data["components"]
+
         endpoints_by_app = parse_endpoints_from_schema(paths)
         total_endpoints = generate_endpoint_files(endpoints_by_app, components)
         create_endpoints_index(endpoints_by_app, docs_dir)
