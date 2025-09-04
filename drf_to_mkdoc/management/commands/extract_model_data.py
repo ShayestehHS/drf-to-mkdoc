@@ -11,7 +11,7 @@ from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
 
 class Command(BaseCommand):
-    help = "Generate model documentation JSON from Django model introspection"
+    help = "Extract model data from Django model introspection and save as JSON"
 
     def add_arguments(self, parser):
         parser.add_argument(

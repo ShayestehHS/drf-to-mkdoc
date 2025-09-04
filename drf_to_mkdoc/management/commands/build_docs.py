@@ -34,15 +34,16 @@ class Command(BaseCommand):
             )
 
         try:
-            # Generate the model documentation JSON first
-            self.stdout.write("Generating model documentation...")
-            call_command("generate_model_docs", "--pretty")
-            self.stdout.write(self.style.SUCCESS("Model documentation generated."))
+            # Extract model data from Django models
+            self.stdout.write("Extracting model data...")
+            call_command("extract_model_data", "--pretty")
+            self.stdout.write(self.style.SUCCESS("Model data extracted."))
 
             # Generate the documentation content
-            self.stdout.write("Generating documentation content...")
-            call_command("generate_docs")
-            self.stdout.write(self.style.SUCCESS("Documentation content generated."))
+            self.stdout.write("Building documentation content...")
+            call_command("build_model_docs")
+            call_command("build_endpoint_docs")
+            self.stdout.write(self.style.SUCCESS("Documentation content built."))
 
             # Build the MkDocs site
             self.stdout.write("Building MkDocs site...")
