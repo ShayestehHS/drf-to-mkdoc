@@ -1,2 +1,4 @@
 .venv
 .idea
+dist
+drf_to_mkdoc.egg-info
