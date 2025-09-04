@@ -67,7 +67,11 @@ class Command(BaseCommand):
         return models_data
 
     def _load_schema_data(self):
-        schema = get_schema()
+        try:
+            schema = get_schema()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Failed to load OpenAPI schema: {e}"))
+            return {}
         if not schema:
             self.stdout.write(self.style.ERROR("❌ Failed to load OpenAPI schema"))
             return {}
