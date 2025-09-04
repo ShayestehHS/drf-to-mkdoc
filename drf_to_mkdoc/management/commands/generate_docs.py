@@ -31,11 +31,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("🚀 Starting documentation generation..."))
 
-        docs_dir = self._setup_docs_directory()
-
         generate_models = not options["endpoints_only"]
         generate_endpoints = not options["models_only"]
-
+        if not generate_models and not generate_endpoints:
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ No outputs selected: --models-only and --endpoints-only cannot be used together"
+                )
+            )
+            return
+        docs_dir = self._setup_docs_directory()
         models_data = self._load_models_data() if generate_models else {}
         schema_data = self._load_schema_data() if generate_endpoints else {}
 
