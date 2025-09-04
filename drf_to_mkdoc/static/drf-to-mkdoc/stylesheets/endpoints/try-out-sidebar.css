@@ -426,7 +426,7 @@
 }
 
 /* Response Modal Styles */
-.response-modal {
+#responseModal {
     position: fixed;
     top: 0;
     left: 0;
@@ -452,7 +452,10 @@
 }
 
 .modal-content {
-    position: relative;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: white;
     border-radius: 12px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -461,7 +464,6 @@
     max-height: 80vh;
     overflow: hidden;
     z-index: 10001;
-    margin: auto;
 }
 
 [data-md-color-scheme="slate"] .modal-content {
@@ -518,8 +520,9 @@
 
 .modal-body {
     padding: 20px;
-    max-height: calc(80vh - 100px);
+    max-height: calc(70vh - 80px);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-body .response-header {
