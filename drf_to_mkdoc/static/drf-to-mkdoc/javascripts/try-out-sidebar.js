@@ -44,10 +44,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clean up the path to handle HTML entities and special characters
         if (path) {
-            // Create a temporary element to decode HTML entities
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = path;
-            path = tempDiv.textContent || tempDiv.innerText || path;
+            // Use DOMParser to safely decode HTML entities
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${path}</div>`, 'text/html');
+            const tempDiv = doc.querySelector('div');
+            path = tempDiv ? (tempDiv.textContent || tempDiv.innerText || path) : path;
             
             // Remove any non-printable characters or replace problematic ones
             path = path.replace(/[^\x20-\x7E]/g, ''); // Remove non-ASCII printable characters
@@ -255,29 +256,74 @@ document.addEventListener('DOMContentLoaded', function() {
             if (leftSidebar) {
                 const panelContainer = document.createElement('div');
                 panelContainer.className = 'try-out-container';
-                panelContainer.innerHTML = tryOutPanel;
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(tryOutPanel, 'text/html');
+                const elements = doc.body.children;
+                while (elements.length > 0) {
+                    panelContainer.appendChild(elements[0]);
+                }
                 leftSidebar.prepend(panelContainer);
             
                 // Add response modal to body
                 const modal = document.createElement('div');
-                modal.innerHTML = `
-                    <div class="response-modal" id="responseModal" style="display: none;" role="dialog" aria-modal="true" aria-label="API Response">
-                        <div class="modal-overlay" onclick="closeResponseModal()"></div>
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h3>API Response</h3>
-                                <button class="modal-close" onclick="closeResponseModal()" aria-label="Close">✕</button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="response-header">
-                                    <span>Status: </span>
-                                    <span class="status-badge" id="modalStatusBadge"></span>
-                                </div>
-                                <div class="response-body" id="modalResponseBody"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                modal.id = 'responseModal';
+                modal.style.display = 'none';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-label', 'API Response');
+                
+                const modalOverlay = document.createElement('div');
+                modalOverlay.className = 'modal-overlay';
+                modalOverlay.addEventListener('click', () => TryOutSidebar.closeResponseModal());
+                
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content';
+                
+                const modalHeader = document.createElement('div');
+                modalHeader.className = 'modal-header';
+                
+                const modalTitle = document.createElement('h3');
+                modalTitle.textContent = 'API Response';
+                
+                const modalClose = document.createElement('button');
+                modalClose.className = 'modal-close';
+                modalClose.setAttribute('aria-label', 'Close');
+                modalClose.textContent = '✕';
+                modalClose.addEventListener('click', () => TryOutSidebar.closeResponseModal());
+                
+                modalHeader.appendChild(modalTitle);
+                modalHeader.appendChild(modalClose);
+                
+                const modalBody = document.createElement('div');
+                modalBody.className = 'modal-body';
+                
+                const responseHeader = document.createElement('div');
+                responseHeader.className = 'response-header';
+                
+                const statusLabel = document.createElement('span');
+                statusLabel.textContent = 'Status: ';
+                
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge';
+                statusBadge.id = 'modalStatusBadge';
+                
+                responseHeader.appendChild(statusLabel);
+                responseHeader.appendChild(statusBadge);
+                
+                const responseBody = document.createElement('div');
+                responseBody.className = 'response-body';
+                responseBody.id = 'modalResponseBody';
+                
+                modalBody.appendChild(responseHeader);
+                modalBody.appendChild(responseBody);
+                
+                modalContent.appendChild(modalHeader);
+                modalContent.appendChild(modalBody);
+                
+                modal.appendChild(modalOverlay);
+                modal.appendChild(modalContent);
+                
                 document.body.appendChild(modal);
                 
                 // Initialize tabs
@@ -290,59 +336,130 @@ document.addEventListener('DOMContentLoaded', function() {
     const createMobileTryOut = (tryOutPanel) => {
         // Create floating action button
         const fab = document.createElement('div');
-        fab.innerHTML = `
-            <div class="mobile-try-out-fab" onclick="openMobileTryOut()" role="button" tabindex="0" aria-label="Open Try It Out">
-                <span>🚀</span>
-            </div>
-        `;
+        fab.className = 'mobile-try-out-fab';
+        fab.setAttribute('role', 'button');
+        fab.setAttribute('tabindex', '0');
+        fab.setAttribute('aria-label', 'Open Try It Out');
+        fab.addEventListener('click', () => TryOutSidebar.openMobileTryOut());
+        
+        const fabIcon = document.createElement('span');
+        fabIcon.textContent = '🚀';
+        fab.appendChild(fabIcon);
+        
         document.body.appendChild(fab);
         
         // Create mobile modal
         const mobileModal = document.createElement('div');
-        mobileModal.innerHTML = `
-            <div class="mobile-try-out-modal" id="mobileTryOutModal" style="display: none;">
-                <div class="mobile-modal-overlay" onclick="closeMobileTryOut()"></div>
-                <div class="mobile-modal-content">
-                    <div class="mobile-modal-header">
-                        <h3>🚀 Try It Out</h3>
-                        <button class="mobile-modal-close" onclick="closeMobileTryOut()" aria-label="Close">✕</button>
-                    </div>
-                    <div class="mobile-modal-body" id="mobileTryOutBody"></div>
-                </div>
-            </div>
-        `;
+        mobileModal.className = 'mobile-try-out-modal';
+        mobileModal.id = 'mobileTryOutModal';
+        mobileModal.style.display = 'none';
+        
+        const mobileOverlay = document.createElement('div');
+        mobileOverlay.className = 'mobile-modal-overlay';
+        mobileOverlay.addEventListener('click', () => TryOutSidebar.closeMobileTryOut());
+        
+        const mobileContent = document.createElement('div');
+        mobileContent.className = 'mobile-modal-content';
+        
+        const mobileHeader = document.createElement('div');
+        mobileHeader.className = 'mobile-modal-header';
+        
+        const mobileTitle = document.createElement('h3');
+        mobileTitle.textContent = '🚀 Try It Out';
+        
+        const mobileClose = document.createElement('button');
+        mobileClose.className = 'mobile-modal-close';
+        mobileClose.setAttribute('aria-label', 'Close');
+        mobileClose.textContent = '✕';
+        mobileClose.addEventListener('click', () => TryOutSidebar.closeMobileTryOut());
+        
+        mobileHeader.appendChild(mobileTitle);
+        mobileHeader.appendChild(mobileClose);
+        
+        const mobileBody = document.createElement('div');
+        mobileBody.className = 'mobile-modal-body';
+        mobileBody.id = 'mobileTryOutBody';
+        
+        mobileContent.appendChild(mobileHeader);
+        mobileContent.appendChild(mobileBody);
+        
+        mobileModal.appendChild(mobileOverlay);
+        mobileModal.appendChild(mobileContent);
+        
         document.body.appendChild(mobileModal);
         
         // Mount panel content into mobile body
-        const tmp = document.createElement('div');
-        tmp.innerHTML = tryOutPanel;
-        const panelEl = tmp.querySelector('.try-out-sidebar');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(tryOutPanel, 'text/html');
+        const panelEl = doc.querySelector('.try-out-sidebar');
         if (panelEl) {
             panelEl.classList.add('mobile-try-out');
             document.getElementById('mobileTryOutBody').appendChild(panelEl);
         }
         
         // Add response modal for mobile
-        const responseModal = document.createElement('div');
-        responseModal.innerHTML = `
-            <div class="response-modal" id="responseModal" style="display: none;">
-                <div class="modal-overlay" onclick="closeResponseModal()"></div>
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>API Response</h3>
-                        <button class="modal-close" onclick="closeResponseModal()">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="response-header">
-                            <span>Status: </span>
-                            <span class="status-badge" id="modalStatusBadge"></span>
-                        </div>
-                        <div class="response-body" id="modalResponseBody"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(responseModal);
+        let responseModal = document.getElementById('responseModal');
+        if (!responseModal) {
+            responseModal = document.createElement('div');
+            responseModal.id = 'responseModal';
+            responseModal.style.display = 'none';
+            responseModal.setAttribute('role', 'dialog');
+            responseModal.setAttribute('aria-modal', 'true');
+            responseModal.setAttribute('aria-label', 'API Response');
+            
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'modal-overlay';
+            modalOverlay.addEventListener('click', () => TryOutSidebar.closeResponseModal());
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            
+            const modalHeader = document.createElement('div');
+            modalHeader.className = 'modal-header';
+            
+            const modalTitle = document.createElement('h3');
+            modalTitle.textContent = 'API Response';
+            
+            const modalClose = document.createElement('button');
+            modalClose.className = 'modal-close';
+            modalClose.setAttribute('aria-label', 'Close');
+            modalClose.textContent = '✕';
+            modalClose.addEventListener('click', () => TryOutSidebar.closeResponseModal());
+            
+            modalHeader.appendChild(modalTitle);
+            modalHeader.appendChild(modalClose);
+            
+            const modalBody = document.createElement('div');
+            modalBody.className = 'modal-body';
+            
+            const responseHeader = document.createElement('div');
+            responseHeader.className = 'response-header';
+            
+            const statusLabel = document.createElement('span');
+            statusLabel.textContent = 'Status: ';
+            
+            const statusBadge = document.createElement('span');
+            statusBadge.className = 'status-badge';
+            statusBadge.id = 'modalStatusBadge';
+            
+            responseHeader.appendChild(statusLabel);
+            responseHeader.appendChild(statusBadge);
+            
+            const responseBody = document.createElement('div');
+            responseBody.className = 'response-body';
+            responseBody.id = 'modalResponseBody';
+            
+            modalBody.appendChild(responseHeader);
+            modalBody.appendChild(responseBody);
+            
+            modalContent.appendChild(modalHeader);
+            modalContent.appendChild(modalBody);
+            
+            responseModal.appendChild(modalOverlay);
+            responseModal.appendChild(modalContent);
+            
+            document.body.appendChild(responseModal);
+        }
         
         // Initialize tabs for mobile
         setTimeout(() => initTabs(), 100);
@@ -389,113 +506,151 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Global mobile functions
-function openMobileTryOut() {
-    const modal = document.getElementById('mobileTryOutModal');
-    if (modal) {
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeMobileTryOut() {
-    const modal = document.getElementById('mobileTryOutModal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-}
-
-// Global functions for the try-out panel
-function addQueryParam() {
-    const container = document.getElementById('queryParams');
-    if (!container) return;
-    
-    const kvItem = document.createElement('div');
-    kvItem.className = 'kv-item';
-    kvItem.innerHTML = `
-        <input type="text" placeholder="Parameter name" list="queryParamSuggestions">
-        <input type="text" placeholder="Parameter value">
-        <button class="remove-btn" onclick="removeKvItem(this)">✕</button>
-    `;
-    container.appendChild(kvItem);
-}
-
-function addHeader() {
-    const container = document.getElementById('requestHeaders');
-    if (!container) return;
-    
-    const kvItem = document.createElement('div');
-    kvItem.className = 'kv-item';
-    kvItem.innerHTML = `
-        <input type="text" placeholder="Header name" list="headerSuggestions">
-        <input type="text" placeholder="Header value">
-        <button class="remove-btn" onclick="removeKvItem(this)">✕</button>
-    `;
-    container.appendChild(kvItem);
-}
-
-function removeKvItem(button) {
-    if (button && button.parentElement) {
-        button.parentElement.remove();
-        updateUrlFromParams();
-    }
-}
-
-function updateUrlFromParams() {
-    // This function is no longer needed since we don't show the full URL
-}
-
-function closeResponseModal() {
-    const modal = document.getElementById('responseModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function showResponseModal(status, responseText) {
-    const modal = document.getElementById('responseModal');
-    const statusBadge = document.getElementById('modalStatusBadge');
-    const responseBody = document.getElementById('modalResponseBody');
-    
-    if (modal && statusBadge && responseBody) {
-        statusBadge.textContent = String(status);
-        const code = Number(status);
-        statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
-        
-        try {
-            const jsonResponse = JSON.parse(responseText);
-            responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
-        } catch (e) {
-            responseBody.textContent = responseText;
+// Create namespace to avoid global pollution
+window.TryOutSidebar = {
+    openMobileTryOut: function() {
+        const modal = document.getElementById('mobileTryOutModal');
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
-        
-        modal.style.display = 'block';
-    }
-}
+    },
 
-function validateRequiredParams() {
-    const requiredInputs = document.querySelectorAll('#pathParams input[required]');
-    const emptyParams = [];
-    
-    requiredInputs.forEach(input => {
-        if (!input.value.trim()) {
-            const paramName = input.getAttribute('data-param');
-            emptyParams.push(paramName);
-            input.classList.add('error');
-            input.addEventListener('input', () => input.classList.remove('error'), { once: true });
+    closeMobileTryOut: function() {
+        const modal = document.getElementById('mobileTryOutModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
         }
-    });
-    
-    return emptyParams;
-}
+    },
+
+    addQueryParam: function() {
+        const container = document.getElementById('queryParams');
+        if (!container) return;
+        
+        const kvItem = document.createElement('div');
+        kvItem.className = 'kv-item';
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Parameter name';
+        nameInput.setAttribute('list', 'queryParamSuggestions');
+        
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.placeholder = 'Parameter value';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => TryOutSidebar.removeKvItem(removeBtn));
+        
+        kvItem.appendChild(nameInput);
+        kvItem.appendChild(valueInput);
+        kvItem.appendChild(removeBtn);
+        container.appendChild(kvItem);
+    },
+
+    addHeader: function() {
+        const container = document.getElementById('requestHeaders');
+        if (!container) return;
+        
+        const kvItem = document.createElement('div');
+        kvItem.className = 'kv-item';
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Header name';
+        nameInput.setAttribute('list', 'headerSuggestions');
+        
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.placeholder = 'Header value';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => TryOutSidebar.removeKvItem(removeBtn));
+        
+        kvItem.appendChild(nameInput);
+        kvItem.appendChild(valueInput);
+        kvItem.appendChild(removeBtn);
+        container.appendChild(kvItem);
+    },
+
+    removeKvItem: function(button) {
+        if (button && button.parentElement) {
+            button.parentElement.remove();
+            TryOutSidebar.updateUrlFromParams();
+        }
+    },
+
+    updateUrlFromParams: function() {
+        // This function is no longer needed since we don't show the full URL
+    },
+
+    closeResponseModal: function() {
+        const modal = document.getElementById('responseModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    },
+
+    showResponseModal: function(status, responseText) {
+        const modal = document.getElementById('responseModal');
+        const statusBadge = document.getElementById('modalStatusBadge');
+        const responseBody = document.getElementById('modalResponseBody');
+        
+        if (modal && statusBadge && responseBody) {
+            statusBadge.textContent = String(status);
+            const code = Number(status);
+            statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
+            
+            try {
+                const jsonResponse = JSON.parse(responseText);
+                responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
+            } catch (e) {
+                responseBody.textContent = responseText;
+            }
+            
+            modal.style.display = 'block';
+        }
+    },
+
+    validateRequiredParams: function() {
+        const requiredInputs = document.querySelectorAll('#pathParams input[required]');
+        const emptyParams = [];
+        
+        requiredInputs.forEach(input => {
+            if (!input.value.trim()) {
+                const paramName = input.getAttribute('data-param');
+                emptyParams.push(paramName);
+                input.classList.add('error');
+                input.addEventListener('input', () => input.classList.remove('error'), { once: true });
+            }
+        });
+        
+        return emptyParams;
+    }
+};
+
+// Legacy global functions for backward compatibility (deprecated)
+function openMobileTryOut() { TryOutSidebar.openMobileTryOut(); }
+function closeMobileTryOut() { TryOutSidebar.closeMobileTryOut(); }
+function addQueryParam() { TryOutSidebar.addQueryParam(); }
+function addHeader() { TryOutSidebar.addHeader(); }
+function removeKvItem(button) { TryOutSidebar.removeKvItem(button); }
+function updateUrlFromParams() { TryOutSidebar.updateUrlFromParams(); }
+function closeResponseModal() { TryOutSidebar.closeResponseModal(); }
+function showResponseModal(status, responseText) { TryOutSidebar.showResponseModal(status, responseText); }
+function validateRequiredParams() { return TryOutSidebar.validateRequiredParams(); }
 
 async function executeRequest() {
     const executeBtn = document.getElementById('executeBtn');
     if (!executeBtn) return;
     
     // Validate required parameters
-    const emptyParams = validateRequiredParams();
+    const emptyParams = TryOutSidebar.validateRequiredParams();
     if (emptyParams.length > 0) {
         alert(`Please fill in the required parameters: ${emptyParams.join(', ')}`);
         return;
@@ -503,7 +658,12 @@ async function executeRequest() {
     
     // Update button state
     executeBtn.disabled = true;
-    executeBtn.innerHTML = '<div class="spinner"></div> Sending...';
+    executeBtn.textContent = '';
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    const text = document.createTextNode(' Sending...');
+    executeBtn.appendChild(spinner);
+    executeBtn.appendChild(text);
     
     try {
         // Get base URL and construct full URL
@@ -555,10 +715,11 @@ async function executeRequest() {
         
         // Clean up the path to handle HTML entities and special characters
         if (path) {
-            // Create a temporary element to decode HTML entities
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = path;
-            path = tempDiv.textContent || tempDiv.innerText || path;
+            // Use DOMParser to safely decode HTML entities
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${path}</div>`, 'text/html');
+            const tempDiv = doc.querySelector('div');
+            path = tempDiv ? (tempDiv.textContent || tempDiv.innerText || path) : path;
             
             // Remove any non-printable characters or replace problematic ones
             path = path.replace(/[^\x20-\x7E]/g, ''); // Remove non-ASCII printable characters
@@ -674,14 +835,35 @@ async function executeRequest() {
         const responseText = await response.text();
         
         // Show response in modal
-        showResponseModal(response.status, responseText);
+        TryOutSidebar.showResponseModal(response.status, responseText);
         
     } catch (error) {
-        // Show error in modal
-        showResponseModal('Error', `Error: ${error.message}`);
+        // Enhanced error handling with specific error types
+        let errorMessage = 'Unknown error occurred';
+        let errorType = 'Error';
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorType = 'Network Error';
+            errorMessage = 'Failed to connect to the server. Please check your internet connection and try again.';
+        } else if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+            errorType = 'JSON Parse Error';
+            errorMessage = 'Invalid JSON in request body. Please check your input and try again.';
+        } else if (error.message.includes('CORS')) {
+            errorType = 'CORS Error';
+            errorMessage = 'Cross-origin request blocked. The server may not allow requests from this domain.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        TryOutSidebar.showResponseModal(errorType, errorMessage);
     } finally {
         // Reset button
         executeBtn.disabled = false;
-        executeBtn.innerHTML = '<span>▶</span> Execute Request';
+        executeBtn.textContent = '';
+        const playIcon = document.createElement('span');
+        playIcon.textContent = '▶';
+        const text = document.createTextNode(' Execute Request');
+        executeBtn.appendChild(playIcon);
+        executeBtn.appendChild(text);
     }
 }
