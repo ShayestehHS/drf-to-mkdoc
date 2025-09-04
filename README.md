@@ -27,13 +27,14 @@ INSTALLED_APPS = [
 
 # Required for OpenAPI schema generation
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',  # Use our custom AutoSchema
 }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Your API',
     'DESCRIPTION': 'Your API description',
     'VERSION': '1.0.0',
+
 }
 
 DRF_TO_MKDOC = {
@@ -72,6 +73,7 @@ python manage.py build_docs --settings=docs_settings
 ## What you get
 
 See a detailed overview of generated files in `docs/structure.md` and a feature breakdown in `docs/features.md`.
+
 
 ## How it works
 
