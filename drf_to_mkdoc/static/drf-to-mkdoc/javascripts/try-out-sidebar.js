@@ -667,8 +667,18 @@ async function executeRequest() {
     
     try {
         // Get base URL and construct full URL
-        const baseUrl = document.getElementById('baseUrl').value.trim() || window.location.origin;
-        
+        // Validate and normalize the Base URL, restricting scheme to http/https
+        const baseInput = (document.getElementById('baseUrl').value || '').trim() || window.location.origin;
+        let base;
+        try {
+            base = new URL(baseInput, window.location.origin);
+        } catch (_) {
+            throw new Error('Invalid Base URL');
+        }
+        if (!/^https?:$/.test(base.protocol)) {
+            throw new Error('Base URL must use http or https');
+        }
+        const baseUrl = base.href;
         // Get endpoint info from the current page
         let path = '';
         let method = 'GET';
