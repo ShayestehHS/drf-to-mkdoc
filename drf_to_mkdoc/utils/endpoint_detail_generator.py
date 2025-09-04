@@ -572,14 +572,22 @@ def _create_endpoint_header(
         "stylesheets/endpoints/animations.css",
         "stylesheets/endpoints/accessibility.css",
         "stylesheets/endpoints/loading.css",
+        "stylesheets/endpoints/try-out-sidebar.css",
+    ]
+    scripts = [
+        "javascripts/try-out-sidebar.js",
     ]
     prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
     css_links = "\n".join(
         f'<link rel="stylesheet" href="{static(prefix_path + path)}">' for path in stylesheets
     )
+    js_scripts = "\n".join(
+        f'<script src="{static(prefix_path + path)}" defer></script>' for path in scripts
+    )
     content = f"""
-<!-- inject CSS directly -->
+<!-- inject CSS and JS directly -->
 {css_links}
+{js_scripts}
 """
     content += f"# {method.upper()} {path}\n\n"
     content += f"{format_method_badge(method)} `{path}`\n\n"
