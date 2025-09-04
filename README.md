@@ -27,19 +27,14 @@ INSTALLED_APPS = [
 
 # Required for OpenAPI schema generation
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',  # Use our custom AutoSchema
 }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Your API',
     'DESCRIPTION': 'Your API description',
     'VERSION': '1.0.0',
-    # Postprocessing functions that run at the end of schema generation.
-    # must satisfy interface result = hook(generator, request, public, result)
-    'POSTPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.postprocess_schema_enums',
-        'drf_to_mkdoc.utils.hooks.add_view_metadata',  # Required for metadata extraction
-    ],
+
 }
 
 DRF_TO_MKDOC = {
@@ -79,27 +74,6 @@ python manage.py build_docs --settings=docs_settings
 
 See a detailed overview of generated files in `docs/structure.md` and a feature breakdown in `docs/features.md`.
 
-## Postprocessing Hooks Configuration
-
-drf-to-mkdoc requires specific postprocessing hooks to extract view metadata from your DRF views. These hooks must be configured in your `SPECTACULAR_SETTINGS`:
-
-```python
-SPECTACULAR_SETTINGS = {
-    # ... your other settings
-    'POSTPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.postprocess_schema_enums',
-        'drf_to_mkdoc.utils.hooks.add_view_metadata',  # Required for metadata extraction
-    ],
-}
-```
-
-The `add_view_metadata` hook extracts important information from your views including:
-- View class names and module paths
-- Action names for ViewSets
-- Serializer classes (including action-specific serializers)
-- Error handling information
-
-**Important**: Without this hook, the documentation generation will fail with a clear error message guiding you to add the required postprocessing hook.
 
 ## How it works
 

@@ -221,7 +221,6 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
 @lru_cache
 def get_schema():
     base_schema = SchemaGenerator().get_schema(request=None, public=True)
-
     custom_data = get_custom_schema()
     if not custom_data:
         return base_schema
@@ -232,14 +231,11 @@ def get_schema():
         for method, op_data in actions.items():
             if not op_data.get("x-metadata"):
                 raise ValueError(
-                    "Missing x-metadata in OpenAPI schema. Please add the required postprocessing hook to your SPECTACULAR_SETTINGS:\n"
-                    "SPECTACULAR_SETTINGS = {\n"
-                    "    'POSTPROCESSING_HOOKS': [\n"
-                    "        'drf_spectacular.hooks.postprocess_schema_enums',\n"
-                    "        'drf_to_mkdoc.utils.hooks.add_view_metadata',\n"
-                    "    ],\n"
+                    "Missing x-metadata in OpenAPI schema. Please ensure you're using the custom AutoSchema in your REST_FRAMEWORK settings:\n"
+                    "REST_FRAMEWORK = {\n"
+                    "    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',\n"
                     "}\n"
-                    "This hook is required to extract view metadata for documentation generation."
+                    "This custom AutoSchema automatically adds view metadata during schema generation."
                 )
             operation_id = op_data.get("operationId")
             if operation_id:

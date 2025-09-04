@@ -1,5 +1,8 @@
 import logging
+from typing import Any
 
+from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
+from drf_spectacular.plumbing import ComponentRegistry
 from rest_framework.viewsets import ViewSetMixin
 
 logger = logging.getLogger(__name__)
@@ -79,39 +82,58 @@ def _extract_view_metadata(view, callback, method):
     }
 
 
-def add_view_metadata(result, generator, **_kwargs):
+class AutoSchema(SpectacularAutoSchema):
     """
-    Postprocessing hook to add view metadata, action name, and serializer class
-    for each operation in the generated OpenAPI schema.
-    Handles action-specific serializer classes from @action decorator.
+    Custom AutoSchema that extends drf_spectacular's AutoSchema to add view metadata
+    directly to the operation during schema generation instead of using a postprocessing hook.
     """
-    endpoint_map = {}  # {(path, method): {"view": view, "callback": callback, ...}}
 
-    for path, _path_regex, method, callback in generator.endpoints:
-        view = callback.cls  # actual view class
-        metadata = _extract_view_metadata(view, callback, method)
-        endpoint_map[(path, method.lower())] = metadata
+    def get_operation(
+        self,
+        path: str,
+        path_regex: str,
+        path_prefix: str,
+        method: str,
+        registry: ComponentRegistry,
+    ) -> dict[str, Any] | None:
+        # Call the parent's get_operation to get the base operation
+        operation = super().get_operation(path, path_regex, path_prefix, method, registry)
 
-    # Apply metadata to OpenAPI operations
-    for path, path_item in result.get("paths", {}).items():
-        for method, operation in path_item.items():
-            # Skip non-operation items (like 'parameters', 'summary', etc.)
-            if method.lower() not in [
-                "get",
-                "post",
-                "put",
-                "patch",
-                "delete",
-                "head",
-                "options",
-            ]:
-                continue
+        if operation:
+            try:
+                # Extract metadata from the view
+                view = self.view.__class__
+                callback = self._get_callback_obj()
+                metadata = _extract_view_metadata(view, callback, method)
 
-            meta = endpoint_map.get((path, method.lower()))
-            if not meta:
-                continue
+                # Add metadata to the operation
+                operation.setdefault("x-metadata", {})
+                operation["x-metadata"].update(metadata)
+            except Exception:
+                # Log the error but don't break schema generation
+                logger.exception("Error adding metadata to operation")
 
-            operation.setdefault("x-metadata", {})
-            operation["x-metadata"].update(meta)
+        return operation
 
-    return result
+    def _get_callback_obj(self):
+        """
+        Helper method to get the callback object with actions.
+        This is needed to extract the action name from the callback.
+        """
+        # Access the view's action_map or action to determine the mapping
+        actions = {}
+
+        # For ViewSets, the action_map contains the method->action mapping
+        if hasattr(self.view, "action_map") and self.view.action_map is not None:
+            actions = {m.lower(): a for m, a in self.view.action_map.items()}
+        # For APIViews with an explicit action
+        elif hasattr(self.view, "action"):
+            actions = {self.method.lower(): self.view.action}
+
+        # Create a callback-like object with the necessary attributes
+        class CallbackObj:
+            def __init__(self, view_cls, actions_dict):
+                self.cls = view_cls
+                self.actions = actions_dict
+
+        return CallbackObj(self.view.__class__, actions)
