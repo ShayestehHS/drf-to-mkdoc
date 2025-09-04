@@ -61,6 +61,14 @@ DRF_TO_MKDOC = {
 python manage.py build_docs --settings=docs_settings
 ```
 
+## Available Commands
+
+- `build_docs`: Build the complete documentation site with MkDocs
+- `build_endpoint_docs`: Build endpoint documentation from OpenAPI schema
+- `build_model_docs`: Build model documentation from model JSON data
+- `extract_model_data`: Extract model data from Django model introspection and save as JSON
+- `update_doc_schema`: Update the final schema by copying the documented schema
+
 ## What you get
 
 See a detailed overview of generated files in `docs/structure.md` and a feature breakdown in `docs/features.md`.
@@ -105,8 +113,9 @@ drf-to-mkdoc/
 │   ├── management/
 │   │   └── commands/
 │   │       ├── build_docs.py           # Build MkDocs site
-│   │       ├── generate_docs.py        # Main documentation generator
-│   │       ├── generate_model_docs.py  # Model documentation
+│   │       ├── build_endpoint_docs.py  # Build endpoint documentation
+│   │       ├── build_model_docs.py     # Build model documentation
+│   │       ├── extract_model_data.py   # Extract model data from Django
 │   │       └── update_doc_schema.py    # Schema updates
 │   └── utils/
 │       ├── common.py        # Shared utilities
@@ -173,4 +182,4 @@ your-project/
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines. 
-This will ensure that only the source configuration and scripts are versioned, while the generated documentation is excluded. 
+This will ensure that only the source configuration and scripts are versioned, while the generated documentation is excluded.
