@@ -230,6 +230,17 @@ def get_schema():
     op_map = {}
     for path, actions in base_schema.get("paths", {}).items():
         for method, op_data in actions.items():
+            if not op_data.get("x-metadata"):
+                raise ValueError(
+                    "Missing x-metadata in OpenAPI schema. Please add the required postprocessing hook to your SPECTACULAR_SETTINGS:\n"
+                    "SPECTACULAR_SETTINGS = {\n"
+                    "    'POSTPROCESSING_HOOKS': [\n"
+                    "        'drf_spectacular.hooks.postprocess_schema_enums',\n"
+                    "        'drf_to_mkdoc.utils.hooks.add_view_metadata',\n"
+                    "    ],\n"
+                    "}\n"
+                    "This hook is required to extract view metadata for documentation generation."
+                )
             operation_id = op_data.get("operationId")
             if operation_id:
                 op_map[operation_id] = (path, method)
