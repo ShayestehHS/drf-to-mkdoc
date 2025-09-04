@@ -131,10 +131,64 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         <datalist id="queryParamSuggestions">
-                            ${Array.from(document.querySelectorAll('ul li code')).map(code => {
-                                const name = (code.textContent || '').trim();
-                                return name ? `<option value="${escapeHtml(name)}">` : '';
-                            }).join('')}
+                            ${(() => {
+                                const suggestions = new Set();
+                                
+                                // Find query parameters section by looking for h2 with id="query-parameters"
+                                const queryParamsHeading = document.querySelector('h2[id="query-parameters"]');
+                                if (queryParamsHeading) {
+                                    // Look for the next ul element after this heading
+                                    let nextElement = queryParamsHeading.nextElementSibling;
+                                    while (nextElement && nextElement.tagName !== 'UL') {
+                                        nextElement = nextElement.nextElementSibling;
+                                    }
+                                    if (nextElement) {
+                                        const queryParamElements = nextElement.querySelectorAll('li code');
+                                        queryParamElements.forEach(code => {
+                                            const name = (code.textContent || '').trim();
+                                            if (name) {
+                                                suggestions.add(name);
+                                            }
+                                        });
+                                    }
+                                }
+                                
+                                // Find search parameters section by looking for h3 with id="search-parameters"
+                                const searchParamsHeading = document.querySelector('h3[id="search-parameters"]');
+                                if (searchParamsHeading) {
+                                    // Look for the next ul element after this heading
+                                    let nextElement = searchParamsHeading.nextElementSibling;
+                                    while (nextElement && nextElement.tagName !== 'UL') {
+                                        nextElement = nextElement.nextElementSibling;
+                                    }
+                                    if (nextElement) {
+                                        const searchParamItems = nextElement.querySelectorAll('li code');
+                                        if (searchParamItems.length > 0) {
+                                            suggestions.add('search');
+                                        }
+                                        // Also add the actual search parameter names
+                                        searchParamItems.forEach(code => {
+                                            const name = (code.textContent || '').trim();
+                                            if (name) {
+                                                suggestions.add(name);
+                                            }
+                                        });
+                                    }
+                                }
+                                
+                                // Fallback: if no specific sections found, look for any ul li code elements
+                                if (suggestions.size === 0) {
+                                    const fallbackElements = document.querySelectorAll('ul li code');
+                                    fallbackElements.forEach(code => {
+                                        const name = (code.textContent || '').trim();
+                                        if (name) {
+                                            suggestions.add(name);
+                                        }
+                                    });
+                                }
+                                
+                                return Array.from(suggestions).map(name => `<option value="${escapeHtml(name)}">`).join('');
+                            })()}
                         </datalist>
                         <button class="add-btn" onclick="addQueryParam()">
                             <span>+</span> Add Parameter
