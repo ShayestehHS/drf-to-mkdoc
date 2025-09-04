@@ -767,10 +767,10 @@ async function executeRequest() {
                     const escaped = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     url = url.replace(new RegExp(`\\{${escaped}\\}`, 'g'), paramValue);
                     console.log(`URL after replacing {${paramName}}: ${beforeReplace} -> ${url}`);
-                } else if (paramName) {
-                    // If no value provided, remove the parameter placeholder to avoid issues
-                    url = url.replace(`{${paramName}}`, '');
-                    console.log(`Removed empty param {${paramName}}`);
+                } else if (paramName && !paramValue) {
+                    // This should not happen as validation should catch empty required params
+                    console.warn(`Empty value for required parameter: ${paramName}`);
+                    throw new Error(`Required parameter '${paramName}' has no value`);
                 }
             }
         });
