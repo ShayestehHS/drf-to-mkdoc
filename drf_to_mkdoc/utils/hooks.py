@@ -9,7 +9,7 @@ def _extract_view_metadata(view, callback, method):
     """Extract metadata from a single view."""
     action = None
     error_message = None
-    action_source_info = None
+    action_source_info = {}
     serializer_class = None
 
     try:
@@ -75,7 +75,7 @@ def _extract_view_metadata(view, callback, method):
         "action": action,
         "serializer_class": serializer_class,
         "error_message": str(error_message) if error_message else None,
-        "action_source": action_source_info if action_source_info else None,
+        "action_source": action_source_info,
     }
 
 
