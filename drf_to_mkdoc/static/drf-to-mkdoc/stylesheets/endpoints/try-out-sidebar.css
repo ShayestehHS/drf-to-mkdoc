@@ -385,12 +385,29 @@
     100% { transform: rotate(360deg); }
 }
 
+/* Focus-visible styles for better keyboard navigation */
+.try-out-sidebar .execute-btn:focus-visible,
+.try-out-sidebar .add-btn:focus-visible,
+.try-out-sidebar .remove-btn:focus-visible,
+.modal-close:focus-visible,
+.mobile-modal-close:focus-visible,
+.mobile-try-out-fab:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+[data-md-color-scheme="slate"] .try-out-sidebar .execute-btn:focus-visible,
+[data-md-color-scheme="slate"] .try-out-sidebar .add-btn:focus-visible,
+[data-md-color-scheme="slate"] .try-out-sidebar .remove-btn:focus-visible,
+[data-md-color-scheme="slate"] .modal-close:focus-visible,
+[data-md-color-scheme="slate"] .mobile-modal-close:focus-visible,
+[data-md-color-scheme="slate"] .mobile-try-out-fab:focus-visible {
+    outline-color: #60a5fa;
+}
+
 /* Fix for MkDocs integration */
 @media (min-width: 1220px) {
-    /* Only hide navigation in desktop mode when try-out panel is shown */
-    .md-sidebar--primary .md-nav {
-        display: none;
-    }
+    /* Keep navigation; panel will coexist with it */
 }
 
 /* Ensure sidebar extends to bottom and document has enough space */

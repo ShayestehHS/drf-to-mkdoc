@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get endpoint information from the page
     const getEndpointInfo = () => {
-        let path = '';
-        let method = 'GET';
+        let { path = '', method = 'GET' } = (window.__getTryOutEndpointInfo && window.__getTryOutEndpointInfo()) || {};
         
         // First, try to find the method badge and code element in the same paragraph
         const methodBadge = document.querySelector('.method-badge');
@@ -56,11 +55,14 @@ document.addEventListener('DOMContentLoaded', function() {
             path = path.trim();
         }
         
-        return {
+        const info = {
             method: method,
             path: path || '/api/endpoint',
             pathParams: path ? extractPathParams(path) : []
         };
+        // expose for global functions
+        window.__getTryOutEndpointInfo = () => info;
+        return info;
     };
     
     // Extract path parameters from URL
@@ -76,6 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
         'X-API-Key', 'X-Requested-With', 'X-CSRF-Token'
     ];
 
+    // HTML escaping function to prevent XSS
+    const escapeHtml = (s='') => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    
     // Create the try-out panel HTML
     const createTryOutPanel = (endpointInfo) => {
         // Create path parameters HTML
@@ -85,12 +90,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="form-group">
                     <label class="form-label">Path Parameters</label>
                     <div class="kv-container" id="pathParams">
-                        ${endpointInfo.pathParams.map(param => `
+                        ${endpointInfo.pathParams.map(p => {
+                            const param = escapeHtml(p);
+                            return `
                             <div class="kv-item">
                                 <label class="param-label">${param}</label>
                                 <input type="text" placeholder="Enter ${param} value" data-param="${param}" required>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -124,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <datalist id="queryParamSuggestions">
                             ${Array.from(document.querySelectorAll('ul li code')).map(code => {
-                                const paramName = code.textContent.trim();
-                                return paramName ? `<option value="${paramName}">` : '';
+                                const name = (code.textContent || '').trim();
+                                return name ? `<option value="${escapeHtml(name)}">` : '';
                             }).join('')}
                         </datalist>
                         <button class="add-btn" onclick="addQueryParam()">
@@ -191,23 +199,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // Desktop: Add to sidebar
             const leftSidebar = document.querySelector('.md-sidebar--primary');
             if (leftSidebar) {
-                // Clear existing sidebar content
-                leftSidebar.innerHTML = '';
-                
-                // Create and append the try-out panel
                 const panelContainer = document.createElement('div');
+                panelContainer.className = 'try-out-container';
                 panelContainer.innerHTML = tryOutPanel;
-                leftSidebar.appendChild(panelContainer);
+                leftSidebar.prepend(panelContainer);
             
                 // Add response modal to body
                 const modal = document.createElement('div');
                 modal.innerHTML = `
-                    <div class="response-modal" id="responseModal" style="display: none;">
+                    <div class="response-modal" id="responseModal" style="display: none;" role="dialog" aria-modal="true" aria-label="API Response">
                         <div class="modal-overlay" onclick="closeResponseModal()"></div>
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h3>API Response</h3>
-                                <button class="modal-close" onclick="closeResponseModal()">✕</button>
+                                <button class="modal-close" onclick="closeResponseModal()" aria-label="Close">✕</button>
                             </div>
                             <div class="modal-body">
                                 <div class="response-header">
@@ -232,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create floating action button
         const fab = document.createElement('div');
         fab.innerHTML = `
-            <div class="mobile-try-out-fab" onclick="openMobileTryOut()">
+            <div class="mobile-try-out-fab" onclick="openMobileTryOut()" role="button" tabindex="0" aria-label="Open Try It Out">
                 <span>🚀</span>
             </div>
         `;
@@ -246,17 +251,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="mobile-modal-content">
                     <div class="mobile-modal-header">
                         <h3>🚀 Try It Out</h3>
-                        <button class="mobile-modal-close" onclick="closeMobileTryOut()">✕</button>
+                        <button class="mobile-modal-close" onclick="closeMobileTryOut()" aria-label="Close">✕</button>
                     </div>
-                    <div class="mobile-modal-body">
-                        <div class="try-out-sidebar mobile-try-out">
-                            ${tryOutPanel.replace(/<div class="try-out-sidebar">|<\/div>$/g, '').trim()}
-                        </div>
-                    </div>
+                    <div class="mobile-modal-body" id="mobileTryOutBody"></div>
                 </div>
             </div>
         `;
         document.body.appendChild(mobileModal);
+        
+        // Mount panel content into mobile body
+        const tmp = document.createElement('div');
+        tmp.innerHTML = tryOutPanel;
+        const panelEl = tmp.querySelector('.try-out-sidebar');
+        if (panelEl) {
+            panelEl.classList.add('mobile-try-out');
+            document.getElementById('mobileTryOutBody').appendChild(panelEl);
+        }
         
         // Add response modal for mobile
         const responseModal = document.createElement('div');
@@ -395,8 +405,9 @@ function showResponseModal(status, responseText) {
     const responseBody = document.getElementById('modalResponseBody');
     
     if (modal && statusBadge && responseBody) {
-        statusBadge.textContent = status;
-        statusBadge.className = `status-badge status-${Math.floor(status / 100) * 100}`;
+        statusBadge.textContent = String(status);
+        const code = Number(status);
+        statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
         
         try {
             const jsonResponse = JSON.parse(responseText);
@@ -528,9 +539,8 @@ async function executeRequest() {
                 
                 if (paramName && paramValue) {
                     const beforeReplace = url;
-                    // Replace both {paramName} and any remaining placeholders
-                    url = url.replace(`{${paramName}}`, paramValue);
-                    url = url.replace(new RegExp(`\\{${paramName}\\}`, 'g'), paramValue);
+                    const escaped = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    url = url.replace(new RegExp(`\\{${escaped}\\}`, 'g'), paramValue);
                     console.log(`URL after replacing {${paramName}}: ${beforeReplace} -> ${url}`);
                 } else if (paramName) {
                     // If no value provided, remove the parameter placeholder to avoid issues
