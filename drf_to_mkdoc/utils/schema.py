@@ -8,78 +8,130 @@ from rest_framework.viewsets import ViewSetMixin
 logger = logging.getLogger(__name__)
 
 
-def _extract_view_metadata(view, callback, method):
-    """Extract metadata from a single view."""
-    action = None
-    error_message = None
-    action_source_info = {}
-    serializer_class = None
+class ViewMetadataExtractor:
+    """Extracts metadata from DRF views."""
 
-    try:
-        # Create view instance for introspection
-        view_instance = view()
+    def __init__(self, view, callback, method):
+        self.view = view
+        self.callback = callback
+        self.method = method
+        self.view_instance = None
+        self.action = None
+        self.error_message = None
 
-        # If this is a ViewSet, determine the action name
-        if isinstance(view_instance, ViewSetMixin):
-            action = callback.actions.get(method.lower())
-            if action:
-                view_instance.action = action
-                view_instance.request = type("MockRequest", (), {"method": method.upper()})()
+    def _create_view_instance(self):
+        """Create view instance for introspection."""
+        try:
+            self.view_instance = self.view()
+        except Exception as e:
+            self.error_message = str(e)
+            return False
+        else:
+            return True
 
-        # Try to get serializer class from view instance
-        if hasattr(view_instance, "get_serializer_class"):
-            try:
-                serializer_cls = view_instance.get_serializer_class()
-                serializer_class = f"{serializer_cls.__module__}.{serializer_cls.__name__}"
-            except Exception as e:
-                logger.debug(f"Failed to get serializer from view instance: {e}")
+    def _extract_permissions(self):
+        """Extract permission classes from view."""
+        permission_classes = []
+        if hasattr(self.view, "permission_classes"):
+            for perm_class in self.view.permission_classes:
+                permission_classes.append(f"{perm_class.__module__}.{perm_class.__name__}")
+        return permission_classes
 
-        # Try action-specific serializer if available
-        if serializer_class is None and action:
-            action_method = getattr(view, action, None)
-            if action_method and callable(action_method):
-                if hasattr(action_method, "serializer_class"):
-                    serializer_cls = action_method.serializer_class
-                    serializer_class = f"{serializer_cls.__module__}.{serializer_cls.__name__}"
-                elif (
-                    hasattr(action_method, "kwargs")
-                    and "serializer_class" in action_method.kwargs
-                ):
-                    serializer_cls = action_method.kwargs["serializer_class"]
-                    serializer_class = f"{serializer_cls.__module__}.{serializer_cls.__name__}"
+    def _extract_action(self):
+        """Extract action name from ViewSet."""
+        if isinstance(self.view_instance, ViewSetMixin):
+            self.action = self.callback.actions.get(self.method.lower())
+            if self.action:
+                self.view_instance.action = self.action
+                self.view_instance.request = type(
+                    "MockRequest", (), {"method": self.method.upper()}
+                )()
 
-        # Fallback to class-level serializer_class
-        if (
-            serializer_class is None
-            and hasattr(view, "serializer_class")
-            and view.serializer_class
-        ):
-            serializer_cls = view.serializer_class
-            serializer_class = f"{serializer_cls.__module__}.{serializer_cls.__name__}"
+    def _extract_serializer_from_view_instance(self):
+        """Try to get serializer class from view instance."""
+        if not hasattr(self.view_instance, "get_serializer_class"):
+            return None
 
-        # Get action source info if no serializer found
-        if serializer_class is None and action:
-            action_method = getattr(view, action, None)
-            if action_method and callable(action_method):
-                action_source_info = {
-                    "importable_path": f"{view.__module__}.{view.__name__}.{action}",
-                    "module": view.__module__,
-                    "class_name": view.__name__,
-                    "method_name": action,
-                }
+        try:
+            serializer_cls = self.view_instance.get_serializer_class()
+        except Exception as e:
+            logger.debug(f"Failed to get serializer from view instance: {e}")
+            return None
+        else:
+            return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
 
-    except Exception as e:
-        serializer_class = None
-        action = None
-        error_message = str(e)
+    def _extract_serializer_from_action(self):
+        """Try to get serializer class from action method."""
+        if not self.action:
+            return None
 
-    return {
-        "view_class": f"{view.__module__}.{view.__name__}",
-        "action": action,
-        "serializer_class": serializer_class,
-        "error_message": str(error_message) if error_message else None,
-        "action_source": action_source_info,
-    }
+        action_method = getattr(self.view, self.action, None)
+        if not (action_method and callable(action_method)):
+            return None
+
+        if hasattr(action_method, "serializer_class"):
+            serializer_cls = action_method.serializer_class
+            return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
+        if hasattr(action_method, "kwargs") and "serializer_class" in action_method.kwargs:
+            serializer_cls = action_method.kwargs["serializer_class"]
+            return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
+
+        return None
+
+    def _extract_serializer_from_class(self):
+        """Try to get serializer class from view class."""
+        if hasattr(self.view, "serializer_class") and self.view.serializer_class:
+            serializer_cls = self.view.serializer_class
+            return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
+        return None
+
+    def _extract_action_source(self):
+        """Get action source info if no serializer found."""
+        if not self.action:
+            return {}
+
+        action_method = getattr(self.view, self.action, None)
+        if not (action_method and callable(action_method)):
+            return {}
+
+        return {
+            "importable_path": f"{self.view.__module__}.{self.view.__name__}.{self.action}",
+            "module": self.view.__module__,
+            "class_name": self.view.__name__,
+            "method_name": self.action,
+        }
+
+    def extract(self):
+        """Extract all metadata from view."""
+        if not self._create_view_instance():
+            return {
+                "view_class": f"{self.view.__module__}.{self.view.__name__}",
+                "action": None,
+                "serializer_class": None,
+                "permission_classes": [],
+                "error_message": str(self.error_message),
+                "action_source": {},
+            }
+
+        permission_classes = self._extract_permissions()
+        self._extract_action()
+
+        serializer_class = (
+            self._extract_serializer_from_view_instance()
+            or self._extract_serializer_from_action()
+            or self._extract_serializer_from_class()
+        )
+
+        action_source = {} if serializer_class else self._extract_action_source()
+
+        return {
+            "view_class": f"{self.view.__module__}.{self.view.__name__}",
+            "action": self.action,
+            "serializer_class": serializer_class,
+            "permission_classes": permission_classes,
+            "error_message": str(self.error_message) if self.error_message else None,
+            "action_source": action_source,
+        }
 
 
 class AutoSchema(SpectacularAutoSchema):
@@ -104,7 +156,7 @@ class AutoSchema(SpectacularAutoSchema):
                 # Extract metadata from the view
                 view = self.view.__class__
                 callback = self._get_callback_obj()
-                metadata = _extract_view_metadata(view, callback, method)
+                metadata = ViewMetadataExtractor(view, callback, method).extract()
 
                 # Add metadata to the operation
                 operation.setdefault("x-metadata", {})
