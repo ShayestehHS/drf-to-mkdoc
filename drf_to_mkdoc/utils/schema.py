@@ -5,6 +5,8 @@ from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
 from drf_spectacular.plumbing import ComponentRegistry
 from rest_framework.viewsets import ViewSetMixin
 
+from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -101,6 +103,52 @@ class ViewMetadataExtractor:
             "method_name": self.action,
         }
 
+    def _extract_serializer_parents(self, serializer_cls):
+        """Extract parent classes of serializer up to specified depth."""
+        if not serializer_cls:
+            return []
+
+        parents = []
+        current_class = serializer_cls
+        depth = 0
+
+        while current_class and depth < drf_to_mkdoc_settings.SERIALIZERS_INHERITANCE_DEPTH:
+            for base in current_class.__bases__:
+                if base.__module__ not in {"builtins", "object"}:
+                    parents.append(f"{base.__module__}.{base.__name__}")
+            current_class = current_class.__bases__[0] if current_class.__bases__ else None
+            depth += 1
+
+        return parents
+
+    def _extract_serializer_attrs(self, serializer_cls):
+        """Extract nested serializer attributes up to specified depth."""
+        if not serializer_cls:
+            return {}
+
+        attrs = {}
+        try:
+            serializer_instance = serializer_cls()
+            for field_name, field in serializer_instance.fields.items():
+                if hasattr(field, "child") and hasattr(field.child, "__class__"):
+                    # Handle ListSerializer and similar fields
+                    child_class = field.child.__class__
+                    attrs[field_name] = {
+                        "type": "list",
+                        "child_serializer": f"{child_class.__module__}.{child_class.__name__}",
+                    }
+                elif hasattr(field, "serializer"):
+                    # Handle nested serializers
+                    nested_class = field.serializer.__class__
+                    attrs[field_name] = {
+                        "type": "nested",
+                        "serializer": f"{nested_class.__module__}.{nested_class.__name__}",
+                    }
+        except Exception as e:
+            logger.debug(f"Failed to extract serializer attributes: {e}")
+
+        return attrs
+
     def extract(self):
         """Extract all metadata from view."""
         if not self._create_view_instance():
@@ -111,26 +159,45 @@ class ViewMetadataExtractor:
                 "permission_classes": [],
                 "error_message": str(self.error_message),
                 "action_source": {},
+                "serializer_parents": [],
+                "serializer_attrs": {},
             }
 
         permission_classes = self._extract_permissions()
         self._extract_action()
 
-        serializer_class = (
+        serializer_class = None
+        serializer_class_str = (
             self._extract_serializer_from_view_instance()
             or self._extract_serializer_from_action()
             or self._extract_serializer_from_class()
         )
 
-        action_source = {} if serializer_class else self._extract_action_source()
+        if serializer_class_str:
+            module_name, class_name = serializer_class_str.rsplit(".", 1)
+            try:
+                module = __import__(module_name, fromlist=[class_name])
+                serializer_class = getattr(module, class_name)
+            except (ImportError, AttributeError) as e:
+                logger.debug(f"Failed to import serializer class: {e}")
+
+        action_source = {} if serializer_class_str else self._extract_action_source()
+        serializer_parents = (
+            self._extract_serializer_parents(serializer_class) if serializer_class else []
+        )
+        serializer_attrs = (
+            self._extract_serializer_attrs(serializer_class) if serializer_class else {}
+        )
 
         return {
             "view_class": f"{self.view.__module__}.{self.view.__name__}",
             "action": self.action,
-            "serializer_class": serializer_class,
+            "serializer_class": serializer_class_str,
             "permission_classes": permission_classes,
             "error_message": str(self.error_message) if self.error_message else None,
             "action_source": action_source,
+            "serializer_parents": serializer_parents,
+            "serializer_attrs": serializer_attrs,
         }
 
 

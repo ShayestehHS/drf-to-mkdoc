@@ -10,13 +10,11 @@ class DRFToMkDocSettings:
     settings_types = {
         "ENABLE_AI_DOCS": bool,
         "AI_CONFIG_DIR_NAME": str,
-        "AI_SERIALIZER_DEPTH": int,
-        "AI_INHERITANCE_DEPTH": int,
+        "SERIALIZERS_INHERITANCE_DEPTH": int,
     }
 
     settings_ranges = {
-        "AI_SERIALIZER_DEPTH": (1, 5),
-        "AI_INHERITANCE_DEPTH": (1, 3),
+        "SERIALIZERS_INHERITANCE_DEPTH": (1, 3),
     }
 
     def __init__(self, user_settings_key="DRF_TO_MKDOC", defaults=None):
