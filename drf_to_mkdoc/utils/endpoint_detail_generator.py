@@ -10,14 +10,14 @@ from django.templatetags.static import static
 from rest_framework import serializers
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import (
-    create_safe_filename,
+from drf_to_mkdoc.utils.commons.file_utils import write_file
+from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
     format_method_badge,
-    get_custom_schema,
-    write_file,
 )
+from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
+from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )

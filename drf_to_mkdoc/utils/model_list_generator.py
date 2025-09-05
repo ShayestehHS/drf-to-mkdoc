@@ -4,7 +4,7 @@ from typing import Any
 from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import get_app_descriptions
+from drf_to_mkdoc.utils.commons.model_utils import get_app_descriptions
 
 
 def create_models_index(models_data: dict[str, Any], docs_dir: Path) -> None:

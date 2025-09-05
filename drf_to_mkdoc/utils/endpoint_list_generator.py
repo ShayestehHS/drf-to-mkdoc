@@ -4,7 +4,7 @@ from typing import Any
 from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import extract_viewset_from_operation_id
+from drf_to_mkdoc.utils.commons.operation_utils import extract_viewset_from_operation_id
 
 
 class EndpointsIndexGenerator:

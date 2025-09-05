@@ -2,7 +2,7 @@ from typing import Any
 
 import django_filters
 
-from drf_to_mkdoc.utils.common import extract_viewset_from_operation_id
+from drf_to_mkdoc.utils.commons.operation_utils import extract_viewset_from_operation_id
 
 
 def extract_query_parameters_from_view(operation_id: str) -> dict[str, Any]:

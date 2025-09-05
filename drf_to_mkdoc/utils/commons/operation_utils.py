@@ -1,0 +1,76 @@
+"""Operation ID and viewset utilities."""
+
+from asyncio.log import logger
+from functools import lru_cache
+
+from django.urls import resolve
+
+from drf_to_mkdoc.utils.commons.path_utils import substitute_path_params
+from drf_to_mkdoc.utils.commons.schema_utils import get_schema
+
+
+@lru_cache
+def get_operation_id_path_map() -> dict[str, str]:
+    schema = get_schema()
+    paths = schema.get("paths", {})
+    mapping = {}
+
+    for path, actions in paths.items():
+        for _http_method_name, action_data in actions.items():
+            operation_id = action_data.get("operationId")
+            if operation_id:
+                mapping[operation_id] = path, action_data.get("parameters", [])
+
+    return mapping
+
+
+def extract_viewset_from_operation_id(operation_id: str):
+    """Extract the ViewSet class from an OpenAPI operation ID."""
+    operation_map = get_operation_id_path_map()
+    path, parameters = operation_map.get(operation_id)
+
+    if not path:
+        raise ValueError(f"Path not found for operation ID: {operation_id}")
+
+    resolved_path = substitute_path_params(path, parameters)
+    try:
+        match = resolve(resolved_path)
+        view_func = match.func
+        if hasattr(view_func, "view_class"):
+            # For generic class-based views
+            return view_func.view_class
+        try:
+            # For viewsets
+            return view_func.cls
+        except AttributeError:
+            pass
+        else:
+            return view_func
+
+    except Exception:
+        logger.error(
+            f"Failed to resolve path.\nschema_path{path}\ntried_path={resolved_path}\n---"
+        )
+
+
+def extract_viewset_name_from_operation_id(operation_id: str):
+    view_cls = extract_viewset_from_operation_id(operation_id)
+    return view_cls.__name__ if hasattr(view_cls, "__name__") else str(view_cls)
+
+
+def extract_app_from_operation_id(operation_id: str) -> str:
+    view = extract_viewset_from_operation_id(operation_id)
+
+    if isinstance(view, type):
+        module = view.__module__
+    elif hasattr(view, "__class__"):
+        module = view.__class__.__module__
+    else:
+        raise TypeError("Expected a view class or instance")
+
+    return module.split(".")[0]
+
+
+def format_method_badge(method: str) -> str:
+    """Create a colored badge for HTTP method"""
+    return f'<span class="method-badge method-{method.lower()}">{method.upper()}</span>'

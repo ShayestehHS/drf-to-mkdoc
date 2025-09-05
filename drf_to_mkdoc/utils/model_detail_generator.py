@@ -3,7 +3,8 @@ from typing import Any
 from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import get_model_description, write_file
+from drf_to_mkdoc.utils.commons.file_utils import write_file
+from drf_to_mkdoc.utils.commons.model_utils import get_model_description
 
 
 def generate_model_docs(models_data: dict[str, Any]) -> None:
