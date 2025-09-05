@@ -1,5 +1,3 @@
-"""Schema loading and validation utilities."""
-
 import json
 from pathlib import Path
 from typing import Any
@@ -116,3 +114,86 @@ def get_schema():
                 target_schema[key] = custom_value
 
     return base_schema
+
+
+class OperationExtractor:
+    """Extracts operation IDs and metadata from OpenAPI schema."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self):
+        if not self._initialized:
+            self.schema = get_schema()
+            self._operation_map = None
+            self.operation_map_file = Path(drf_to_mkdoc_settings.AI_OPERATION_MAP_FILE)
+            self._initialized = True
+
+    def save_operation_map(self) -> None:
+        """Save operation map to file."""
+        if not self._operation_map:
+            self._operation_map = self._build_operation_map()
+
+        # Create parent directories if they don't exist
+        self.operation_map_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with self.operation_map_file.open("w", encoding="utf-8") as f:
+            json.dump(self._operation_map, f, indent=2)
+
+    def load_operation_map(self) -> dict[str, dict[str, Any]] | None:
+        """Load operation map from file."""
+        if not self.operation_map_file.exists():
+            return None
+
+        try:
+            with self.operation_map_file.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+
+    @property
+    def operation_map(self) -> dict[str, dict[str, Any]] | None:
+        """
+        Cache and return operation ID mapping.
+        Returns dict: operation_id -> (path, metadata)
+        """
+        if self._operation_map is None:
+            # Try to load from file first
+            self._operation_map = self.load_operation_map()
+
+            # If not found or invalid, build and save
+            if self._operation_map is None:
+                self._operation_map = self._build_operation_map()
+                self.save_operation_map()
+
+        return self._operation_map
+
+    def _build_operation_map(self) -> dict[str, dict[str, Any]] | None:
+        """Build mapping of operation IDs to paths and metadata."""
+        mapping = {}
+        paths = self.schema.get("paths", {})
+
+        for path, methods in paths.items():
+            for _method, operation in methods.items():
+                operation_id = operation.get("operationId")
+                if not operation_id:
+                    continue
+
+                metadata = operation.get("x-metadata", {})
+                mapping[operation_id] = {"path": path, **metadata}
+
+        return mapping
+
+    def get_app_operations(self, app_name: str) -> list[str]:
+        """Get all operation IDs for a specific app."""
+        operations = []
+        for op_id, (_, metadata) in self.operation_map.items():
+            view_class = metadata.get("view_class", "")
+            if view_class.startswith(f"{app_name}."):
+                operations.append(op_id)
+        return operations
