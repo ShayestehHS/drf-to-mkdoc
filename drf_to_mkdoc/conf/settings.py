@@ -138,8 +138,6 @@ class DRFToMkDocSettings:
         self._validate_range(key, value)
         self._validate_dir(key, value)
 
-        if value is None:
-            raise AttributeError(f"Invalid DRF_TO_MKDOC setting: '{key}'")
         return value
 
     def __getattr__(self, key):
