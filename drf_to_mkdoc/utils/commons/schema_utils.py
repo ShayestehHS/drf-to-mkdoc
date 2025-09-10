@@ -68,15 +68,41 @@ def get_custom_schema():
     return data
 
 
-def get_schema():
-    base_schema = SchemaGenerator().get_schema(request=None, public=True)
-    custom_data = get_custom_schema()
-    if not custom_data:
-        return base_schema
+def _merge_parameters(
+    base_parameters: list[dict[str, Any]], custom_parameters: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """
+    Merge parameters from base and custom schemas, avoiding duplicates.
 
-    # Map operation_id → (path, method)
+    Parameters are considered duplicates if they have the same 'name' and 'in' values.
+    Custom parameters will override base parameters with the same (name, in) key.
+    """
+
+    def _get_param_key(param: dict[str, Any]) -> tuple[str, str] | None:
+        """Extract (name, in) tuple from parameter, return None if invalid."""
+        name = param.get("name")
+        location = param.get("in")
+        return (name, location) if name and location else None
+
+    param_index = {}
+    for param in base_parameters:
+        key = _get_param_key(param)
+        if key:
+            param_index[key] = param
+
+    for param in custom_parameters:
+        key = _get_param_key(param)
+        if key:
+            param_index[key] = param
+
+    return list(param_index.values())
+
+
+def _build_operation_map(base_schema: dict) -> dict[str, tuple[str, str]]:
+    """Build a mapping from operationId → (path, method)."""
     op_map = {}
     HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
+
     for path, actions in base_schema.get("paths", {}).items():
         for method, op_data in actions.items():
             if method.lower() not in HTTP_METHODS or not isinstance(op_data, dict):
@@ -87,13 +113,22 @@ def get_schema():
                     "REST_FRAMEWORK = {\n"
                     "    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',\n"
                     "}\n"
-                    "This custom AutoSchema automatically adds view metadata during schema generation."
                 )
             operation_id = op_data.get("operationId")
             if operation_id:
                 op_map[operation_id] = (path, method)
 
+    return op_map
+
+
+def _apply_custom_overrides(
+    base_schema: dict,
+    op_map: dict[str, tuple[str, str]],
+    custom_data: dict,
+) -> None:
+    """Apply custom overrides to the base schema."""
     allowed_keys = {"description", "parameters", "requestBody", "responses"}
+
     for operation_id, overrides in custom_data.items():
         if operation_id not in op_map:
             continue
@@ -101,6 +136,7 @@ def get_schema():
         append_fields = set(overrides.get("append_fields", []))
         path, method = op_map[operation_id]
         target_schema = base_schema["paths"][path][method]
+
         for key in allowed_keys:
             if key not in overrides:
                 continue
@@ -108,11 +144,26 @@ def get_schema():
             custom_value = overrides[key]
             base_value = target_schema.get(key)
 
-            if key in append_fields and isinstance(base_value, list):
-                target_schema[key].extend(list(custom_value))
+            if key in append_fields:
+                if isinstance(base_value, list) and isinstance(custom_value, list):
+                    if key == "parameters":
+                        target_schema[key] = _merge_parameters(base_value, custom_value)
+                    else:
+                        target_schema[key].extend(custom_value)
+                else:
+                    target_schema[key] = custom_value
             else:
-                #  Otherwise, replace
                 target_schema[key] = custom_value
+
+
+def get_schema():
+    base_schema = SchemaGenerator().get_schema(request=None, public=True)
+    custom_data = get_custom_schema()
+    if not custom_data:
+        return base_schema
+
+    operation_map = _build_operation_map(base_schema)
+    _apply_custom_overrides(base_schema, operation_map, custom_data)
 
     return base_schema
 
