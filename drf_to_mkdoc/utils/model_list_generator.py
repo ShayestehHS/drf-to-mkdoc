@@ -1,3 +1,4 @@
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -33,8 +34,13 @@ This section contains documentation for all Django models in the system, organiz
     app_descriptions = get_app_descriptions()
 
     for app_name, models in sorted(models_data.items()):
-        app_desc = app_descriptions.get(app_name, f"{app_name.title()} application models")
-        content += f'<div class="app-header">{app_name.title()} App</div>\n'
+        app_desc = escape(
+            app_descriptions.get(
+                app_name, f"{app_name.replace('_', ' ').title()} application models"
+            )
+        )
+        app_title = escape(app_name.replace("_", " ").title())
+        content += f'<div class="app-header">{app_title} App</div>\n'
         content += f'<div class="app-description">{app_desc}</div>\n\n'
 
         content += '<div class="model-cards">\n'
