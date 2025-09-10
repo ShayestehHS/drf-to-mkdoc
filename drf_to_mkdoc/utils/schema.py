@@ -223,7 +223,7 @@ class AutoSchema(SpectacularAutoSchema):
             try:
                 # Extract metadata from the view
                 view = self.view.__class__
-                callback = self._get_callback_obj()
+                callback = self._get_callback_obj(method)
                 metadata = ViewMetadataExtractor(view, callback, method).extract()
 
                 # Add metadata to the operation
@@ -235,7 +235,7 @@ class AutoSchema(SpectacularAutoSchema):
 
         return operation
 
-    def _get_callback_obj(self):
+    def _get_callback_obj(self, method: str):
         """
         Helper method to get the callback object with actions.
         This is needed to extract the action name from the callback.
@@ -248,7 +248,7 @@ class AutoSchema(SpectacularAutoSchema):
             actions = {m.lower(): a for m, a in self.view.action_map.items()}
         # For APIViews with an explicit action
         elif hasattr(self.view, "action"):
-            actions = {self.method.lower(): self.view.action}
+            actions = {method.lower(): self.view.action}
 
         # Create a callback-like object with the necessary attributes
         class CallbackObj:
