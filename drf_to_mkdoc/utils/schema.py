@@ -1,5 +1,6 @@
 import inspect
 import logging
+from types import SimpleNamespace
 from typing import Any
 
 from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
@@ -47,9 +48,7 @@ class ViewMetadataExtractor:
             self.action = self.callback.actions.get(self.method.lower())
             if self.action:
                 self.view_instance.action = self.action
-                self.view_instance.request = type(
-                    "MockRequest", (), {"method": self.method.upper()}
-                )()
+                self.view_instance.request = SimpleNamespace(method=self.method.upper())
 
     def _extract_serializer_from_view_instance(self):
         """Try to get serializer class from view instance."""
