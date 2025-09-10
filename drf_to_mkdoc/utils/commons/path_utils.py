@@ -40,19 +40,19 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
             logger.warning("PATH_PARAM_SUBSTITUTE_FUNCTION is not a valid import path")
 
     # If custom function exists and returns a valid value, use it
-    PATH_PARAM_SUBSTITUTE_MAPPING = drf_to_mkdoc_settings.PATH_PARAM_SUBSTITUTE_MAPPING
+    mapping = dict(drf_to_mkdoc_settings.PATH_PARAM_SUBSTITUTE_MAPPING or {})
     if callable(function):
         try:
             result = function(path, parameters)
             if result and isinstance(result, dict):
-                PATH_PARAM_SUBSTITUTE_MAPPING.update(result)
+                mapping.update(result)
         except Exception:
             logger.exception("Error in custom path substitutor")
 
     # Default Django path conversion
     def replacement(match):
         param_name = match.group(1)
-        custom_param_type = PATH_PARAM_SUBSTITUTE_MAPPING.get(param_name)
+        custom_param_type = mapping.get(param_name)
         if custom_param_type and custom_param_type in ("int", "uuid", "str"):
             converter = custom_param_type
         else:
