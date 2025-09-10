@@ -2,6 +2,7 @@
 
 import logging
 from functools import lru_cache
+from typing import Any
 
 from django.urls import resolve
 
@@ -12,16 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache
-def get_operation_id_path_map() -> dict[str, str]:
+def get_operation_id_path_map() -> dict[str, tuple[str, list[dict[str, Any]]]]:
     schema = get_schema()
     paths = schema.get("paths", {})
     mapping = {}
 
     for path, actions in paths.items():
-        for _http_method_name, action_data in actions.items():
+        for http_method_name, action_data in actions.items():
+            if http_method_name.lower() == "parameters" or not isinstance(action_data, dict):
+                # Skip path-level parameters entries (e.g., "parameters": [...] in OpenAPI schema)
+                continue
             operation_id = action_data.get("operationId")
             if operation_id:
-                mapping[operation_id] = path, action_data.get("parameters", [])
+                mapping[operation_id] = (path, action_data.get("parameters", []))
 
     return mapping
 
