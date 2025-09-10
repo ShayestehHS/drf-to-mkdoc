@@ -1,0 +1,24 @@
+{% load custom_filters %}
+# Django Models
+
+This section contains documentation for all Django models in the system, organized by Django application.
+
+<!-- inject CSS directly -->
+{% for css in stylesheets %}
+<link rel="stylesheet" href="{{ css }}">
+{% endfor %}
+
+<div class="models-container">
+{% for app_name, models in sorted_models %}
+    <div class="app-header">{{ app_name|title|cut:"_"|safe }}</div>
+    <div class="app-description">{{ app_descriptions|get_item:app_name }}</div>
+
+    <div class="model-cards">
+    {% for verbose_name, table_name in models %}
+        <a href="{{ app_name|urlencode }}/{{ table_name|urlencode }}/" class="model-card">{{ verbose_name }}</a>
+    {% endfor %}
+    </div>
+{% endfor %}
+</div>
+
+Each model page contains detailed field documentation, method signatures, and relationships to other models.
