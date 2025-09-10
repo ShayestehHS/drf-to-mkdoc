@@ -48,7 +48,8 @@ class GeminiProvider(BaseProvider):
     def _parse_provider_response(self, response: GenerateContentResponse) -> ChatResponse:
         try:
             return ChatResponse(
-                content=(response.text or "").strip(),
+                content=(getattr(response, "text", "") or "").strip(),
+                model=self.config.model_name,
             )
 
         except Exception as e:
