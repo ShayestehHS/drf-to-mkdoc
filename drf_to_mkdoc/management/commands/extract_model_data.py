@@ -1,6 +1,7 @@
 import inspect
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 
 from django.apps import apps
@@ -38,33 +39,25 @@ class Command(BaseCommand):
 
         model_docs = self.generate_model_documentation(exclude_apps)
 
-        json_data = {
-            "models": model_docs,
-            "stats": {
-                "total_models": len(model_docs),
-                "total_apps": len({model["app_label"] for model in model_docs.values()}),
-            },
-        }
-
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8") as f:
             if pretty:
-                json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
+                json.dump(model_docs, f, indent=2, ensure_ascii=False, default=str)
             else:
-                json.dump(json_data, f, ensure_ascii=False, default=str)
+                json.dump(model_docs, f, ensure_ascii=False, default=str)
 
         self.stdout.write(
             self.style.SUCCESS(f"✅ Generated model documentation: {output_path.absolute()}")
         )
-        self.stdout.write(f"📊 Total models: {len(model_docs)}")
         self.stdout.write(
-            f"📦 Total apps: {len({model['app_label'] for model in model_docs.values()})}"
+            f"📊 Total models: {sum({len(model_docs[app_lable]) for app_lable in model_docs})}"
         )
+        self.stdout.write(f"📦 Total apps: {len(model_docs)}")
 
     def generate_model_documentation(self, exclude_apps):
         """Generate documentation for all Django models"""
-        model_docs = {}
+        model_docs = defaultdict(dict)
 
         for app_config in apps.get_app_configs():
             app_label = app_config.label
@@ -78,11 +71,9 @@ class Command(BaseCommand):
 
             for model in app_config.get_models():
                 model_name = model.__name__
-                model_key = f"{app_label}.{model_name}"
-
                 self.stdout.write(f"  📋 Processing model: {model_name}")
 
-                model_docs[model_key] = self.introspect_model(model, app_label)
+                model_docs[app_label][model_name] = self.introspect_model(model, app_label)
 
         return model_docs
 
