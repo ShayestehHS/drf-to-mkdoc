@@ -47,7 +47,7 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
             if result and isinstance(result, dict):
                 mapping.update(result)
         except Exception:
-            logger.exception("Error in custom path substitutor")
+            logger.exception("Error in custom path substitutor %r for path %r", func_path, path)
 
     # Default Django path conversion
     def replacement(match):
