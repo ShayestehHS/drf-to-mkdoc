@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 
 from drf_to_mkdoc.conf.defaults import DEFAULTS
@@ -15,6 +17,14 @@ class DRFToMkDocSettings:
 
     settings_ranges = {
         "SERIALIZERS_INHERITANCE_DEPTH": (1, 3),
+    }
+
+    path_settings = {
+        "CONFIG_DIR",
+        "MODEL_DOCS_FILE",
+        "DOC_CONFIG_FILE",
+        "CUSTOM_SCHEMA_FILE",
+        "AI_OPERATION_MAP_FILE",
     }
 
     def __init__(self, user_settings_key="DRF_TO_MKDOC", defaults=None):
@@ -50,6 +60,67 @@ class DRFToMkDocSettings:
                 f"Please add it to your Django settings under {self.user_settings_key}."
             )
 
+    def _validate_dir(self, key: str, value: str) -> None:
+        if key not in self.path_settings or not isinstance(value, str):
+            return
+
+        if not value.strip():
+            raise ValueError(
+                f"DRF_TO_MKDOC path setting '{key}' cannot be empty or contain only whitespace."
+            )
+
+        dangerous_components = {"..", "~", "/", "\\"}
+        path_parts = Path(value).parts
+        for part in path_parts:
+            if part in dangerous_components or part.startswith("."):
+                raise ValueError(
+                    f"DRF_TO_MKDOC path setting '{key}' contains unsafe path component '{part}'. "
+                    f"Directory names should be simple names without separators or relative path components."
+                )
+
+        if Path(value).is_absolute():
+            raise ValueError(
+                f"DRF_TO_MKDOC path setting '{key}' cannot be an absolute path. "
+                f"Use relative directory names only."
+            )
+
+        reserved_names = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9",
+        }
+        if value.upper() in reserved_names:
+            raise ValueError(
+                f"DRF_TO_MKDOC path setting '{key}' uses a reserved system name '{value}'. "
+                f"Please choose a different name."
+            )
+
+        invalid_chars = '<>:"|?*'
+        if any(char in value for char in invalid_chars):
+            raise ValueError(
+                f"DRF_TO_MKDOC path setting '{key}' contains invalid characters. "
+                f"Avoid using: {invalid_chars}"
+            )
+
     def get(self, key):
         if key not in self.defaults:
             if key in self.project_settings:
@@ -62,6 +133,7 @@ class DRFToMkDocSettings:
         self._validate_required(key, value)
         self._validate_type(key, value)
         self._validate_range(key, value)
+        self._validate_dir(key, value)
 
         return value
 
