@@ -1,5 +1,5 @@
 from google import genai
-from google.genai.types import GenerateContentResponse
+from google.genai.types import GenerateContentConfig, GenerateContentResponse
 
 from drf_to_mkdoc.utils.ai_tools.exceptions import AIProviderError
 from drf_to_mkdoc.utils.ai_tools.providers.base_provider import BaseProvider
@@ -29,7 +29,13 @@ class GeminiProvider(BaseProvider):
         client: genai.Client = self.client
         try:
             return client.models.generate_content(
-                model=self.config.model_name, contents=formatted_messages
+                model=self.config.model_name,
+                contents=formatted_messages,
+                config=GenerateContentConfig(
+                    temperature=self.config.temperature,
+                    max_output_tokens=self.config.max_tokens,
+                    **self.config.extra_params.get("generate_content_config", {}),
+                ),
             )
 
         except Exception as e:
