@@ -6,6 +6,7 @@ import yaml
 from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+from drf_to_mkdoc.utils.commons.file_utils import load_json_data
 
 
 class SchemaValidationError(Exception):
@@ -131,7 +132,6 @@ class OperationExtractor:
         if not self._initialized:
             self.schema = get_schema()
             self._operation_map = None
-            self.operation_map_file = Path(drf_to_mkdoc_settings.AI_OPERATION_MAP_FILE)
             self._initialized = True
 
     def save_operation_map(self) -> None:
@@ -139,22 +139,12 @@ class OperationExtractor:
         if not self._operation_map:
             self._operation_map = self._build_operation_map()
 
+        operation_map_path = Path(drf_to_mkdoc_settings.AI_OPERATION_MAP_FILE)
         # Create parent directories if they don't exist
-        self.operation_map_file.parent.mkdir(parents=True, exist_ok=True)
+        operation_map_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with self.operation_map_file.open("w", encoding="utf-8") as f:
+        with operation_map_path.open("w", encoding="utf-8") as f:
             json.dump(self._operation_map, f, indent=2)
-
-    def load_operation_map(self) -> dict[str, dict[str, Any]] | None:
-        """Load operation map from file."""
-        if not self.operation_map_file.exists():
-            return None
-
-        try:
-            with self.operation_map_file.open("r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return None
 
     @property
     def operation_map(self) -> dict[str, dict[str, Any]] | None:
@@ -164,7 +154,9 @@ class OperationExtractor:
         """
         if self._operation_map is None:
             # Try to load from file first
-            self._operation_map = self.load_operation_map()
+            self._operation_map = load_json_data(
+                drf_to_mkdoc_settings.AI_OPERATION_MAP_FILE, raise_not_found=False
+            )
 
             # If not found or invalid, build and save
             if self._operation_map is None:
