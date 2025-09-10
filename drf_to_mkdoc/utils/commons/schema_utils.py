@@ -231,12 +231,3 @@ class OperationExtractor:
                 mapping[operation_id] = {"path": path, **metadata}
 
         return mapping
-
-    def get_app_operations(self, app_name: str) -> list[str]:
-        """Get all operation IDs for a specific app."""
-        operations = []
-        for op_id, (_, metadata) in self.operation_map.items():
-            view_class = metadata.get("view_class", "")
-            if view_class.startswith(f"{app_name}."):
-                operations.append(op_id)
-        return operations
