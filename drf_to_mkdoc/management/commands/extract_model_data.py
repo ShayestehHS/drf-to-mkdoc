@@ -281,7 +281,7 @@ class Command(BaseCommand):
                 if display_method_match:
                     field_name = display_method_match.group(1)
                     if field_name in model_field_names:
-                        # Exclude if the field doesn't exist in the model
+                        # Exclude built-in get_<field>_display for fields present on the model
                         continue
 
                 method = getattr(model, attr_name)
