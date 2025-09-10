@@ -33,10 +33,10 @@ def get_operation_id_path_map() -> dict[str, tuple[str, list[dict[str, Any]]]]:
 def extract_viewset_from_operation_id(operation_id: str):
     """Extract the ViewSet class from an OpenAPI operation ID."""
     operation_map = get_operation_id_path_map()
-    path, parameters = operation_map.get(operation_id)
-
-    if not path:
-        raise ValueError(f"Path not found for operation ID: {operation_id}")
+    entry = operation_map.get(operation_id)
+    if not entry:
+        raise ValueError(f"Unknown operationId: {operation_id!r}")
+    path, parameters = entry
 
     resolved_path = substitute_path_params(path, parameters)
     try:
