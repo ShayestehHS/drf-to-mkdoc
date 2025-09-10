@@ -29,8 +29,9 @@ class Command(BaseCommand):
         return docs_dir
 
     def _load_models_data(self):
-        json_data = load_json_data(drf_to_mkdoc_settings.MODEL_DOCS_FILE, raise_not_found=False)
-        models_data = json_data.get("models", {}) if json_data else {}
+        models_data = load_json_data(
+            drf_to_mkdoc_settings.MODEL_DOCS_FILE, raise_not_found=False
+        )
 
         if not models_data:
             self.stdout.write(self.style.WARNING("⚠️  No model data found"))

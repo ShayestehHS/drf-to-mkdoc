@@ -32,17 +32,13 @@ def load_schema() -> dict[str, Any] | None:
 
 
 def get_custom_schema():
-    custom_schema_path = Path(drf_to_mkdoc_settings.CUSTOM_SCHEMA_FILE)
-    if not custom_schema_path.exists():
+    custom_schema_data = load_json_data(
+        drf_to_mkdoc_settings.CUSTOM_SCHEMA_FILE, raise_not_found=False
+    )
+    if not custom_schema_data:
         return {}
 
-    try:
-        with custom_schema_path.open(encoding="utf-8") as file:
-            data = json.load(file)
-    except Exception:
-        return {}
-
-    for _operation_id, overrides in data.items():
+    for _operation_id, overrides in custom_schema_data.items():
         parameters = overrides.get("parameters", [])
         if not parameters:
             continue
@@ -65,7 +61,8 @@ def get_custom_schema():
                     }
                 ):
                     raise QueryParamTypeError("Invalid queryparam_type")
-    return data
+
+    return custom_schema_data
 
 
 def _merge_parameters(
