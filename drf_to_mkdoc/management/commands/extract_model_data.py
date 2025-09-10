@@ -42,10 +42,11 @@ class Command(BaseCommand):
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8") as f:
+            payload = dict(model_docs)
             if pretty:
-                json.dump(model_docs, f, indent=2, ensure_ascii=False, default=str)
+                json.dump(payload, f, ensure_ascii=False, sort_keys=True, default=str, indent=2)
             else:
-                json.dump(model_docs, f, ensure_ascii=False, default=str)
+                json.dump(payload, f, ensure_ascii=False, sort_keys=True, default=str)
 
         self.stdout.write(
             self.style.SUCCESS(f"✅ Generated model documentation: {output_path.absolute()}")
