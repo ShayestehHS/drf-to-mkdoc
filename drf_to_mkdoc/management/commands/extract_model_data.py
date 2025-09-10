@@ -51,7 +51,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"✅ Generated model documentation: {output_path.absolute()}")
         )
         self.stdout.write(
-            f"📊 Total models: {sum({len(model_docs[app_lable]) for app_lable in model_docs})}"
+            f"📊 Total models: {sum([len(model_docs[app_label]) for app_label in model_docs])}"
         )
         self.stdout.write(f"📦 Total apps: {len(model_docs)}")
 
