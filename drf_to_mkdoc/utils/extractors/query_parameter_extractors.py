@@ -1,7 +1,5 @@
 from typing import Any
 
-import django_filters
-
 from drf_to_mkdoc.utils.commons.operation_utils import extract_viewset_from_operation_id
 
 
@@ -111,35 +109,34 @@ def extract_query_parameters_from_view_pagination_fields(view_class: Any) -> lis
 
 
 def _extract_filterset_fields_from_class_attributes(filterset_class: Any) -> list[str]:
-    fields = []
-
     try:
-        # Get all class attributes, including inherited ones
-        for attr_name in dir(filterset_class):
-            # Skip private attributes and known non-filter attributes
-            if attr_name.startswith("_") or attr_name in [
-                "Meta",
-                "form",
-                "queryset",
-                "request",
-                "errors",
-                "qs",
-                "is_valid",
-            ]:
-                continue
-
-            try:
-                attr = getattr(filterset_class, attr_name)
-                if isinstance(attr, django_filters.Filter):
-                    if attr_name not in fields:
-                        fields.append(attr_name)
-            except (AttributeError, TypeError):
-                continue
-
+        import django_filters  # noqa: PLC0415
     except ImportError:
         # django_filters not available, skip this strategy
-        pass
+        return []
 
+    fields = []
+    # Get all class attributes, including inherited ones
+    for attr_name in dir(filterset_class):
+        # Skip private attributes and known non-filter attributes
+        if attr_name.startswith("_") or attr_name in [
+            "Meta",
+            "form",
+            "queryset",
+            "request",
+            "errors",
+            "qs",
+            "is_valid",
+        ]:
+            continue
+
+        try:
+            attr = getattr(filterset_class, attr_name)
+            if isinstance(attr, django_filters.Filter):
+                if attr_name not in fields:
+                    fields.append(attr_name)
+        except (AttributeError, TypeError):
+            continue
     return fields
 
 
