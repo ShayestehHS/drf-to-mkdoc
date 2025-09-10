@@ -7,18 +7,24 @@ from drf_to_mkdoc.utils.commons.file_utils import write_file
 from drf_to_mkdoc.utils.commons.model_utils import get_model_description
 
 
-def generate_model_docs(models_data: dict[str, Any]) -> None:
+def generate_model_docs(models_data) -> None:
     """Generate model documentation from JSON data"""
-    for model_name, model_info in models_data.items():
-        app_name = model_info.get("app_label", model_name.split(".")[0])
-        class_name = model_info.get("name", model_name.split(".")[-1])
+    for app_name, models in models_data.items():
+        if not isinstance(models, dict):
+            raise TypeError(f"Expected dict for models in app '{app_name}', got {type(models)}")
 
-        # Create the model page content
-        content = create_model_page(model_info)
+        for model_name, model_info in models.items():
+            if not isinstance(model_info, dict) or "name" not in model_info:
+                raise ValueError(
+                    f"Model info for '{model_name}' in app '{app_name}' is invalid"
+                )
 
-        # Write the file in app subdirectory
-        file_path = f"models/{app_name}/{class_name.lower()}.md"
-        write_file(file_path, content)
+            # Create the model page content
+            content = create_model_page(model_info)
+
+            # Write the file in app subdirectory
+            file_path = f"models/{app_name}/{model_info['table_name']}.md"
+            write_file(file_path, content)
 
 
 def render_column_fields_table(fields: dict[str, Any]) -> str:
@@ -182,13 +188,12 @@ def _render_relationships_from_section(relationships: dict[str, Any]) -> str:
     content = ""
     for rel_name, rel_info in relationships.items():
         rel_type = rel_info.get("type", "Unknown")
-        related_model_full = rel_info.get("related_model", "")
 
-        if related_model_full and "." in related_model_full:
-            related_app, related_model = related_model_full.split(".", 1)
-            model_link = f"[{related_model}](../../{related_app}/{related_model.lower()}/)"
-        else:
-            model_link = related_model_full
+        app_label = rel_info["app_label"]
+        table_name = rel_info["table_name"]
+        verbose_name = rel_info["verbose_name"]
+
+        model_link = f"[{verbose_name.capitalize()}](../../{app_label}/{table_name}/)"
 
         content += f"| `{rel_name}` | {rel_type} | {model_link} | \n"
 
