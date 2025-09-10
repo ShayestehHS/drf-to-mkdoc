@@ -11,12 +11,12 @@
 {% endfor %}
 
 <div class="main-content">
-    {% include "endpoints/filter_section.html" %}
+    {% include "endpoints/list/filter_section.html" %}
     {% for app_name, endpoints in endpoints_by_app.items %}
         <h2>{{ app_name|title }}</h2>
         <div class="endpoints-grid">
             {% for endpoint in endpoints %}
-                {% include "endpoints/endpoint_card.html" %}
+                {% include "endpoints/list/endpoint_card.html" %}
             {% endfor %}
         </div>
     {% endfor %}

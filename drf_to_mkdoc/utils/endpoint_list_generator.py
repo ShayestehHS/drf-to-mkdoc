@@ -77,7 +77,7 @@ class EndpointsIndexGenerator:
             "active_filters": self.active_filters,
         }
 
-        content = render_to_string("endpoints/base.html", context)
+        content = render_to_string("endpoints/list/base.html", context)
 
         output_path = docs_dir / "endpoints" / "index.md"
         output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@
     <h3 class="filter-title">🔍 Filters</h3>
     <div class="filter-grid">
         {% for filter_key in active_filters %}
-            {% include "endpoints/filters/"|add:filter_key|add:".html" %}
+            {% include "endpoints/list/filters/"|add:filter_key|add:".html" %}
         {% endfor %}
     </div>
 
