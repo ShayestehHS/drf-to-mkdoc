@@ -28,7 +28,7 @@ def substitute_path_params(path: str, parameters: list[dict[str, Any]]) -> str:
 def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
     """
     Convert a path with {param} to a Django-style path with <type:param>.
-    If PATH_PARAM_SUBSTITUTE_FUNCTION is set, use that function instead.
+    If PATH_PARAM_SUBSTITUTE_FUNCTION is set, call it and merge its returned mapping.
     """
     function = None
     func_path = drf_to_mkdoc_settings.PATH_PARAM_SUBSTITUTE_FUNCTION
@@ -37,7 +37,7 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
         try:
             function = import_string(func_path)
         except ImportError:
-            logger.warning("PATH_PARAM_SUBSTITUTE_FUNCTION is not a valid import path")
+            logger.warning("Invalid PATH_PARAM_SUBSTITUTE_FUNCTION import path: %r", func_path)
 
     # If custom function exists and returns a valid value, use it
     mapping = dict(drf_to_mkdoc_settings.PATH_PARAM_SUBSTITUTE_MAPPING or {})

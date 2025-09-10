@@ -7,7 +7,7 @@ from drf_to_mkdoc.utils.commons.file_utils import write_file
 from drf_to_mkdoc.utils.commons.model_utils import get_model_description
 
 
-def generate_model_docs(models_data) -> None:
+def generate_model_docs(models_data: dict[str, Any]) -> None:
     """Generate model documentation from JSON data"""
     for app_name, models in models_data.items():
         if not isinstance(models, dict):

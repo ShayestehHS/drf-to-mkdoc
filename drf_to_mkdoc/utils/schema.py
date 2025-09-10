@@ -28,7 +28,7 @@ class ViewMetadataExtractor:
         """Create view instance for introspection."""
         try:
             self.view_instance = self.view()
-        except Exception as e:
+        except (TypeError, AttributeError, ImportError) as e:
             self.error_message = str(e)
             return False
         else:
@@ -57,7 +57,7 @@ class ViewMetadataExtractor:
 
         try:
             serializer_cls = self.view_instance.get_serializer_class()
-        except Exception as e:
+        except (AttributeError, TypeError, ImportError) as e:
             logger.debug(f"Failed to get serializer from view instance: {e}")
             return None
         else:

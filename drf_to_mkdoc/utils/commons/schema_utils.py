@@ -198,7 +198,7 @@ class OperationExtractor:
     def operation_map(self) -> dict[str, dict[str, Any]] | None:
         """
         Cache and return operation ID mapping.
-        Returns dict: operation_id -> (path, metadata)
+         Returns dict: operation_id -> {"path": str, ...metadata}
         """
         if self._operation_map is None:
             # Try to load from file first

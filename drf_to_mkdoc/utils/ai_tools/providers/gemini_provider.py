@@ -34,7 +34,7 @@ class GeminiProvider(BaseProvider):
                 config=GenerateContentConfig(
                     temperature=self.config.temperature,
                     max_output_tokens=self.config.max_tokens,
-                    **self.config.extra_params.get("generate_content_config", {}),
+                    **(self.config.extra_params or {}).get("generate_content_config", {}),
                 ),
             )
 
