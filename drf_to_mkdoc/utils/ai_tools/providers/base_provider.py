@@ -1,6 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from django.template import RequestContext
@@ -27,7 +28,12 @@ class BaseProvider(ABC):
     def client(self):
         """Lazy load client"""
         if self._client is None:
-            self._client = self._initialize_client()
+            if not hasattr(self, "_client_lock"):
+                # If providers are shared across threads, guard initialization.
+                self._client_lock = Lock()
+            with self._client_lock:
+                if self._client is None:
+                    self._client = self._initialize_client()
         return self._client
 
     @abstractmethod
