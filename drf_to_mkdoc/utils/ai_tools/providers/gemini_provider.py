@@ -59,25 +59,21 @@ class GeminiProvider(BaseProvider):
             ) from e
 
     def _extract_token_usage(self, response: GenerateContentResponse) -> TokenUsage:
-        try:
-            usage = response.usage_metadata
-            request_tokens = getattr(usage, "prompt_token_count", 0)
-            response_tokens = getattr(usage, "candidates_token_count", 0)
-
-            return TokenUsage(
-                request_tokens=request_tokens,
-                response_tokens=response_tokens,
-                total_tokens=request_tokens + response_tokens,
-                provider=self.__class__.__name__,
-                model=self.config.model_name,
-            )
-
-        except Exception:
-            # Return zero usage if extraction fails
+        usage = getattr(response, "usage_metadata", None)
+        if not usage:
             return TokenUsage(
                 request_tokens=0,
                 response_tokens=0,
                 total_tokens=0,
-                provider="GeminiProvider",
+                provider=self.__class__.__name__,
                 model=self.config.model_name,
             )
+        request_tokens = int(getattr(usage, "prompt_token_count", 0) or 0)
+        response_tokens = int(getattr(usage, "candidates_token_count", 0) or 0)
+        return TokenUsage(
+            request_tokens=request_tokens,
+            response_tokens=response_tokens,
+            total_tokens=request_tokens + response_tokens,
+            provider=self.__class__.__name__,
+            model=self.config.model_name,
+        )
