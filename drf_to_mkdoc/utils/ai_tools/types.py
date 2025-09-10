@@ -68,7 +68,7 @@ class ProviderConfig:
     api_key: str
     temperature: float = 0.7
     max_tokens: int | None = None
-    extra_params: dict[str, Any] | None = field(default_factory=dict)
+    extra_params: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -76,5 +76,5 @@ class ProviderConfig:
             "model_name": self.model_name,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
-            "extra_params": self.extra_params or {},
+            "extra_params": self.extra_params,
         }
