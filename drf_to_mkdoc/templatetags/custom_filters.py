@@ -55,3 +55,26 @@ def format_field_extra(field_info):
     if field_info.get("max_length"):
         extras.append(f"max_length={field_info['max_length']}")
     return ", ".join(extras)
+
+
+@register.filter
+def yesno(value, arg=None):
+    """
+    Given a string mapping values for true, false and (optionally) None,
+    return one of those strings according to the value.
+    """
+    if arg is None:
+        arg = "yes,no,maybe"
+    bits = arg.split(",")
+    if len(bits) < 2:
+        return value  # Invalid arg.
+    try:
+        yes, no, maybe = bits
+    except ValueError:
+        yes, no, maybe = bits[0], bits[1], bits[1]
+
+    if value is None:
+        return maybe
+    if value:
+        return yes
+    return no
