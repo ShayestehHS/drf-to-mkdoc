@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
                 model_docs[app_label][model_name] = self.introspect_model(model, app_label)
 
-        return model_docs
+        return {app_label: dict(models) for app_label, models in model_docs.items()}
 
     def introspect_model(self, model, app_label):
         """Introspect a single Django model"""
