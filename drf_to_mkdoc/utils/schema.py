@@ -4,6 +4,7 @@ from typing import Any
 
 from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
 from drf_spectacular.plumbing import ComponentRegistry
+from rest_framework.serializers import BaseSerializer, ListSerializer
 from rest_framework.viewsets import ViewSetMixin
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
@@ -127,22 +128,24 @@ class ViewMetadataExtractor:
         attrs = {}
         try:
             serializer_instance = serializer_cls()
-            for field_name, field in serializer_instance.fields.items():
-                if hasattr(field, "child") and hasattr(field.child, "__class__"):
+            for field_name, field in getattr(serializer_instance, "fields", {}).items():
+                if isinstance(field, ListSerializer) and isinstance(
+                    field.child, BaseSerializer
+                ):
                     # Handle ListSerializer and similar fields
                     child_class = field.child.__class__
                     attrs[field_name] = {
                         "type": "list",
                         "child_serializer": f"{child_class.__module__}.{child_class.__name__}",
                     }
-                elif hasattr(field, "serializer"):
+                elif isinstance(field, BaseSerializer):
                     # Handle nested serializers
-                    nested_class = field.serializer.__class__
+                    nested_class = field.__class__
                     attrs[field_name] = {
                         "type": "nested",
                         "serializer": f"{nested_class.__module__}.{nested_class.__name__}",
                     }
-        except Exception as e:
+        except (TypeError, AttributeError) as e:
             logger.debug(f"Failed to extract serializer attributes: {e}")
 
         return attrs
