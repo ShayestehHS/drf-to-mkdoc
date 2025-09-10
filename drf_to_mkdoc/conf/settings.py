@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, ClassVar
 
 from django.conf import settings
 
@@ -6,16 +7,16 @@ from drf_to_mkdoc.conf.defaults import DEFAULTS
 
 
 class DRFToMkDocSettings:
-    required_settings = ["DJANGO_APPS"]
-    project_settings = {"PROJECT_NAME": "drf-to-mkdoc"}
+    required_settings: ClassVar[list[str]] = ["DJANGO_APPS"]
+    project_settings: ClassVar[dict[str, Any]] = {"PROJECT_NAME": "drf-to-mkdoc"}
 
-    settings_types = {
+    settings_types: ClassVar[dict[str, type]] = {
         "ENABLE_AI_DOCS": bool,
         "AI_CONFIG_DIR_NAME": str,
         "SERIALIZERS_INHERITANCE_DEPTH": int,
     }
 
-    settings_ranges = {
+    settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {
         "SERIALIZERS_INHERITANCE_DEPTH": (1, 3),
     }
 
@@ -32,7 +33,7 @@ class DRFToMkDocSettings:
         self._user_settings = getattr(settings, user_settings_key, {})
         self.defaults = defaults or {}
 
-    def _validate_type(self, key: str, value: any) -> None:
+    def _validate_type(self, key: str, value: Any) -> None:
         """Validate the type of setting value."""
         if key in self.settings_types:
             expected_type = self.settings_types[key]
@@ -42,7 +43,7 @@ class DRFToMkDocSettings:
                     f"got {type(value).__name__} instead."
                 )
 
-    def _validate_range(self, key: str, value: any) -> None:
+    def _validate_range(self, key: str, value: Any) -> None:
         """Validate the range of a setting value."""
         if key in self.settings_ranges:
             min_val, max_val = self.settings_ranges[key]
@@ -52,7 +53,7 @@ class DRFToMkDocSettings:
                     f"got {value} instead."
                 )
 
-    def _validate_required(self, key: str, value: any) -> None:
+    def _validate_required(self, key: str, value: Any) -> None:
         """Validate if a required setting is configured."""
         if value is None and key in self.required_settings:
             raise ValueError(
@@ -122,12 +123,14 @@ class DRFToMkDocSettings:
             )
 
     def get(self, key):
-        if key not in self.defaults:
-            if key in self.project_settings:
-                return self.project_settings[key]
-            raise AttributeError(f"Invalid DRF_TO_MKDOC setting: '{key}'")
+        if key in self.project_settings:
+            return self.project_settings[key]
 
-        value = self._user_settings.get(key, self.defaults[key])
+        # User-provided settings take precedence
+        if key in self._user_settings:
+            value = self._user_settings[key]
+        else:
+            value = self.defaults.get(key, None)
 
         # Run all validations
         self._validate_required(key, value)
@@ -135,6 +138,8 @@ class DRFToMkDocSettings:
         self._validate_range(key, value)
         self._validate_dir(key, value)
 
+        if value is None:
+            raise AttributeError(f"Invalid DRF_TO_MKDOC setting: '{key}'")
         return value
 
     def __getattr__(self, key):
@@ -146,7 +151,7 @@ class DRFToMkDocSettings:
         for setting in self.required_settings:
             try:
                 self.get(setting)
-            except ValueError:
+            except (ValueError, AttributeError):
                 missing_settings.append(setting)
 
         if missing_settings:
