@@ -1,3 +1,4 @@
+import inspect
 import logging
 from typing import Any
 
@@ -109,15 +110,12 @@ class ViewMetadataExtractor:
             return []
 
         parents = []
-        current_class = serializer_cls
-        depth = 0
-
-        while current_class and depth < drf_to_mkdoc_settings.SERIALIZERS_INHERITANCE_DEPTH:
-            for base in current_class.__bases__:
-                if base.__module__ not in {"builtins", "object"}:
-                    parents.append(f"{base.__module__}.{base.__name__}")
-            current_class = current_class.__bases__[0] if current_class.__bases__ else None
-            depth += 1
+        for base in inspect.getmro(serializer_cls)[
+            1 : drf_to_mkdoc_settings.SERIALIZERS_INHERITANCE_DEPTH + 1
+        ]:
+            if base is object or base.__module__ == "builtins":
+                continue
+            parents.append(f"{base.__module__}.{base.__name__}")
 
         return parents
 
