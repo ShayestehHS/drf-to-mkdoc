@@ -51,12 +51,13 @@ class ChatResponse:
     def to_dict(self) -> dict[str, Any]:
         result = {
             "content": self.content,
-            "model": self.model,
         }
         if self.usage:
             result["usage"] = self.usage.to_dict()
         if self.metadata:
             result["metadata"] = self.metadata
+        if self.model is not None:
+            result["model"] = self.model
         return result
 
 
