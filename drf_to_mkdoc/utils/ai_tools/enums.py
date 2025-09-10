@@ -6,3 +6,8 @@ class MessageRole(Enum):
     USER = "user"
     ASSISTANT = "assistant"
     FUNCTION = "function"
+    TOOL = "tool"
+    MODEL = "model"
+
+    def __str__(self) -> str:
+        return self.value
