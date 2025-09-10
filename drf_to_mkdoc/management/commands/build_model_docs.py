@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.commons.file_utils import load_model_json_data
+from drf_to_mkdoc.utils.commons.file_utils import load_json_data
 from drf_to_mkdoc.utils.model_detail_generator import generate_model_docs
 from drf_to_mkdoc.utils.model_list_generator import create_models_index
 
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         return docs_dir
 
     def _load_models_data(self):
-        json_data = load_model_json_data()
+        json_data = load_json_data(drf_to_mkdoc_settings.MODEL_DOCS_FILE, raise_not_found=False)
         models_data = json_data.get("models", {}) if json_data else {}
 
         if not models_data:

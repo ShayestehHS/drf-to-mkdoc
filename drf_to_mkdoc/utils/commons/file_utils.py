@@ -14,21 +14,15 @@ def write_file(file_path: str, content: str) -> None:
         f.write(content)
 
 
-def load_model_json_data() -> dict[str, Any] | None:
-    """Load the JSON mapping data for model information"""
-    json_file = Path(drf_to_mkdoc_settings.MODEL_DOCS_FILE)
+def load_json_data(file_path: str, raise_not_found: bool = True) -> dict[str, Any] | None:
+    json_file = Path(file_path)
     if not json_file.exists():
+        if raise_not_found:
+            raise FileNotFoundError(f"File not found: {json_file}")
         return None
 
     with json_file.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def load_doc_config() -> dict[str, Any] | None:
-    """Load the documentation configuration file"""
-    config_file = Path(drf_to_mkdoc_settings.DOC_CONFIG_FILE)
-    if not config_file.exists():
-        return None
-
-    with config_file.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in {json_file}: {e}") from e

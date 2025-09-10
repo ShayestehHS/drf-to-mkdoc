@@ -6,7 +6,7 @@ from django.apps import apps
 from django.core.exceptions import AppRegistryNotReady
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.commons.file_utils import load_doc_config
+from drf_to_mkdoc.utils.commons.file_utils import load_json_data
 
 
 def get_model_docstring(class_name: str) -> str | None:
@@ -58,7 +58,7 @@ def get_model_docstring(class_name: str) -> str | None:
 def get_model_description(class_name: str) -> str:
     """Get a brief description for a model with priority-based selection"""
     # Priority 1: Description from config file
-    config = load_doc_config()
+    config = load_json_data(drf_to_mkdoc_settings.DOC_CONFIG_FILE, raise_not_found=False)
     if config and "model_descriptions" in config:
         config_description = config["model_descriptions"].get(class_name, "").strip()
         if config_description:
@@ -75,7 +75,7 @@ def get_model_description(class_name: str) -> str:
 
 def get_app_descriptions() -> dict[str, str]:
     """Get descriptions for Django apps from config file"""
-    config = load_doc_config()
+    config = load_json_data(drf_to_mkdoc_settings.DOC_CONFIG_FILE, raise_not_found=False)
     if config and "app_descriptions" in config:
         return config["app_descriptions"]
 
