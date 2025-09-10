@@ -179,7 +179,8 @@ def _extract_filterset_fields_from_internal_attrs(filterset_class: Any) -> list[
 
 
 def _extract_filterset_fields_from_get_fields(filterset_class: Any) -> list[str]:
-    if not (filterset_class._meta and filterset_class._meta.model):
+    meta = getattr(filterset_class, "_meta", None)
+    if not getattr(meta, "model", None):
         # If the Meta class is not defined in the Filter class,
         # the get_fields function is raise error
         return []
@@ -188,7 +189,12 @@ def _extract_filterset_fields_from_get_fields(filterset_class: Any) -> list[str]
     if not hasattr(filterset_class, "get_fields"):
         return []
 
-    filterset_instance = filterset_class()
+    try:
+        filterset_instance = filterset_class()
+    except TypeError:
+        # Constructor requires args; skip dynamic field discovery
+        return []
+
     filterset_fields = filterset_instance.get_fields()
     if not (filterset_fields and hasattr(filterset_fields, "keys")):
         return []
