@@ -1,0 +1,41 @@
+{% if error %}
+**Error:** {{ error }}
+
+{% else %}
+{% if search_fields %}
+### Search Parameters
+
+{% for field in search_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if filter_fields %}
+### Filter Parameters
+
+{% for field in filter_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if ordering_fields %}
+### Ordering Parameters
+
+{% for field in ordering_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if pagination_fields %}
+### Pagination Parameters
+
+{% for field in pagination_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if filter_backends %}
+**Filter Backends:** {{ filter_backends|join:", " }}
+{% endif %}
+
+{% endif %}

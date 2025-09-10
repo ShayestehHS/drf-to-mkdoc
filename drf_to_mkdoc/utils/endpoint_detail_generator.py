@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from django.apps import apps
+from django.template.loader import render_to_string
 from django.templatetags.static import static
 from rest_framework import serializers
 
@@ -20,9 +21,6 @@ from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
 from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
-)
-from drf_to_mkdoc.utils.md_generators.query_parameters_generators import (
-    generate_query_parameters_md,
 )
 
 logger = logging.getLogger()
@@ -606,7 +604,7 @@ def _add_query_parameters(method: str, path: str, operation_id: str) -> str:
     query_params = extract_query_parameters_from_view(operation_id)
     _add_custom_parameters(operation_id, query_params)
 
-    query_params_content = generate_query_parameters_md(query_params)
+    query_params_content = render_to_string("query_parameters.html", query_params).strip()
     if query_params_content and not query_params_content.startswith("**Error:**"):
         return "## Query Parameters\n\n" + query_params_content
 
