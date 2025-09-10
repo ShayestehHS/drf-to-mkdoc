@@ -1,12 +1,14 @@
 """Operation ID and viewset utilities."""
 
-from asyncio.log import logger
+import logging
 from functools import lru_cache
 
 from django.urls import resolve
 
 from drf_to_mkdoc.utils.commons.path_utils import substitute_path_params
 from drf_to_mkdoc.utils.commons.schema_utils import get_schema
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -48,7 +50,7 @@ def extract_viewset_from_operation_id(operation_id: str):
             return view_func
 
     except Exception:
-        logger.error(
+        logger.exception(
             f"Failed to resolve path.\nschema_path{path}\ntried_path={resolved_path}\n---"
         )
 

@@ -1,12 +1,14 @@
 """Path manipulation utilities."""
 
+import logging
 import re
-from asyncio.log import logger
 from typing import Any
 
 from django.utils.module_loading import import_string
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+
+logger = logging.getLogger(__name__)
 
 
 def substitute_path_params(path: str, parameters: list[dict[str, Any]]) -> str:
@@ -44,8 +46,8 @@ def convert_to_django_path(path: str, parameters: list[dict[str, Any]]) -> str:
             result = function(path, parameters)
             if result and isinstance(result, dict):
                 PATH_PARAM_SUBSTITUTE_MAPPING.update(result)
-        except Exception as e:
-            logger.exception("Error in custom path substitutor: %s", e)
+        except Exception:
+            logger.exception("Error in custom path substitutor")
 
     # Default Django path conversion
     def replacement(match):
