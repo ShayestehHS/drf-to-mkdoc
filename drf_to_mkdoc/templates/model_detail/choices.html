@@ -1,0 +1,12 @@
+{% load custom_filters %}
+## Choices
+
+{% for field_name, field_info in fields.items %}{% if field_info.choices %}
+### {{ field_name }} Choices
+
+| Label | Value |
+|-------|-------|
+{% for choice in field_info.choices %}| {{ choice.display }} | `{{ choice.value }}` |
+{% endfor %}
+
+{% endif %}{% endfor %}

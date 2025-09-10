@@ -1,0 +1,11 @@
+{% load custom_filters %}
+## Fields
+
+| Field | Type | Description | Extra |
+|-------|------|-------------|-------|
+{% for field_name, field_info in fields.items %}{% with field_type=field_info.type|default:"Unknown" %}{% if field_type == "TextField" %}| `{{ field_name }}` | TextField | {{ field_name }} | {% if field_info.max_length %}max_length={{ field_info.max_length }}{% endif %} |
+{% elif field_type == "BigAutoField" %}| `{{ field_name }}` | BigAutoField | ID | {% if field_info.blank %}blank=True{% endif %}{% if field_info.unique %}, unique=True{% endif %}{% if field_info.primary_key %}, primary_key=True{% endif %} |
+{% elif field_type == "CharField" %}| `{{ field_name }}` | CharField | {{ field_name }} | {% if field_info.max_length %}max_length={{ field_info.max_length }}{% endif %}{% if field_info.null %}, null=True{% endif %}{% if field_info.blank %}, blank=True{% endif %} |
+{% elif field_type == "ForeignKey" %}| `{{ field_name }}` | ForeignKey | {{ field_info.field_specific.to|default:"" }} | |
+{% else %}| `{{ field_name }}` | {{ field_type }} | {{ field_name }} | {{ field_info|format_field_extra }} |
+{% endif %}{% endwith %}{% endfor %}
