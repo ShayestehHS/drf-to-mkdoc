@@ -1,8 +1,6 @@
 from typing import Any
 
-import django_filters
-
-from drf_to_mkdoc.utils.common import extract_viewset_from_operation_id
+from drf_to_mkdoc.utils.commons.operation_utils import extract_viewset_from_operation_id
 
 
 def extract_query_parameters_from_view(operation_id: str) -> dict[str, Any]:
@@ -111,35 +109,34 @@ def extract_query_parameters_from_view_pagination_fields(view_class: Any) -> lis
 
 
 def _extract_filterset_fields_from_class_attributes(filterset_class: Any) -> list[str]:
-    fields = []
-
     try:
-        # Get all class attributes, including inherited ones
-        for attr_name in dir(filterset_class):
-            # Skip private attributes and known non-filter attributes
-            if attr_name.startswith("_") or attr_name in [
-                "Meta",
-                "form",
-                "queryset",
-                "request",
-                "errors",
-                "qs",
-                "is_valid",
-            ]:
-                continue
-
-            try:
-                attr = getattr(filterset_class, attr_name)
-                if isinstance(attr, django_filters.Filter):
-                    if attr_name not in fields:
-                        fields.append(attr_name)
-            except (AttributeError, TypeError):
-                continue
-
+        import django_filters  # noqa: PLC0415
     except ImportError:
         # django_filters not available, skip this strategy
-        pass
+        return []
 
+    fields = []
+    # Get all class attributes, including inherited ones
+    for attr_name in dir(filterset_class):
+        # Skip private attributes and known non-filter attributes
+        if attr_name.startswith("_") or attr_name in [
+            "Meta",
+            "form",
+            "queryset",
+            "request",
+            "errors",
+            "qs",
+            "is_valid",
+        ]:
+            continue
+
+        try:
+            attr = getattr(filterset_class, attr_name)
+            if isinstance(attr, django_filters.Filter):
+                if attr_name not in fields:
+                    fields.append(attr_name)
+        except (AttributeError, TypeError):
+            continue
     return fields
 
 
@@ -182,7 +179,8 @@ def _extract_filterset_fields_from_internal_attrs(filterset_class: Any) -> list[
 
 
 def _extract_filterset_fields_from_get_fields(filterset_class: Any) -> list[str]:
-    if not (filterset_class._meta and filterset_class._meta.model):
+    meta = getattr(filterset_class, "_meta", None)
+    if not getattr(meta, "model", None):
         # If the Meta class is not defined in the Filter class,
         # the get_fields function is raise error
         return []
@@ -191,7 +189,12 @@ def _extract_filterset_fields_from_get_fields(filterset_class: Any) -> list[str]
     if not hasattr(filterset_class, "get_fields"):
         return []
 
-    filterset_instance = filterset_class()
+    try:
+        filterset_instance = filterset_class()
+    except TypeError:
+        # Constructor requires args; skip dynamic field discovery
+        return []
+
     filterset_fields = filterset_instance.get_fields()
     if not (filterset_fields and hasattr(filterset_fields, "keys")):
         return []

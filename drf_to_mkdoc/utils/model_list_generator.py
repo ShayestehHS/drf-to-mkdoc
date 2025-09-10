@@ -1,22 +1,16 @@
+from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import get_app_descriptions
+from drf_to_mkdoc.utils.commons.model_utils import get_app_descriptions
 
 
 def create_models_index(models_data: dict[str, Any], docs_dir: Path) -> None:
     """Create the main models index page that lists all models organized by app."""
-    models_by_app = {}
-    for model_name, model_info in models_data.items():
-        app_name = model_info.get("app_label", model_name.split(".")[0])
-        class_name = model_info.get("name", model_name.split(".")[-1])
-        if app_name not in models_by_app:
-            models_by_app[app_name] = []
-        models_by_app[app_name].append((class_name, model_name, model_info))
-
     stylesheets = [
         "stylesheets/models/variables.css",
         "stylesheets/models/base.css",
@@ -40,17 +34,33 @@ This section contains documentation for all Django models in the system, organiz
 
     app_descriptions = get_app_descriptions()
 
-    for app_name in sorted(models_by_app.keys()):
-        app_desc = app_descriptions.get(app_name, f"{app_name.title()} application models")
-        content += f'<div class="app-header">{app_name.title()} App</div>\n'
+    for app_name, models in sorted(models_data.items()):
+        app_desc = escape(
+            app_descriptions.get(
+                app_name, f"{app_name.replace('_', ' ').title()} application models"
+            )
+        )
+        app_title = escape(app_name.replace("_", " ").title())
+        content += f'<div class="app-header">{app_title} App</div>\n'
         content += f'<div class="app-description">{app_desc}</div>\n\n'
 
         content += '<div class="model-cards">\n'
 
-        for class_name, _model_name, _model_info in sorted(models_by_app[app_name]):
+        model_names = sorted(
+            [
+                (
+                    str(mi.get("verbose_name") or mk),
+                    str(mi.get("table_name") or mk),
+                )
+                for mk, mi in models.items()
+                if isinstance(mi, dict)
+            ],
+            key=lambda x: x[0].casefold(),
+        )
+        for verbose_name, table_name in model_names:
             content += f"""
-            <a href="{app_name}/{class_name.lower()}/"
-             class="model-card">{class_name}</a>\n
+            <a href="{quote(app_name, safe="")}/{quote(table_name, safe="")}/"
+             class="model-card">{escape(verbose_name)}</a>\n
 """
 
         content += "</div>\n\n"

@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import get_schema
+from drf_to_mkdoc.utils.commons.schema_utils import get_schema
 from drf_to_mkdoc.utils.endpoint_detail_generator import (
     generate_endpoint_files,
     parse_endpoints_from_schema,

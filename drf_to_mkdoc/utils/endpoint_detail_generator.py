@@ -10,14 +10,14 @@ from django.templatetags.static import static
 from rest_framework import serializers
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.common import (
-    create_safe_filename,
+from drf_to_mkdoc.utils.commons.file_utils import write_file
+from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
     format_method_badge,
-    get_custom_schema,
-    write_file,
 )
+from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
+from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )
@@ -32,50 +32,23 @@ def analyze_serializer_method_field_schema(serializer_class, field_name: str) ->
     """Analyze a SerializerMethodField to determine its actual return type schema."""
     method_name = f"get_{field_name}"
 
-    # Strategy 2: Check type annotations
+    # Strategy 1: Check type annotations
     schema_from_annotations = _extract_schema_from_type_hints(serializer_class, method_name)
     if schema_from_annotations:
         return schema_from_annotations
 
-    # Strategy 3: Analyze method source code
+    # Strategy 2: Analyze method source code
     schema_from_source = _analyze_method_source_code(serializer_class, method_name)
     if schema_from_source:
         return schema_from_source
 
-    # Strategy 4: Runtime analysis (sample execution)
+    # Strategy 3: Runtime analysis (sample execution)
     schema_from_runtime = _analyze_method_runtime(serializer_class, method_name)
     if schema_from_runtime:
         return schema_from_runtime
 
     # Fallback to string
     return {"type": "string"}
-
-
-def _extract_schema_from_decorator(serializer_class, method_name: str) -> dict:
-    """Extract schema from @extend_schema_field decorator if present."""
-    try:
-        method = getattr(serializer_class, method_name, None)
-        if not method:
-            return {}
-
-        # Check if method has the decorator attribute (drf-spectacular)
-        if hasattr(method, "_spectacular_annotation"):
-            annotation = method._spectacular_annotation
-            # Handle OpenApiTypes
-            if hasattr(annotation, "type"):
-                return {"type": annotation.type}
-            if isinstance(annotation, dict):
-                return annotation
-
-        # Check for drf-yasg decorator
-        if hasattr(method, "_swagger_serializer_method"):
-            swagger_info = method._swagger_serializer_method
-            if hasattr(swagger_info, "many") and hasattr(swagger_info, "child"):
-                return {"type": "array", "items": {"type": "object"}}
-
-    except Exception:
-        logger.exception("Failed to extract schema from decorator")
-    return {}
 
 
 def _extract_schema_from_type_hints(serializer_class, method_name: str) -> dict:

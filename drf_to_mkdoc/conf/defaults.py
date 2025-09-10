@@ -7,6 +7,11 @@ DEFAULTS = {
     "CUSTOM_SCHEMA_FILE": "docs/configs/custom_schema.json",  # Path to custom schema file
     "PATH_PARAM_SUBSTITUTE_FUNCTION": None,
     "PATH_PARAM_SUBSTITUTE_MAPPING": {},
+    # AI documentation settings
+    "ENABLE_AI_DOCS": False,
+    "AI_CONFIG_DIR_NAME": "ai_code",  # Directory name for AI-generated code files
+    "AI_OPERATION_MAP_FILE": "docs/configs/operation_map.json",  # Path to operation map file
+    "SERIALIZERS_INHERITANCE_DEPTH": 1,  # Maximum depth for class inheritance analysis
     # Django apps - required, no default
     "DJANGO_APPS": None,  # List of Django app names to process
 }

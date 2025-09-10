@@ -1,6 +1,7 @@
 import inspect
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 
 from django.apps import apps
@@ -38,33 +39,26 @@ class Command(BaseCommand):
 
         model_docs = self.generate_model_documentation(exclude_apps)
 
-        json_data = {
-            "models": model_docs,
-            "stats": {
-                "total_models": len(model_docs),
-                "total_apps": len({model["app_label"] for model in model_docs.values()}),
-            },
-        }
-
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", encoding="utf-8") as f:
+            payload = dict(model_docs)
             if pretty:
-                json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
+                json.dump(payload, f, ensure_ascii=False, sort_keys=True, default=str, indent=2)
             else:
-                json.dump(json_data, f, ensure_ascii=False, default=str)
+                json.dump(payload, f, ensure_ascii=False, sort_keys=True, default=str)
 
         self.stdout.write(
             self.style.SUCCESS(f"✅ Generated model documentation: {output_path.absolute()}")
         )
-        self.stdout.write(f"📊 Total models: {len(model_docs)}")
         self.stdout.write(
-            f"📦 Total apps: {len({model['app_label'] for model in model_docs.values()})}"
+            f"📊 Total models: {sum([len(model_docs[app_label]) for app_label in model_docs])}"
         )
+        self.stdout.write(f"📦 Total apps: {len(model_docs)}")
 
     def generate_model_documentation(self, exclude_apps):
         """Generate documentation for all Django models"""
-        model_docs = {}
+        model_docs = defaultdict(dict)
 
         for app_config in apps.get_app_configs():
             app_label = app_config.label
@@ -78,13 +72,11 @@ class Command(BaseCommand):
 
             for model in app_config.get_models():
                 model_name = model.__name__
-                model_key = f"{app_label}.{model_name}"
-
                 self.stdout.write(f"  📋 Processing model: {model_name}")
 
-                model_docs[model_key] = self.introspect_model(model, app_label)
+                model_docs[app_label][model_name] = self.introspect_model(model, app_label)
 
-        return model_docs
+        return {app_label: dict(models) for app_label, models in model_docs.items()}
 
     def introspect_model(self, model, app_label):
         """Introspect a single Django model"""
@@ -154,6 +146,9 @@ class Command(BaseCommand):
             "type": field.__class__.__name__,
             "related_model": related_model_label,
             "related_name": getattr(field, "related_name", None),
+            "app_label": field.related_model._meta.app_label,
+            "table_name": field.related_model._meta.db_table,
+            "verbose_name": field.related_model._meta.verbose_name,
             "on_delete": self.get_on_delete_name(field),
             "null": getattr(field, "null", False),
             "blank": getattr(field, "blank", False),
@@ -286,7 +281,7 @@ class Command(BaseCommand):
                 if display_method_match:
                     field_name = display_method_match.group(1)
                     if field_name in model_field_names:
-                        # Exclude if the field doesn't exist in the model
+                        # Exclude built-in get_<field>_display for fields present on the model
                         continue
 
                 method = getattr(model, attr_name)
