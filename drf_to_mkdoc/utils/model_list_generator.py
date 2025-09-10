@@ -1,6 +1,7 @@
 from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from django.templatetags.static import static
 
@@ -58,8 +59,8 @@ This section contains documentation for all Django models in the system, organiz
         )
         for verbose_name, table_name in model_names:
             content += f"""
-            <a href="{app_name}/{table_name}/"
-             class="model-card">{verbose_name.capitalize()}</a>\n
+            <a href="{quote(app_name, safe="")}/{quote(table_name, safe="")}/"
+             class="model-card">{escape(verbose_name)}</a>\n
 """
 
         content += "</div>\n\n"
