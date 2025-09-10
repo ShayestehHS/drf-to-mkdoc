@@ -41,10 +41,14 @@ This section contains documentation for all Django models in the system, organiz
 
         model_names = sorted(
             [
-                (model_info["verbose_name"], model_info["table_name"])
-                for model_info in models.values()
+                (
+                    str(mi.get("verbose_name") or mk),
+                    str(mi.get("table_name") or mk),
+                )
+                for mk, mi in models.items()
+                if isinstance(mi, dict)
             ],
-            key=lambda x: x[0],
+            key=lambda x: x[0].casefold(),
         )
         for verbose_name, table_name in model_names:
             content += f"""
