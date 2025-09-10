@@ -67,9 +67,7 @@ class BaseProvider(ABC):
 
         return "\n".join(lines)
 
-    def chat_completion(
-        self, messages: list[Message], context: RequestContext | None = None, **kwargs
-    ) -> ChatResponse:
+    def chat_completion(self, messages: list[Message], **kwargs) -> ChatResponse:
         """
         Send chat completion request without functions
 
@@ -104,9 +102,7 @@ class BaseProvider(ABC):
     ) -> dict[str, Any]:
         return OperationExtractor().operation_map.get(operation_id)
 
-    def _get_model_info(
-        self, app_label: str, model_name: str, context: RequestContext | None = None
-    ) -> dict[str, Any]:
+    def _get_model_info(self, app_label: str, model_name: str) -> dict[str, Any]:
         docs_file = Path(drf_to_mkdoc_settings.MODEL_DOCS_FILE)
 
         if not docs_file.exists():

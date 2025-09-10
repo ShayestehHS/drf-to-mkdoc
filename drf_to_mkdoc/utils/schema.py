@@ -1,5 +1,6 @@
 import inspect
 import logging
+from importlib import import_module
 from types import SimpleNamespace
 from typing import Any
 
@@ -176,7 +177,7 @@ class ViewMetadataExtractor:
         if serializer_class_str:
             module_name, class_name = serializer_class_str.rsplit(".", 1)
             try:
-                module = __import__(module_name, fromlist=[class_name])
+                module = import_module(module_name)
                 serializer_class = getattr(module, class_name)
             except (ImportError, AttributeError) as e:
                 logger.debug(f"Failed to import serializer class: {e}")
