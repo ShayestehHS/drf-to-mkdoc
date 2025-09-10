@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def substitute_path_params(path: str, parameters: list[dict[str, Any]]) -> str:
     django_path = convert_to_django_path(path, parameters)
 
-    django_path = re.compile(r"\{[^}]+\}").sub("1", django_path)
+    django_path = re.sub(r"\{[^}]+\}", "1", django_path)
     django_path = re.sub(r"<int:[^>]+>", "1", django_path)
     django_path = re.sub(r"<uuid:[^>]+>", "12345678-1234-5678-9abc-123456789012", django_path)
     django_path = re.sub(r"<float:[^>]+>", "1.0", django_path)
