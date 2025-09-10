@@ -45,18 +45,17 @@ def extract_viewset_from_operation_id(operation_id: str):
         if hasattr(view_func, "view_class"):
             # For generic class-based views
             return view_func.view_class
-        try:
+
+        if hasattr(view_func, "cls"):
             # For viewsets
             return view_func.cls
-        except AttributeError:
-            pass
-        else:
-            return view_func
 
     except Exception:
         logger.exception(
             f"Failed to resolve path.\nschema_path{path}\ntried_path={resolved_path}\n---"
         )
+    else:
+        return view_func
 
 
 def extract_viewset_name_from_operation_id(operation_id: str):
