@@ -1,0 +1,38 @@
+:root {
+    --try-out-primary: #1976d2;
+    --try-out-primary-hover: #1565c0;
+    --try-out-success: #28a745;
+    --try-out-success-hover: #218838;
+    --try-out-danger: #dc3545;
+    --try-out-danger-hover: #c82333;
+    --try-out-warning: #ffc107;
+    --try-out-info: #17a2b8;
+    
+    --try-out-bg: #ffffff;
+    --try-out-surface: #f8f9fa;
+    --try-out-border: #e1e5e9;
+    --try-out-text: #333333;
+    --try-out-text-light: #666666;
+    --try-out-text-lighter: #999999;
+    --try-out-shadow: rgba(0, 0, 0, 0.1);
+    --try-out-shadow-strong: rgba(0, 0, 0, 0.2);
+    
+    --try-out-border-radius: 4px;
+    --try-out-border-radius-lg: 6px;
+    --try-out-spacing-xs: 0.2rem;
+    --try-out-spacing-sm: 0.4rem;
+    --try-out-spacing: 0.6rem;
+    --try-out-spacing-lg: 0.8rem;
+    --try-out-spacing-xl: 1.2rem;
+    --try-out-spacing-xxl: 1.6rem;
+    
+    --try-out-font-sm: 0.75rem;
+    --try-out-font-base: 0.8rem;
+    --try-out-font-lg: 0.9rem;
+    --try-out-line-height: 1.4;
+    
+    --try-out-transition: all 0.2s ease;
+    --try-out-z-modal: 1000;
+    --try-out-z-response: 1100;
+    --try-out-z-fab: 100;
+}

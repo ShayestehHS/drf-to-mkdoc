@@ -1,5 +1,6 @@
 import html
 import json
+import re
 
 from django import template
 from django.templatetags.static import static as django_static
@@ -114,3 +115,34 @@ def format_json(value):
         value = json.dumps(value, indent=2)
 
     return mark_safe(value)  # noqa: S308
+
+
+@register.filter
+def extract_json_from_markdown(value):
+    """Extract JSON content from markdown code blocks"""
+    if not isinstance(value, str):
+        return ""
+
+    # Look for ```json code blocks
+
+    json_pattern = r"```json\s*\n(.*?)\n```"
+    matches = re.findall(json_pattern, value, re.DOTALL)
+
+    if matches:
+        return matches[0].strip()
+
+    # Fallback: look for any code block
+    code_pattern = r"```\s*\n(.*?)\n```"
+    matches = re.findall(code_pattern, value, re.DOTALL)
+
+    if matches:
+        content = matches[0].strip()
+        # Try to validate if it's JSON
+        try:
+            json.loads(content)
+        except (json.JSONDecodeError, TypeError):
+            pass
+        else:
+            return content
+
+    return ""

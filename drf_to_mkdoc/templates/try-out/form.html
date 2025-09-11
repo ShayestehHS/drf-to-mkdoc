@@ -1,0 +1,113 @@
+{% load custom_filters %}
+
+<div class="try-out-form" data-method="{{ method }}">
+    <!-- Base URL Section -->
+    <div class="base-url-section">
+        <label for="baseUrl">Request URL</label>
+        <div class="url-display">
+            <input type="text" id="baseUrl" class="base-url-input" value="http://localhost:8000" placeholder="https://api.example.com">
+            <span class="path-display">{{ path }}</span>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="parameters">Parameters</button>
+        <button class="tab" data-tab="headers">Headers</button>
+        {% if method|upper in "POST,PUT,PATCH" %}
+        <button class="tab" data-tab="body">Request Body</button>
+        {% endif %}
+    </div>
+
+    <!-- Parameters Tab -->
+    <div class="tab-content active" id="parametersTab">
+        {% if path_params %}
+        <div class="form-group">
+            <label class="form-label">Path Parameters</label>
+            <div class="kv-container" id="pathParams">
+                {% for param in path_params %}
+                <div class="kv-item">
+                    <label class="param-label{% if param.required %} required{% endif %}">{{ param.name }}</label>
+                    <input type="text" 
+                           placeholder="Enter {{ param.name }} value" 
+                           data-param="{{ param.name }}"
+                           {% if param.required %}required{% endif %}>
+                    <div class="error-message"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label class="form-label">Query Parameters</label>
+            <div class="kv-container" id="queryParams">
+                <div class="kv-item">
+                    <input type="text" placeholder="Parameter name">
+                    <input type="text" placeholder="Parameter value">
+                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
+                </div>
+            </div>
+            <button class="add-btn" onclick="TryOutSidebar.addQueryParam()">
+                <span>+</span> Add Parameter
+            </button>
+        </div>
+    </div>
+
+    <!-- Headers Tab -->
+    <div class="tab-content" id="headersTab">
+        <div class="form-group">
+            <label class="form-label">Request Headers</label>
+            <div class="kv-container" id="requestHeaders">
+                <div class="kv-item">
+                    <input type="text" value="Content-Type">
+                    <input type="text" value="application/json">
+                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
+                </div>
+                <div class="kv-item">
+                    <input type="text" value="Authorization">
+                    <input type="text" placeholder="Bearer your-token">
+                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
+                </div>
+            </div>
+            <button class="add-btn" onclick="TryOutSidebar.addHeader()">
+                <span>+</span> Add Header
+            </button>
+        </div>
+    </div>
+
+    <!-- Request Body Tab -->
+    {% if method|upper in "POST,PUT,PATCH" %}
+    <div class="tab-content" id="bodyTab">
+        <div class="form-group">
+            <label class="form-label">Request Body</label>
+            <textarea id="requestBody" 
+                      class="form-input form-textarea" 
+                      placeholder="Enter JSON request body..."
+                      rows="8">{% if request_example %}{{ request_example|extract_json_from_markdown }}{% endif %}</textarea>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Execute Button -->
+    <button class="execute-btn" id="executeBtn" onclick="executeRequest()">
+        <span>▶</span> Execute Request
+    </button>
+</div>
+
+<script>
+// Pass query parameters data to JavaScript
+window.queryParametersData = {
+    {% if query_parameters %}
+    filter_fields: {{ query_parameters.filter_fields|default:"[]"|safe }},
+    search_fields: {{ query_parameters.search_fields|default:"[]"|safe }},
+    ordering_fields: {{ query_parameters.ordering_fields|default:"[]"|safe }},
+    pagination_fields: {{ query_parameters.pagination_fields|default:"[]"|safe }}
+    {% else %}
+    filter_fields: [],
+    search_fields: [],
+    ordering_fields: [],
+    pagination_fields: []
+    {% endif %}
+};
+</script>
