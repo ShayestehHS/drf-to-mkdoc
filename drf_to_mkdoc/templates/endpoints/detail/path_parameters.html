@@ -1,0 +1,8 @@
+{% if path_params %}
+## Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+{% for param in path_params %}| `{{ param.name }}` | `{{ param.schema.type|default:"string" }}` | {{ param.required|yesno:"Yes,No" }} | {{ param.description }} |{% endfor %}
+{% endif %}
+

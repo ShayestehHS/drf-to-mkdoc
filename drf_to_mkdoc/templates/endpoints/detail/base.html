@@ -1,0 +1,33 @@
+<!-- inject CSS and JS directly -->
+{% load custom_filters %}
+{% for stylesheet in stylesheets %}
+<link rel="stylesheet" href="{% static_with_prefix stylesheet prefix_path %}">
+{% endfor %}
+{% for script in scripts %}
+<script src="{% static_with_prefix script prefix_path %}" defer></script>
+{% endfor %}
+
+# {{ method|upper }} {{ path }}
+
+{{ method|format_method_badge|safe }} `{{ path }}`
+
+**View class:** {{ viewset_name }}
+
+{% if summary %}
+## Overview
+
+{{ summary }}
+{% endif %}
+
+{% if operation_id %}
+**Operation ID:** `{{ operation_id }}`
+{% endif %}
+
+{% if description %}
+{{ description|safe }}
+{% endif %}
+
+{% include "endpoints/detail/path_parameters.html" %}
+{% include "endpoints/detail/query_parameters.html" %}
+{% include "endpoints/detail/request_body.html" %}
+{% include "endpoints/detail/responses.html" %}

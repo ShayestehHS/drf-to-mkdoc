@@ -1,4 +1,13 @@
+import html
+import json
+
 from django import template
+from django.templatetags.static import static as django_static
+from django.utils.safestring import mark_safe
+
+from drf_to_mkdoc.utils.commons.operation_utils import (
+    format_method_badge as format_method_badge_util,
+)
 
 register = template.Library()
 
@@ -6,6 +15,18 @@ register = template.Library()
 @register.filter
 def is_foreign_key(field_type):
     return field_type in ["ForeignKey", "OneToOneField"]
+
+
+@register.simple_tag
+def static_with_prefix(path, prefix=""):
+    """Add prefix to static path"""
+    return django_static(prefix + path)
+
+
+@register.filter
+def format_method_badge(method):
+    """Format HTTP method as badge"""
+    return format_method_badge_util(method)
 
 
 @register.filter
@@ -78,3 +99,18 @@ def yesno(value, arg=None):
     if value:
         return yes
     return no
+
+
+@register.filter
+def format_json(value):
+    if isinstance(value, str):
+        value = html.unescape(value)
+        try:
+            parsed = json.loads(value)
+            value = json.dumps(parsed, indent=2)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(value, dict | list):
+        value = json.dumps(value, indent=2)
+
+    return mark_safe(value)  # noqa: S308

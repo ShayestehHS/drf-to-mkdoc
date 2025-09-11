@@ -1,0 +1,10 @@
+{% load custom_filters %}
+
+{% if request_body %}
+## Request Body
+
+{% if request_example %}
+{{ request_example|format_json }}
+{% endif %}
+
+{% endif %}
