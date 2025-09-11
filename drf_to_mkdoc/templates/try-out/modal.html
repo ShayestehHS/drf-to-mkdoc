@@ -1,0 +1,14 @@
+<!-- Try Out Modal -->
+<div id="tryOutModal" class="try-out-modal" role="dialog" aria-modal="true" aria-label="Try It Out">
+    <div class="modal-overlay" onclick="TryOutSidebar.closeTryOut()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>🚀</span>
+            <h3>Try It Out</h3>
+            <button class="modal-close" aria-label="Close" onclick="TryOutSidebar.closeTryOut()">✕</button>
+        </div>
+        <div class="modal-body">
+            {% include 'try-out/form.html' %}
+        </div>
+    </div>
+</div>

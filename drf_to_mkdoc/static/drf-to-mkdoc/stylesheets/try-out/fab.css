@@ -1,0 +1,47 @@
+/* Try Out Floating Action Button */
+.try-out-fab {
+    position: fixed;
+    bottom: var(--try-out-spacing-xl);
+    right: var(--try-out-spacing-xl);
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--try-out-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px var(--try-out-shadow-strong);
+    transition: var(--try-out-transition);
+    z-index: var(--try-out-z-fab);
+    border: none;
+    font-size: var(--try-out-font-lg);
+}
+
+.try-out-fab:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px var(--try-out-shadow-strong);
+}
+
+.try-out-fab:active {
+    transform: scale(0.95);
+}
+
+.try-out-fab span {
+    font-size: 1.2rem;
+}
+
+/* Mobile adjustments */
+@media screen and (max-width: 768px) {
+    .try-out-fab {
+        bottom: var(--try-out-spacing-lg);
+        right: var(--try-out-spacing-lg);
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+    
+    .try-out-fab span {
+        font-size: 1.1rem;
+    }
+}

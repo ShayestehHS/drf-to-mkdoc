@@ -1,0 +1,71 @@
+/* Execute Button */
+.execute-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--try-out-spacing);
+    width: 100%;
+    padding: var(--try-out-spacing-lg);
+    border: none;
+    border-radius: var(--try-out-border-radius);
+    background: linear-gradient(135deg, var(--try-out-primary), #1565c0);
+    color: white;
+    cursor: pointer;
+    font-size: var(--try-out-font-base);
+    font-weight: 600;
+    margin-top: var(--try-out-spacing-xl);
+    transition: var(--try-out-transition);
+    box-shadow: 0 2px 4px var(--try-out-shadow);
+}
+
+.execute-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--try-out-shadow);
+}
+
+.execute-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.execute-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.execute-btn .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { 
+        transform: rotate(360deg); 
+    }
+}
+
+/* Secondary Buttons */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--try-out-spacing-sm);
+    padding: var(--try-out-spacing-sm) var(--try-out-spacing-lg);
+    border: 1px solid var(--try-out-border);
+    border-radius: var(--try-out-border-radius);
+    background: var(--try-out-bg);
+    color: var(--try-out-text);
+    cursor: pointer;
+    font-size: var(--try-out-font-base);
+    font-weight: 500;
+    transition: var(--try-out-transition);
+}
+
+.btn-secondary:hover {
+    background-color: var(--try-out-surface);
+    border-color: var(--try-out-primary);
+    color: var(--try-out-primary);
+}

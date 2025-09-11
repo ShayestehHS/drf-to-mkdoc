@@ -580,9 +580,16 @@ def create_endpoint_page(
             "stylesheets/endpoints/animations.css",
             "stylesheets/endpoints/accessibility.css",
             "stylesheets/endpoints/loading.css",
-            "stylesheets/endpoints/try-out-sidebar.css",
+            "stylesheets/try-out/main.css",
         ],
-        "scripts": ["javascripts/try-out-sidebar.js"],
+        "scripts": [
+            "javascripts/try-out/modal.js",
+            "javascripts/try-out/tabs.js",
+            "javascripts/try-out/form-manager.js",
+            "javascripts/try-out/request-executor.js",
+            "javascripts/try-out/suggestions.js",
+            "javascripts/try-out/main.js",
+        ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
     }
 
