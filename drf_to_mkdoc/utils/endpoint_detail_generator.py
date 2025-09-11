@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from django.apps import apps
-from django.templatetags.static import static
+from django.template.loader import render_to_string
 from rest_framework import serializers
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
@@ -14,15 +14,11 @@ from drf_to_mkdoc.utils.commons.file_utils import write_file
 from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
-    format_method_badge,
 )
 from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
 from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
-)
-from drf_to_mkdoc.utils.md_generators.query_parameters_generators import (
-    generate_query_parameters_md,
 )
 
 logger = logging.getLogger()
@@ -510,107 +506,93 @@ def format_schema_as_json_example(
     return result
 
 
+def _format_schema_for_display(
+    operation_id: str, schema: dict, components: dict, for_response: bool = True
+) -> str:
+    """Format schema as a displayable string with JSON example."""
+    if not schema:
+        return ""
+
+    if "$ref" in schema:
+        return format_schema_as_json_example(
+            operation_id, schema["$ref"], components, for_response
+        )
+
+    example = schema_to_example_json(operation_id, schema, components, for_response)
+    return f"```json\n{json.dumps(example, indent=2)}\n```"
+
+
+def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
+    """Prepare response data for template rendering."""
+    formatted_responses = []
+    for status_code, response_data in responses.items():
+        schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
+        formatted_responses.append(
+            {
+                "status_code": status_code,
+                "description": response_data.get("description", ""),
+                "example": _format_schema_for_display(operation_id, schema, components, True),
+            }
+        )
+    return formatted_responses
+
+
 def create_endpoint_page(
     path: str, method: str, endpoint_data: dict[str, Any], components: dict[str, Any]
 ) -> str:
     """Create a documentation page for a single API endpoint."""
     operation_id = endpoint_data.get("operationId", "")
-    summary = endpoint_data.get("summary", "")
-    description = endpoint_data.get("description", "")
-    parameters = endpoint_data.get("parameters", [])
-    request_body = endpoint_data.get("requestBody", {})
-    responses = endpoint_data.get("responses", {})
-
-    content = _create_endpoint_header(path, method, operation_id, summary, description)
-    content += _add_path_parameters(parameters)
-    content += _add_query_parameters(method, path, operation_id)
-    content += _add_request_body(operation_id, request_body, components)
-    content += _add_responses(operation_id, responses, components)
-
-    return content
-
-
-def _create_endpoint_header(
-    path: str, method: str, operation_id: str, summary: str, description: str
-) -> str:
-    """Create the header section of the endpoint documentation."""
-    stylesheets = [
-        "stylesheets/endpoints/endpoint-content.css",
-        "stylesheets/endpoints/badges.css",
-        "stylesheets/endpoints/base.css",
-        "stylesheets/endpoints/responsive.css",
-        "stylesheets/endpoints/theme-toggle.css",
-        "stylesheets/endpoints/layout.css",
-        "stylesheets/endpoints/sections.css",
-        "stylesheets/endpoints/animations.css",
-        "stylesheets/endpoints/accessibility.css",
-        "stylesheets/endpoints/loading.css",
-        "stylesheets/endpoints/try-out-sidebar.css",
-    ]
-    scripts = [
-        "javascripts/try-out-sidebar.js",
-    ]
-    prefix_path = f"{drf_to_mkdoc_settings.PROJECT_NAME}/"
-    css_links = "\n".join(
-        f'<link rel="stylesheet" href="{static(prefix_path + path)}">' for path in stylesheets
+    request_schema = (
+        endpoint_data.get("requestBody", {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema")
     )
-    js_scripts = "\n".join(
-        f'<script src="{static(prefix_path + path)}" defer></script>' for path in scripts
-    )
-    content = f"""
-<!-- inject CSS and JS directly -->
-{css_links}
-{js_scripts}
-"""
-    content += f"# {method.upper()} {path}\n\n"
-    content += f"{format_method_badge(method)} `{path}`\n\n"
-    content += f"**View class:** {extract_viewset_name_from_operation_id(operation_id)}\n\n"
 
-    if summary:
-        content += f"## Overview\n\n{summary}\n\n"
-    if operation_id:
-        content += f"**Operation ID:** `{operation_id}`\n\n"
-    if description:
-        content += f"{description}\n\n"
+    # Prepare template context
+    context = {
+        "path": path,
+        "method": method,
+        "operation_id": operation_id,
+        "summary": endpoint_data.get("summary", ""),
+        "description": endpoint_data.get("description", ""),
+        "viewset_name": extract_viewset_name_from_operation_id(operation_id),
+        "path_params": [
+            p for p in endpoint_data.get("parameters", []) if p.get("in") == "path"
+        ],
+        "request_body": endpoint_data.get("requestBody", {}),
+        "request_example": _format_schema_for_display(
+            operation_id, request_schema, components, False
+        )
+        if request_schema
+        else "",
+        "responses": _prepare_response_data(
+            operation_id, endpoint_data.get("responses", {}), components
+        ),
+        "stylesheets": [
+            "stylesheets/endpoints/endpoint-content.css",
+            "stylesheets/endpoints/badges.css",
+            "stylesheets/endpoints/base.css",
+            "stylesheets/endpoints/responsive.css",
+            "stylesheets/endpoints/theme-toggle.css",
+            "stylesheets/endpoints/layout.css",
+            "stylesheets/endpoints/sections.css",
+            "stylesheets/endpoints/animations.css",
+            "stylesheets/endpoints/accessibility.css",
+            "stylesheets/endpoints/loading.css",
+            "stylesheets/endpoints/try-out-sidebar.css",
+        ],
+        "scripts": ["javascripts/try-out-sidebar.js"],
+        "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
+    }
 
-    return content
+    # Add query parameters if it's a list endpoint
+    if _is_list_endpoint(method, path, operation_id):
+        query_params = extract_query_parameters_from_view(operation_id)
+        _add_custom_parameters(operation_id, query_params)
+        context["query_parameters"] = query_params
 
-
-def _add_path_parameters(parameters: list[dict]) -> str:
-    """Add path parameters section to the documentation."""
-    path_params = [p for p in parameters if p.get("in") == "path"]
-    if not path_params:
-        return ""
-
-    content = "## Path Parameters\n\n"
-    content += "| Name | Type | Required | Description |\n"
-    content += "|------|------|----------|-------------|\n"
-
-    for param in path_params:
-        name = param.get("name", "")
-        param_type = param.get("schema", {}).get("type", "string")
-        required = "Yes" if param.get("required", False) else "No"
-        desc = param.get("description", "")
-        content += f"| `{name}` | `{param_type}` | {required} | {desc} |\n"
-
-    content += "\n"
-    return content
-
-
-def _add_query_parameters(method: str, path: str, operation_id: str) -> str:
-    """Add query parameters section for list endpoints."""
-    is_list_endpoint = _is_list_endpoint(method, path, operation_id)
-    if not is_list_endpoint:
-        return ""
-
-    query_params = extract_query_parameters_from_view(operation_id)
-    _add_custom_parameters(operation_id, query_params)
-
-    query_params_content = generate_query_parameters_md(query_params)
-    if query_params_content and not query_params_content.startswith("**Error:**"):
-        return "## Query Parameters\n\n" + query_params_content
-
-    return ""
+    return render_to_string("endpoints/detail/base.html", context)
 
 
 def _is_list_endpoint(method: str, path: str, operation_id: str) -> bool:
@@ -630,77 +612,6 @@ def _add_custom_parameters(operation_id: str, query_params: dict) -> None:
         if queryparam_type not in query_params:
             query_params[queryparam_type] = []
         query_params[queryparam_type].append(parameter["name"])
-
-
-def _add_request_body(operation_id: str, request_body: dict, components: dict[str, Any]) -> str:
-    """Add request body section to the documentation."""
-    if not request_body:
-        return ""
-
-    content = "## Request Body\n\n"
-    req_schema = request_body.get("content", {}).get("application/json", {}).get("schema")
-
-    if req_schema and "$ref" in req_schema:
-        content += (
-            format_schema_as_json_example(
-                operation_id, req_schema["$ref"], components, for_response=False
-            )
-            + "\n"
-        )
-
-    return content
-
-
-def _add_responses(operation_id: str, responses: dict, components: dict[str, Any]) -> str:
-    """Add responses section to the documentation."""
-    if not responses:
-        return ""
-
-    content = "## Responses\n\n"
-    for status_code, response_data in responses.items():
-        content += _format_single_response(operation_id, status_code, response_data, components)
-
-    return content
-
-
-def _format_single_response(
-    operation_id: str, status_code: str, response_data: dict, components: dict[str, Any]
-) -> str:
-    """Format a single response entry."""
-    content = f"### {status_code}\n\n"
-
-    if desc := response_data.get("description", ""):
-        content += f"{desc}\n\n"
-
-    resp_schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
-
-    content += _format_response_schema(operation_id, resp_schema, components)
-    return content
-
-
-def _format_response_schema(
-    operation_id: str, resp_schema: dict, components: dict[str, Any]
-) -> str:
-    """Format the response schema as JSON example."""
-    if "$ref" in resp_schema:
-        return (
-            format_schema_as_json_example(
-                operation_id, resp_schema["$ref"], components, for_response=True
-            )
-            + "\n"
-        )
-    if resp_schema.get("type") == "array" and "$ref" in resp_schema.get("items", {}):
-        item_ref = resp_schema["items"]["$ref"]
-        return (
-            format_schema_as_json_example(operation_id, item_ref, components, for_response=True)
-            + "\n"
-        )
-    content = "```json\n"
-    content += json.dumps(
-        schema_to_example_json(operation_id, resp_schema, components), indent=2
-    )
-    content += "\n```\n"
-    return content
 
 
 def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

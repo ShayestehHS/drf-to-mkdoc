@@ -1,0 +1,8 @@
+{% load custom_filters %}
+## Relationships
+
+| Field | Type | Related Model |
+|-------|------|---------------|
+{% for field_name, field_info in relationships.items %}{% with field_type=field_info.type|default:"Unknown" %}{% if field_info.field_specific.to %}| `{{ field_name }}` | {{ field_type }} | {% if "." in field_info.field_specific.to %}[{{ field_info.field_specific.to|cut:"." }}](../{{ field_info.field_specific.to|cut:"." }}/{% else %}[{{ field_info.field_specific.to }}]({{ field_info.field_specific.to|lower }}/{% endif %} |
+{% endif %}{% endwith %}{% endfor %}{% for rel_name, rel_info in relationships.items %}| `{{ rel_name }}` | {{ rel_info.type|default:"Unknown" }} | [{{ rel_info.verbose_name|capfirst }}](../../{{ rel_info.app_label }}/{{ rel_info.table_name }}/) |
+{% endfor %}

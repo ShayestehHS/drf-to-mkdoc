@@ -1,0 +1,18 @@
+{% load custom_filters %}
+<a href="{{ endpoint.link_url }}" class="endpoint-card"
+    data-method="{{ endpoint.method|lower }}"
+    data-path="{{ endpoint.path|lower }}"
+    data-app="{{ app_name|lower }}"
+    data-auth="{{ endpoint.auth_required|default:'false'|lower }}"
+    data-pagination="{{ endpoint.pagination_support|default:'false'|lower }}"
+    data-search="{{ endpoint.view_class.search_fields|default:''|length|yesno:'true,false'|lower }}"
+    data-ordering="{{ endpoint.ordering_support|default:'false'|lower }}"
+    data-models="{{ endpoint.related_models|default:''|join:' '|lower }}"
+    data-roles="{{ endpoint.permission_roles|default:''|join:' '|lower }}"
+    data-content-type="{{ endpoint.content_type|default:''|lower }}"
+    data-tags="{{ endpoint.tags|default:''|join:' '|lower }}"
+    data-schema="{{ endpoint.schema_fields|default:''|join:' '|lower }}"
+    data-params="{{ endpoint.query_parameters|default:''|join:' '|lower }}">
+    <span class="method-badge method-{{ endpoint.method|lower }}">{{ endpoint.method }}</span>
+    <span class="endpoint-path">{{ endpoint.path }}</span>
+</a>

@@ -1,0 +1,9 @@
+## Methods
+
+{% for method in methods %}
+### `{{ method.name }}()`
+
+{{ method.docstring|default:"No documentation available." }}
+
+{% endfor %}
+

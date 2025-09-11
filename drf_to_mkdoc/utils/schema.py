@@ -58,7 +58,7 @@ class ViewMetadataExtractor:
 
         try:
             serializer_cls = self.view_instance.get_serializer_class()
-        except (AttributeError, TypeError, ImportError) as e:
+        except Exception as e:
             logger.debug(f"Failed to get serializer from view instance: {e}")
             return None
         else:

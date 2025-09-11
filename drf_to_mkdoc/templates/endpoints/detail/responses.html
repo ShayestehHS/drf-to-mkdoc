@@ -1,0 +1,18 @@
+{% load custom_filters %}
+
+{% if responses %}
+## Responses
+
+{% for response in responses %}
+### {{ response.status_code }}
+
+{% if response.description %}
+{{ response.description }}
+{% endif %}
+
+{% if response.example %}
+{{ response.example|format_json }}
+{% endif %}
+
+{% endfor %}
+{% endif %}

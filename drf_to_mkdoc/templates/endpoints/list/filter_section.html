@@ -1,0 +1,16 @@
+<div class="filter-sidebar collapsed" id="filterSidebar">
+    <h3 class="filter-title">🔍 Filters</h3>
+    <div class="filter-grid">
+        {% for filter_key in active_filters %}
+            {% include "endpoints/list/filters/"|add:filter_key|add:".html" %}
+        {% endfor %}
+    </div>
+
+    <div class="filter-actions">
+        <button class="filter-apply" onclick="applyFilters()">Apply</button>
+        <button class="filter-clear" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <div class="filter-results">Showing 0 endpoints</div>
+</div>
+

@@ -1,0 +1,43 @@
+{% comment %}
+Check if any query parameter fields have content
+{% endcomment %}
+
+{% if query_parameters.filter_fields or query_parameters.search_fields or query_parameters.ordering_fields or query_parameters.filter_backends or query_parameters.pagination_fields %}
+## Query Parameters
+
+{% if query_parameters.filter_fields %}
+### Filter Fields
+{% for field in query_parameters.filter_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if query_parameters.search_fields %}
+### Search Fields
+{% for field in query_parameters.search_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if query_parameters.ordering_fields %}
+### Ordering Fields
+{% for field in query_parameters.ordering_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% if query_parameters.filter_backends %}
+### Filter Backends
+{% for backend in query_parameters.filter_backends %}
+- `{{ backend }}`
+{% endfor %}
+{% endif %}
+
+{% if query_parameters.pagination_fields %}
+### Pagination Fields
+{% for field in query_parameters.pagination_fields %}
+- `{{ field }}`
+{% endfor %}
+{% endif %}
+
+{% endif %}
