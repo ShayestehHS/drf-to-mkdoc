@@ -11,7 +11,6 @@ def extract_query_parameters_from_view(operation_id: str) -> dict[str, Any]:
             "search_fields": [],
             "filter_fields": [],
             "ordering_fields": [],
-            "filter_backends": [],
             "pagination_fields": [],
         }
 
@@ -19,7 +18,6 @@ def extract_query_parameters_from_view(operation_id: str) -> dict[str, Any]:
         "search_fields": extract_query_parameters_from_view_search_fields(view_class),
         "filter_fields": extract_query_parameters_from_view_filter_fields(view_class),
         "ordering_fields": extract_query_parameters_from_view_ordering_fields(view_class),
-        "filter_backends": extract_query_parameters_from_view_filter_backends(view_class),
         "pagination_fields": extract_query_parameters_from_view_pagination_fields(view_class),
     }
 
@@ -60,19 +58,6 @@ def extract_query_parameters_from_view_ordering_fields(view_class: Any) -> list[
         ordering_fields = sorted(view_class.ordering_fields)
 
     return ordering_fields
-
-
-def extract_query_parameters_from_view_filter_backends(view_class: Any) -> list[str]:
-    """Extract filter backends from a Django view class"""
-    if not view_class:
-        return []
-
-    filter_backends = []
-    if hasattr(view_class, "filter_backends") and view_class.filter_backends:
-        for backend in view_class.filter_backends:
-            filter_backends.append(getattr(backend, "__name__", str(backend)))
-
-    return filter_backends
 
 
 def extract_query_parameters_from_view_pagination_fields(view_class: Any) -> list[str]:
