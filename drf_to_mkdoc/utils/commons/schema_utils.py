@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
 from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
@@ -19,16 +18,6 @@ class QueryParamTypeError(Exception):
     """Custom exception for query parameter type errors."""
 
     pass
-
-
-def load_schema() -> dict[str, Any] | None:
-    """Load the OpenAPI schema from doc-schema.yaml"""
-    schema_file = Path(drf_to_mkdoc_settings.CONFIG_DIR) / "doc-schema.yaml"
-    if not schema_file.exists():
-        return None
-
-    with schema_file.open(encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 def get_custom_schema():
