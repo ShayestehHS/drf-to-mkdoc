@@ -56,7 +56,6 @@ def get_custom_schema():
                         "search_fields",
                         "filter_fields",
                         "ordering_fields",
-                        "filter_backends",
                         "pagination_fields",
                     }
                 ):

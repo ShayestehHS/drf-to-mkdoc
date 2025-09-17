@@ -137,7 +137,6 @@ Supported `queryparam_type` values:
 * `search_fields` → Used for search filters
 * `filter_fields` → Standard filters
 * `ordering_fields` → Sort fields
-* `filter_backends` → Backend-specific filters
 * `pagination_fields` → Pagination-related fields
 
 > ⚠️ If `queryparam_type` is missing or invalid, the generator will raise an error.
