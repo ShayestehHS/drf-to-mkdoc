@@ -1,4 +1,5 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -141,6 +142,7 @@ def _apply_custom_overrides(
                 target_schema[key] = custom_value
 
 
+@lru_cache
 def get_schema():
     base_schema = SchemaGenerator().get_schema(request=None, public=True)
     custom_data = get_custom_schema()
