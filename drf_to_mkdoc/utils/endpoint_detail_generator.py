@@ -366,15 +366,17 @@ def _enhance_method_field_schema(_operation_id, schema: dict, _components: dict)
 
 def _resolve_schema_reference(schema: dict, components: dict) -> dict:
     """Resolve $ref references in schema."""
-    if "$ref" in schema:
-        ref = schema["$ref"]
-        resolved = components.get("schemas", {}).get(ref.split("/")[-1], {})
-        # Copy over any additional properties that were in the original schema
-        for key, value in schema.items():
-            if key != "$ref":
-                resolved[key] = value
-        return resolved
-    return schema
+    if "$ref" not in schema:
+        return schema
+
+    ref = schema["$ref"]
+    target = components.get("schemas", {}).get(ref.split("/")[-1], {})
+    # Work on a copy to avoid mutating components
+    resolved = dict(target) if isinstance(target, dict) else {}
+    for key, value in schema.items():
+        if key != "$ref":
+            resolved[key] = value
+    return resolved
 
 
 def _handle_all_of_schema(schema: dict, components: dict, _for_response: bool) -> dict:
