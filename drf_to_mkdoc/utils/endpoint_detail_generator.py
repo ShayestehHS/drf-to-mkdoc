@@ -311,22 +311,58 @@ def schema_to_example_json(
     operation_id: str, schema: dict, components: dict, for_response: bool = True
 ):
     """Recursively generate a JSON example, respecting readOnly/writeOnly based on context."""
+    _debug_print(
+        operation_id,
+        "schema",
+        f"type={schema.get('type', 'none')} resp={for_response} ref={bool(schema.get('$ref'))}",
+    )
+
     # Ensure schema is a dictionary
     if not isinstance(schema, dict):
+        _debug_print(
+            operation_id, "schema_to_example_json", "Schema is not a dictionary, returning None"
+        )
         return None
 
     schema = _resolve_schema_reference(schema, components)
+    _debug_print(
+        operation_id,
+        "schema_to_example_json",
+        f"After resolving references: {json.dumps(schema, indent=2)}",
+    )
+
     schema = _handle_all_of_schema(schema, components, for_response)
+    _debug_print(
+        operation_id,
+        "schema_to_example_json",
+        f"After handling allOf: {json.dumps(schema, indent=2)}",
+    )
 
     # Handle explicit values first
     explicit_value = _get_explicit_value(schema)
     if explicit_value is not None:
+        _debug_print(
+            operation_id,
+            "schema_to_example_json",
+            f"Found explicit value: {json.dumps(explicit_value, indent=2)}",
+        )
         return explicit_value
 
     # ENHANCED: Check if this looks like a not analyzed SerializerMethodField
     schema = _enhance_method_field_schema(operation_id, schema, components)
+    _debug_print(
+        operation_id,
+        "schema_to_example_json",
+        f"After enhancing method field: {json.dumps(schema, indent=2)}",
+    )
 
-    return _generate_example_by_type(operation_id, schema, components, for_response)
+    result = _generate_example_by_type(operation_id, schema, components, for_response)
+    _debug_print(
+        operation_id,
+        "schema_to_example_json",
+        f"Generated example: {json.dumps(result, indent=2)}",
+    )
+    return result
 
 
 def _enhance_method_field_schema(_operation_id, schema: dict, _components: dict) -> dict:
@@ -368,7 +404,12 @@ def _resolve_schema_reference(schema: dict, components: dict) -> dict:
     """Resolve $ref references in schema."""
     if "$ref" in schema:
         ref = schema["$ref"]
-        return components.get("schemas", {}).get(ref.split("/")[-1], {})
+        resolved = components.get("schemas", {}).get(ref.split("/")[-1], {})
+        # Copy over any additional properties that were in the original schema
+        for key, value in schema.items():
+            if key != "$ref":
+                resolved[key] = value
+        return resolved
     return schema
 
 
@@ -399,18 +440,33 @@ def _handle_all_of_schema(schema: dict, components: dict, _for_response: bool) -
     return schema
 
 
-def _get_explicit_value(schema: dict):
+def _get_explicit_value(schema: dict, operation_id: str = None):
     """Get explicit value from schema (enum, example, or default)."""
+    _debug_print(
+        operation_id,
+        "val",
+        f"type={schema.get('type', 'none')} enum={bool(schema.get('enum'))} ex={bool(schema.get('example'))} def={bool(schema.get('default'))}",
+    )
+
     # Ensure schema is a dictionary
     if not isinstance(schema, dict):
         return None
 
     if "enum" in schema:
+        _debug_print(operation_id, "val", f"enum={schema['enum'][0]}")
         return schema["enum"][0]
     if "example" in schema:
+        _debug_print(operation_id, "val", f"example={schema['example']}")
         return schema["example"]
     if "default" in schema:
+        # For array types with items schema, don't use empty default
+        # Let the generator create a proper example instead
+        if schema.get("type") == "array" and "items" in schema:
+            _debug_print(operation_id, "val", "skip_array_default")
+            return None
+        _debug_print(operation_id, "val", f"default={schema['default']}")
         return schema["default"]
+    _debug_print(operation_id, "val", "no_value")
     return None
 
 
@@ -522,18 +578,146 @@ def _format_schema_for_display(
     return f"```json\n{json.dumps(example, indent=2)}\n```"
 
 
-def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
-    """Prepare response data for template rendering."""
-    formatted_responses = []
-    for status_code, response_data in responses.items():
-        schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
-        formatted_responses.append(
+def _debug_print(operation_id: str, section: str, message: str):
+    """Write debug information to file only for specific operation_id."""
+    if operation_id == "users_auth_verify_create":
+        with open("debug_output.txt", "a") as f:
+            f.write(f"[{section}] {message}\n")
+
+
+def _generate_examples(operation_id: str, schema: dict, components: dict) -> list:
+    """Generate both default and populated examples for a schema."""
+    _debug_print(
+        operation_id,
+        "gen_ex",
+        f"schema_type={schema.get('type', 'none')} has_items={bool(schema.get('items'))}",
+    )
+
+    # First resolve any references
+    if "$ref" in schema:
+        schema = _resolve_schema_reference(schema, components)
+
+    examples = []
+
+    # Handle object with array properties
+    if schema.get("type") == "object" and "properties" in schema:
+        empty_example = {}
+        populated_example = {}
+        has_array_default = False
+
+        # First pass: Check if we have any array fields with default=[]
+        for prop_name, prop_schema in schema["properties"].items():
+            # Resolve any references in property schema
+            if "$ref" in prop_schema:
+                prop_schema = _resolve_schema_reference(prop_schema, components)
+            if prop_schema.get("type") == "array" and prop_schema.get("default") == []:
+                _debug_print(operation_id, "gen_ex", f"found_array_default_in_{prop_name}")
+                has_array_default = True
+                break
+
+        # Second pass: Generate examples
+        for prop_name, prop_schema in schema["properties"].items():
+            # Resolve any references in property schema
+            if "$ref" in prop_schema:
+                prop_schema = _resolve_schema_reference(prop_schema, components)
+
+            if prop_schema.get("type") == "array" and prop_schema.get("default") == []:
+                _debug_print(
+                    operation_id, "gen_ex", f"generating_array_examples_for_{prop_name}"
+                )
+                empty_example[prop_name] = []
+                items_schema = prop_schema.get("items", {})
+                populated_example[prop_name] = [
+                    schema_to_example_json(operation_id, items_schema, components, True)
+                ]
+            else:
+                value = schema_to_example_json(operation_id, prop_schema, components, True)
+                empty_example[prop_name] = value
+                populated_example[prop_name] = value
+
+        # Always generate both examples if we found an array with default=[]
+        if has_array_default:
+            _debug_print(operation_id, "gen_ex", "generating_empty_and_populated")
+            examples.append(
+                {
+                    "title": "Empty Response",
+                    "description": "Default response when no items are available",
+                    "value": empty_example,
+                }
+            )
+            examples.append(
+                {
+                    "title": "With Data",
+                    "description": "Example response with data",
+                    "value": populated_example,
+                }
+            )
+        else:
+            _debug_print(operation_id, "gen_ex", "generating_single")
+            examples.append({"title": "Response", "description": "", "value": empty_example})
+
+    # Handle array field with default=[]
+    elif schema.get("type") == "array" and schema.get("default") == []:
+        print("Detected array field with default=[]")
+        examples.append(
             {
-                "status_code": status_code,
-                "description": response_data.get("description", ""),
-                "example": _format_schema_for_display(operation_id, schema, components, True),
+                "title": "Empty Response",
+                "description": "Default response when no items are available",
+                "value": [],
             }
         )
+
+        # Also generate an example with data
+        items_schema = schema.get("items", {})
+        print(f"Items Schema: {json.dumps(items_schema, indent=2)}")
+        populated_example = [
+            schema_to_example_json(operation_id, items_schema, components, True)
+        ]
+        print(f"Populated Example: {json.dumps(populated_example, indent=2)}")
+        examples.append(
+            {
+                "title": "With Data",
+                "description": "Example response with data",
+                "value": populated_example,
+            }
+        )
+    else:
+        # For non-array fields or arrays without default=[], just generate one example
+        example = schema_to_example_json(operation_id, schema, components, True)
+        examples.append({"title": "Response", "description": "", "value": example})
+
+    return examples
+
+
+def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
+    """Prepare response data for template rendering."""
+    _debug_print(operation_id, "resp", f"status_codes={list(responses.keys())}")
+
+    formatted_responses = []
+    for status_code, response_data in responses.items():
+        _debug_print(operation_id, "resp", f"code={status_code}")
+        schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
+        _debug_print(operation_id, "resp", f"has_schema={bool(schema)}")
+
+        examples = _generate_examples(operation_id, schema, components)
+        _debug_print(operation_id, "resp", f"ex_count={len(examples)}")
+
+        formatted_response = {
+            "status_code": status_code,
+            "description": response_data.get("description", ""),
+            "examples": [
+                {
+                    "title": example["title"],
+                    "description": example["description"],
+                    "example": f"```json\n{json.dumps(example['value'], indent=2)}\n```",
+                }
+                for example in examples
+            ],
+        }
+        _debug_print(
+            operation_id, "resp", f"formatted_ex_count={len(formatted_response['examples'])}"
+        )
+        formatted_responses.append(formatted_response)
     return formatted_responses
 
 
