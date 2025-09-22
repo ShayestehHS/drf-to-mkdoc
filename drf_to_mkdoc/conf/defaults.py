@@ -7,6 +7,7 @@ DEFAULTS = {
     "CUSTOM_SCHEMA_FILE": "docs/configs/custom_schema.json",  # Path to custom schema file
     "PATH_PARAM_SUBSTITUTE_FUNCTION": None,
     "PATH_PARAM_SUBSTITUTE_MAPPING": {},
+    "FIELD_GENERATORS": {},
     # AI documentation settings
     "ENABLE_AI_DOCS": False,
     "AI_CONFIG_DIR_NAME": "ai_code",  # Directory name for AI-generated code files

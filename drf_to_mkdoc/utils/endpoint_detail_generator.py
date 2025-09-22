@@ -311,58 +311,22 @@ def schema_to_example_json(
     operation_id: str, schema: dict, components: dict, for_response: bool = True
 ):
     """Recursively generate a JSON example, respecting readOnly/writeOnly based on context."""
-    _debug_print(
-        operation_id,
-        "schema",
-        f"type={schema.get('type', 'none')} resp={for_response} ref={bool(schema.get('$ref'))}",
-    )
-
     # Ensure schema is a dictionary
     if not isinstance(schema, dict):
-        _debug_print(
-            operation_id, "schema_to_example_json", "Schema is not a dictionary, returning None"
-        )
         return None
 
     schema = _resolve_schema_reference(schema, components)
-    _debug_print(
-        operation_id,
-        "schema_to_example_json",
-        f"After resolving references: {json.dumps(schema, indent=2)}",
-    )
-
     schema = _handle_all_of_schema(schema, components, for_response)
-    _debug_print(
-        operation_id,
-        "schema_to_example_json",
-        f"After handling allOf: {json.dumps(schema, indent=2)}",
-    )
 
     # Handle explicit values first
     explicit_value = _get_explicit_value(schema)
     if explicit_value is not None:
-        _debug_print(
-            operation_id,
-            "schema_to_example_json",
-            f"Found explicit value: {json.dumps(explicit_value, indent=2)}",
-        )
         return explicit_value
 
     # ENHANCED: Check if this looks like a not analyzed SerializerMethodField
     schema = _enhance_method_field_schema(operation_id, schema, components)
-    _debug_print(
-        operation_id,
-        "schema_to_example_json",
-        f"After enhancing method field: {json.dumps(schema, indent=2)}",
-    )
 
-    result = _generate_example_by_type(operation_id, schema, components, for_response)
-    _debug_print(
-        operation_id,
-        "schema_to_example_json",
-        f"Generated example: {json.dumps(result, indent=2)}",
-    )
-    return result
+    return _generate_example_by_type(operation_id, schema, components, for_response)
 
 
 def _enhance_method_field_schema(_operation_id, schema: dict, _components: dict) -> dict:
@@ -440,33 +404,24 @@ def _handle_all_of_schema(schema: dict, components: dict, _for_response: bool) -
     return schema
 
 
-def _get_explicit_value(schema: dict, operation_id: str = None):
+def _get_explicit_value(schema: dict):
     """Get explicit value from schema (enum, example, or default)."""
-    _debug_print(
-        operation_id,
-        "val",
-        f"type={schema.get('type', 'none')} enum={bool(schema.get('enum'))} ex={bool(schema.get('example'))} def={bool(schema.get('default'))}",
-    )
-
-    # Ensure schema is a dictionary
     if not isinstance(schema, dict):
         return None
 
     if "enum" in schema:
-        _debug_print(operation_id, "val", f"enum={schema['enum'][0]}")
         return schema["enum"][0]
+
     if "example" in schema:
-        _debug_print(operation_id, "val", f"example={schema['example']}")
         return schema["example"]
+
     if "default" in schema:
         # For array types with items schema, don't use empty default
         # Let the generator create a proper example instead
         if schema.get("type") == "array" and "items" in schema:
-            _debug_print(operation_id, "val", "skip_array_default")
             return None
-        _debug_print(operation_id, "val", f"default={schema['default']}")
         return schema["default"]
-    _debug_print(operation_id, "val", "no_value")
+
     return None
 
 
@@ -578,22 +533,32 @@ def _format_schema_for_display(
     return f"```json\n{json.dumps(example, indent=2)}\n```"
 
 
-def _debug_print(operation_id: str, section: str, message: str):
-    """Write debug information to file only for specific operation_id."""
-    if operation_id == "users_auth_verify_create":
-        with open("debug_output.txt", "a") as f:
-            f.write(f"[{section}] {message}\n")
+def _generate_field_value(
+    field_name: str,
+    prop_schema: dict,
+    operation_id: str,
+    components: dict,
+    is_response: bool = True,
+) -> any:
+    """Generate a realistic value for a specific field based on its name and schema."""
+    # Get field-specific generator from settings
+    field_generator = get_field_generator(field_name)
+
+    if field_generator:
+        return field_generator(prop_schema)
+
+    # Fallback to schema-based generation
+    return schema_to_example_json(operation_id, prop_schema, components, is_response)
+
+
+def get_field_generator(field_name: str):
+    """Get appropriate generator function for a field name from settings."""
+    return drf_to_mkdoc_settings.FIELD_GENERATORS.get(field_name.lower())
 
 
 def _generate_examples(operation_id: str, schema: dict, components: dict) -> list:
-    """Generate both default and populated examples for a schema."""
-    _debug_print(
-        operation_id,
-        "gen_ex",
-        f"schema_type={schema.get('type', 'none')} has_items={bool(schema.get('items'))}",
-    )
+    """Generate examples for a schema."""
 
-    # First resolve any references
     if "$ref" in schema:
         schema = _resolve_schema_reference(schema, components)
 
@@ -605,118 +570,83 @@ def _generate_examples(operation_id: str, schema: dict, components: dict) -> lis
         populated_example = {}
         has_array_default = False
 
-        # First pass: Check if we have any array fields with default=[]
-        for prop_name, prop_schema in schema["properties"].items():
-            # Resolve any references in property schema
-            if "$ref" in prop_schema:
-                prop_schema = _resolve_schema_reference(prop_schema, components)
-            if prop_schema.get("type") == "array" and prop_schema.get("default") == []:
-                _debug_print(operation_id, "gen_ex", f"found_array_default_in_{prop_name}")
+        # Check for array fields with default=[]
+        for _prop_name, prop_schema in schema["properties"].items():
+            resolved_prop_schema = (
+                _resolve_schema_reference(prop_schema, components)
+                if "$ref" in prop_schema
+                else prop_schema
+            )
+            if (
+                resolved_prop_schema.get("type") == "array"
+                and resolved_prop_schema.get("default") == []
+            ):
                 has_array_default = True
                 break
 
-        # Second pass: Generate examples
+        # Generate examples
         for prop_name, prop_schema in schema["properties"].items():
-            # Resolve any references in property schema
-            if "$ref" in prop_schema:
-                prop_schema = _resolve_schema_reference(prop_schema, components)
+            resolved_prop_schema = (
+                _resolve_schema_reference(prop_schema, components)
+                if "$ref" in prop_schema
+                else prop_schema
+            )
 
-            if prop_schema.get("type") == "array" and prop_schema.get("default") == []:
-                _debug_print(
-                    operation_id, "gen_ex", f"generating_array_examples_for_{prop_name}"
-                )
+            if (
+                resolved_prop_schema.get("type") == "array"
+                and resolved_prop_schema.get("default") == []
+            ):
                 empty_example[prop_name] = []
-                items_schema = prop_schema.get("items", {})
+                items_schema = resolved_prop_schema.get("items", {})
                 populated_example[prop_name] = [
-                    schema_to_example_json(operation_id, items_schema, components, True)
+                    _generate_field_value(
+                        prop_name, items_schema, operation_id, components, True
+                    )
                 ]
             else:
-                value = schema_to_example_json(operation_id, prop_schema, components, True)
+                value = _generate_field_value(
+                    prop_name, resolved_prop_schema, operation_id, components, True
+                )
                 empty_example[prop_name] = value
                 populated_example[prop_name] = value
 
-        # Always generate both examples if we found an array with default=[]
         if has_array_default:
-            _debug_print(operation_id, "gen_ex", "generating_empty_and_populated")
-            examples.append(
-                {
-                    "title": "Empty Response",
-                    "description": "Default response when no items are available",
-                    "value": empty_example,
-                }
-            )
-            examples.append(
-                {
-                    "title": "With Data",
-                    "description": "Example response with data",
-                    "value": populated_example,
-                }
-            )
+            examples.append(empty_example)
+            examples.append(populated_example)
         else:
-            _debug_print(operation_id, "gen_ex", "generating_single")
-            examples.append({"title": "Response", "description": "", "value": empty_example})
+            examples.append(empty_example)
 
     # Handle array field with default=[]
     elif schema.get("type") == "array" and schema.get("default") == []:
-        print("Detected array field with default=[]")
-        examples.append(
-            {
-                "title": "Empty Response",
-                "description": "Default response when no items are available",
-                "value": [],
-            }
-        )
-
-        # Also generate an example with data
+        examples.append([])
         items_schema = schema.get("items", {})
-        print(f"Items Schema: {json.dumps(items_schema, indent=2)}")
         populated_example = [
-            schema_to_example_json(operation_id, items_schema, components, True)
+            _generate_field_value("items", items_schema, operation_id, components, True)
         ]
-        print(f"Populated Example: {json.dumps(populated_example, indent=2)}")
-        examples.append(
-            {
-                "title": "With Data",
-                "description": "Example response with data",
-                "value": populated_example,
-            }
-        )
+        examples.append(populated_example)
     else:
-        # For non-array fields or arrays without default=[], just generate one example
-        example = schema_to_example_json(operation_id, schema, components, True)
-        examples.append({"title": "Response", "description": "", "value": example})
+        example = _generate_field_value("root", schema, operation_id, components, True)
+        examples.append(example)
 
     return examples
 
 
 def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
     """Prepare response data for template rendering."""
-    _debug_print(operation_id, "resp", f"status_codes={list(responses.keys())}")
 
     formatted_responses = []
     for status_code, response_data in responses.items():
-        _debug_print(operation_id, "resp", f"code={status_code}")
         schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
-        _debug_print(operation_id, "resp", f"has_schema={bool(schema)}")
 
         examples = _generate_examples(operation_id, schema, components)
-        _debug_print(operation_id, "resp", f"ex_count={len(examples)}")
 
         formatted_response = {
             "status_code": status_code,
             "description": response_data.get("description", ""),
             "examples": [
-                {
-                    "title": example["title"],
-                    "description": example["description"],
-                    "example": f"```json\n{json.dumps(example['value'], indent=2)}\n```",
-                }
-                for example in examples
+                f"```json\n{json.dumps(example, indent=2)}\n```" for example in examples
             ],
         }
-        _debug_print(
-            operation_id, "resp", f"formatted_ex_count={len(formatted_response['examples'])}"
-        )
         formatted_responses.append(formatted_response)
     return formatted_responses
 
