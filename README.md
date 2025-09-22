@@ -7,6 +7,8 @@ Generate beautiful, interactive Markdown API documentation from Django REST Fram
 - **Zero-hassle docs**: Beautiful, always-in-sync API docs straight from your codebase
 - **Model deep dive**: Auto-generated model pages with fields, relationships, and choices
 - **Lightning-fast discovery**: Interactive endpoint index with powerful filters and search
+- **Try-it-out**: Interactive API testing directly in the documentation with request/response examples
+- **AI-powered**: Optional AI-generated documentation with custom field generators(Wait for it...)
 - **DRF-native**: Works with DRF Spectacular; no custom schema wiring needed
 - **MkDocs Material**: Looks great out of the box with the Material theme
 
@@ -27,7 +29,7 @@ INSTALLED_APPS = [
 
 # Required for OpenAPI schema generation
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',  # Use our custom AutoSchema
+    'DEFAULT_SCHEMA_CLASS': 'drf_to_mkdoc.utils.schema.AutoSchema',
 }
 
 SPECTACULAR_SETTINGS = {
@@ -50,6 +52,12 @@ DRF_TO_MKDOC = {
     # 'MODEL_DOCS_FILE': 'docs/model-docs.json',
     # 'DOC_CONFIG_FILE': 'docs/configs/doc_config.json',
     # 'CUSTOM_SCHEMA_FILE': 'docs/configs/custom_schema.json',
+    # 'FIELD_GENERATORS': {
+    #     'email': 'faker.email',
+    #     'name': 'faker.name',
+    #     'created_at': 'datetime.now',
+    # },
+    # 'ENABLE_AI_DOCS': False,
 }
 ```
 
@@ -62,18 +70,54 @@ DRF_TO_MKDOC = {
 python manage.py build_docs --settings=docs_settings
 ```
 
+### Configuration Options
+
+The `DRF_TO_MKDOC` setting supports several configuration options:
+
+- **`DJANGO_APPS`** (required): List of Django app names to process
+- **`DOCS_DIR`**: Directory where docs will be generated (default: `docs`)
+- **`CONFIG_DIR`**: Directory for configuration files (default: `docs/configs`)
+- **`FIELD_GENERATORS`**: Custom field value generators for better examples
+- **`ENABLE_AI_DOCS`**: Enable AI-powered documentation features (default: `False`)
+- **`PATH_PARAM_SUBSTITUTE_FUNCTION`**: Custom function for path parameter substitution
+- **`PATH_PARAM_SUBSTITUTE_MAPPING`**: Mapping for path parameter substitution
+
 ## Available Commands
 
 - `build_docs`: Build the complete documentation site with MkDocs
 - `build_endpoint_docs`: Build endpoint documentation from OpenAPI schema
 - `build_model_docs`: Build model documentation from model JSON data
 - `extract_model_data`: Extract model data from Django model introspection and save as JSON
+- `generate_doc_json`: Generate JSON context for new API endpoints to be documented
 - `update_doc_schema`: Update the final schema by copying the documented schema
 
 ## What you get
 
 See a detailed overview of generated files in `docs/structure.md` and a feature breakdown in `docs/features.md`.
 
+## Key Features
+
+### 🚀 Interactive API Testing (Try-Out)
+- **Live API testing**: Test endpoints directly from the documentation
+- **Request builder**: Interactive forms for parameters, headers, and request body
+- **Response viewer**: Real-time response display with syntax highlighting
+- **Floating action button**: Easy access to testing interface
+- **Multiple examples**: Support for both empty and populated response examples
+
+### 🤖 AI-Powered Documentation
+- **Custom field generators**: Define custom value generators for specific fields
+- **AI documentation**: Optional AI-generated documentation with context analysis
+- **Smart examples**: Enhanced example generation for better API understanding
+
+### 📊 Advanced Filtering & Search
+- **Multi-criteria filtering**: Filter by app, HTTP method, path, and search terms
+- **Real-time search**: Instant search across all endpoints
+- **Smart suggestions**: Auto-complete for query parameters and field names
+
+### 🎨 Beautiful UI
+- **Material Design**: Modern, responsive interface with dark/light themes
+- **Interactive elements**: Hover effects, animations, and smooth transitions
+- **Mobile-friendly**: Fully responsive design for all devices
 
 ## How it works
 
@@ -118,13 +162,29 @@ drf-to-mkdoc/
 │   │       ├── build_endpoint_docs.py  # Build endpoint documentation
 │   │       ├── build_model_docs.py     # Build model documentation
 │   │       ├── extract_model_data.py   # Extract model data from Django
+│   │       ├── generate_doc_json.py    # Generate JSON context for AI docs
 │   │       └── update_doc_schema.py    # Schema updates
+│   ├── static/
+│   │   └── drf-to-mkdoc/
+│   │       ├── javascripts/
+│   │       │   ├── try-out/            # Interactive API testing
+│   │       │   └── endpoints-filter.js # Endpoint filtering
+│   │       └── stylesheets/            # CSS for styling
+│   ├── templates/
+│   │   ├── endpoints/                  # Endpoint documentation templates
+│   │   ├── model_detail/               # Model documentation templates
+│   │   └── try-out/                    # Interactive testing templates
 │   └── utils/
-│       ├── common.py        # Shared utilities
-│       ├── endpoint_generator.py  # Endpoint documentation
-│       ├── model_generator.py     # Model documentation
-│       └── extractors/      # Query parameter extraction
-├── pyproject.toml           # Project configuration
+│       ├── ai_tools/                   # AI-powered documentation features
+│       ├── commons/                    # Shared utilities
+│       ├── extractors/                 # Query parameter extraction
+│       ├── endpoint_detail_generator.py
+│       ├── endpoint_list_generator.py
+│       ├── model_detail_generator.py
+│       ├── model_list_generator.py
+│       └── schema.py
+├── docs/                      # Generated documentation
+├── pyproject.toml            # Project configuration
 └── README.md
 ```
 
@@ -183,5 +243,4 @@ your-project/
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines. 
-This will ensure that only the source configuration and scripts are versioned, while the generated documentation is excluded.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.

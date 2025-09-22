@@ -1,7 +1,7 @@
 
 # Customizing API Endpoint Documentation
 
-`drf-to-mkdoc` automatically generates API documentation from your Django REST Framework (DRF) project using the OpenAPI schema from **DRF Spectacular**. You can refine and extend that documentation using a **custom JSON file**.
+`drf-to-mkdoc` automatically generates API documentation from your Django REST Framework (DRF) project using the OpenAPI schema from **DRF Spectacular**. You can refine and extend that documentation using a **custom JSON file** and various configuration options.
 
 ---
 
@@ -170,3 +170,33 @@ Supported `queryparam_type` values:
 * Keep `custom_schema.json` in version control so your team benefits.
 * Start small: add descriptions first, then parameters, then responses.
 * Use `append_fields` if you want to **add extra info** without overwriting auto-generated items.
+
+---
+
+## 7. Advanced Configuration Options
+
+### Field Generators
+You can define custom field value generators for better example generation:
+
+```python
+DRF_TO_MKDOC = {
+    'DJANGO_APPS': ['your_apps'],
+    'FIELD_GENERATORS': {
+        'created_at': datetime.now.strftime(settings.CUSTOM_DATETIME_FORMAT),
+        'phone_number': generate_phone_number_function,
+    },
+}
+```
+
+### Path Parameter Substitution
+Customize how path parameters are handled:
+
+```python
+DRF_TO_MKDOC = {
+    'PATH_PARAM_SUBSTITUTE_FUNCTION': 'your_app.utils.custom_substitute',
+    'PATH_PARAM_SUBSTITUTE_MAPPING': {
+        'pk': 'id',
+        'uuid': 'identifier',
+    },
+}
+```
