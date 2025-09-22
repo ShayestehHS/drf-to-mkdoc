@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -142,17 +143,17 @@ def _apply_custom_overrides(
                 target_schema[key] = custom_value
 
 
-@lru_cache
+@lru_cache(maxsize=1)
 def get_schema():
     base_schema = SchemaGenerator().get_schema(request=None, public=True)
     custom_data = get_custom_schema()
     if not custom_data:
-        return base_schema
+        return deepcopy(base_schema)
 
     operation_map = _build_operation_map(base_schema)
     _apply_custom_overrides(base_schema, operation_map, custom_data)
 
-    return base_schema
+    return deepcopy(base_schema)
 
 
 class OperationExtractor:
