@@ -31,7 +31,7 @@ const TryOutSuggestions = {
 
     setupExistingInputs: function() {
         // Find all parameter name inputs
-        const paramInputs = document.querySelectorAll('#queryParams .kv-item input:first-child');
+        const paramInputs = document.querySelectorAll('#queryParams .name-input');
         paramInputs.forEach(input => {
             // Skip if already initialized
             if (input.dataset.autocompleteInitialized) return;
@@ -41,10 +41,15 @@ const TryOutSuggestions = {
             
             // Create suggestions container for this input
             const suggestionsContainer = document.createElement('div');
-            suggestionsContainer.className = 'param-suggestions';
+            suggestionsContainer.className = 'suggestions-dropdown';
             suggestionsContainer.id = 'suggestions-' + Math.random().toString(36).substr(2, 9);
-            input.parentNode.style.position = 'relative';
-            input.parentNode.appendChild(suggestionsContainer);
+            
+            // Find the parameter inputs container
+            const container = input.closest('.parameter-inputs');
+            if (container) {
+                container.style.position = 'relative';
+                container.appendChild(suggestionsContainer);
+            }
             
             // Store reference to container
             input.dataset.suggestionsContainer = suggestionsContainer.id;
@@ -53,44 +58,81 @@ const TryOutSuggestions = {
             input.addEventListener('focus', () => this.showSuggestions(input));
             input.addEventListener('input', () => this.filterSuggestions(input));
             input.addEventListener('keydown', (e) => this.handleKeyNavigation(e, input));
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    const container = document.getElementById(input.dataset.suggestionsContainer);
+                    if (container) {
+                        container.classList.remove('show');
+                    }
+                }, 150);
+            });
         });
     },
 
     getAvailableSuggestions: function() {
-        const suggestions = [];
-        
+        // Try to load from script tag first
+        try {
+            const dataScript = document.querySelector('script[type="application/json"][data-query-params]');
+            if (dataScript) {
+                const data = JSON.parse(dataScript.textContent);
+                return data.map(param => ({
+                    name: param.name,
+                    description: param.description || ''
+                }));
+            }
+        } catch (e) {
+            console.warn('Could not load query parameters data');
+        }
+
         // Try to get query parameters from the page context
+        const suggestions = [];
         if (window.queryParametersData) {
             const data = window.queryParametersData;
             
             // Add filter fields
             if (data.filter_fields && data.filter_fields.length > 0) {
-                suggestions.push(...data.filter_fields);
+                suggestions.push(...data.filter_fields.map(field => ({
+                    name: field,
+                    description: 'Filter by ' + field
+                })));
             }
             
             // Add search if available
             if (data.search_fields && data.search_fields.length > 0) {
-                suggestions.push('search');
+                suggestions.push({ name: 'search', description: 'Search term' });
             }
             
             // Add ordering if available
             if (data.ordering_fields && data.ordering_fields.length > 0) {
-                suggestions.push('ordering');
+                suggestions.push({ name: 'ordering', description: 'Field to order results by' });
             }
             
             // Add pagination
             if (data.pagination_fields && data.pagination_fields.length > 0) {
-                suggestions.push(...data.pagination_fields);
+                suggestions.push(...data.pagination_fields.map(field => ({
+                    name: field,
+                    description: 'Pagination parameter'
+                })));
             }
         }
         
-        // Default common parameters
+        // Default common parameters for Django REST framework
         if (suggestions.length === 0) {
-            suggestions.push('search', 'ordering', 'page', 'page_size');
+            return [
+                { name: 'page', description: 'Page number for pagination' },
+                { name: 'page_size', description: 'Number of items per page' },
+                { name: 'limit', description: 'Limit number of results' },
+                { name: 'offset', description: 'Offset for pagination' },
+                { name: 'ordering', description: 'Field to order results by' },
+                { name: 'search', description: 'Search term' },
+                { name: 'format', description: 'Response format (json, xml, etc.)' },
+                { name: 'fields', description: 'Comma-separated list of fields to include' },
+                { name: 'expand', description: 'Related fields to expand' },
+                { name: 'filter', description: 'Filter results' }
+            ];
         }
         
-        // Remove duplicates and return
-        return [...new Set(suggestions)];
+        return suggestions;
     },
 
     showSuggestions: function(input) {
@@ -103,7 +145,8 @@ const TryOutSuggestions = {
         // Filter suggestions based on input value
         const inputValue = input.value.toLowerCase();
         const filteredSuggestions = this.suggestions.filter(suggestion => 
-            suggestion.toLowerCase().includes(inputValue)
+            suggestion.name.toLowerCase().includes(inputValue) ||
+            suggestion.description.toLowerCase().includes(inputValue)
         );
         
         if (filteredSuggestions.length === 0) {
@@ -112,13 +155,18 @@ const TryOutSuggestions = {
         }
         
         // Add suggestions to container
-        filteredSuggestions.forEach(suggestion => {
+        filteredSuggestions.forEach((suggestion, index) => {
             const suggestionElement = document.createElement('div');
-            suggestionElement.className = 'param-suggestion';
-            suggestionElement.textContent = suggestion;
+            suggestionElement.className = 'suggestion-item';
+            suggestionElement.dataset.index = index;
+            suggestionElement.dataset.name = suggestion.name;
+            suggestionElement.innerHTML = `
+                <div class="suggestion-name">${suggestion.name}</div>
+                <div class="suggestion-description">${suggestion.description}</div>
+            `;
             suggestionElement.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.selectSuggestion(input, suggestion);
+                this.selectSuggestion(input, suggestion.name);
             });
             container.appendChild(suggestionElement);
         });
@@ -163,7 +211,7 @@ const TryOutSuggestions = {
         if (suggestions.length === 0) return;
         
         // Find currently selected suggestion
-        const selectedIndex = Array.from(suggestions).findIndex(el => el.classList.contains('selected'));
+        const selectedIndex = Array.from(suggestions).findIndex(el => el.classList.contains('highlighted'));
         
         switch (event.key) {
             case 'ArrowDown':
@@ -195,7 +243,7 @@ const TryOutSuggestions = {
     navigateSuggestion: function(suggestions, currentIndex, direction) {
         // Remove current selection
         if (currentIndex >= 0) {
-            suggestions[currentIndex].classList.remove('selected');
+            suggestions[currentIndex].classList.remove('highlighted');
         }
         
         // Calculate new index
@@ -207,7 +255,7 @@ const TryOutSuggestions = {
         }
         
         // Select new suggestion
-        suggestions[newIndex].classList.add('selected');
+        suggestions[newIndex].classList.add('highlighted');
         suggestions[newIndex].scrollIntoView({ block: 'nearest' });
     }
 };

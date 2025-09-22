@@ -1,42 +1,336 @@
-/* ===== THEME TOGGLE ===== */
+/* Theme Toggle Base */
 .theme-toggle {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    padding: 10px 16px;
-    border-radius: 12px;
+    top: var(--try-out-spacing-lg);
+    right: var(--try-out-spacing-lg);
+    background: var(--try-out-glass-bg);
+    backdrop-filter: blur(var(--try-out-backdrop-blur));
+    border: 1px solid var(--try-out-glass-border);
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing);
+    border-radius: var(--try-out-border-radius-lg);
     cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 1000;
-    font-size: 14px;
-    color: var(--text-primary);
-    box-shadow: var(--shadow);
+    z-index: var(--try-out-z-sticky);
+    font-size: var(--try-out-font-base);
+    color: var(--try-out-text);
+    box-shadow: var(--try-out-shadow-md);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--try-out-spacing-sm);
+    transition: var(--theme-transition),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Hover and Focus States */
 .theme-toggle:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-    border-color: var(--accent-primary);
+    box-shadow: var(--try-out-shadow-lg);
+    border-color: var(--try-out-primary);
 }
 
-.theme-toggle:focus {
-    outline: 2px solid var(--accent-primary);
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--try-out-primary);
     outline-offset: 2px;
 }
 
-/* Dark mode adjustments */
-[data-md-color-scheme="slate"] .field-item,
-[data-md-color-scheme="slate"] .method-item {
-    background-color: var(--md-code-bg-color);
-    border-color: var(--md-default-fg-color--lightest);
+/* Dark Mode Adjustments */
+[data-md-color-scheme="slate"] {
+    /* Form Elements */
+    --input-bg: var(--try-out-surface);
+    --input-border: var(--try-out-border);
+    --input-text: var(--try-out-text);
+    --input-placeholder: var(--try-out-text-lighter);
+    
+    /* Code and Pre Elements */
+    --code-bg: var(--try-out-surface-raised);
+    --code-text: var(--try-out-text-light);
+    --code-border: var(--try-out-border);
+    
+    /* Interactive Elements */
+    --button-hover-bg: var(--try-out-surface-raised);
+    --button-active-bg: var(--try-out-surface);
 }
 
-[data-md-color-scheme="slate"] table th {
-    background-color: var(--md-primary-fg-color);
-    color: var(--md-primary-bg-color);
+/* Dark Mode Component Overrides */
+[data-md-color-scheme="slate"] {
+    /* Input Fields */
+    .modern-input,
+    .floating-input,
+    .parameter-search,
+    .name-input,
+    .value-input,
+    textarea {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+        color: var(--try-out-text);
+    }
+
+    .modern-input::placeholder,
+    .floating-input::placeholder,
+    .parameter-search::placeholder {
+        color: var(--try-out-text-lighter);
+    }
+
+    /* Floating Labels */
+    .floating-label {
+        background-color: var(--try-out-surface);
+        color: var(--try-out-text-light);
+    }
+
+    .floating-input:focus + .floating-label,
+    .floating-input:not(:placeholder-shown) + .floating-label {
+        color: var(--try-out-primary);
+    }
+
+    /* Code Blocks and Monospace */
+    pre, code, .path-display, .response-content {
+        background-color: var(--try-out-surface);
+        color: var(--try-out-text);
+        border-color: var(--try-out-border);
+    }
+
+    /* Cards and Containers */
+    .parameter-card,
+    .parameter-container,
+    .response-viewer,
+    .modal-content,
+    .url-preview {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+    }
+
+    /* Buttons */
+    .secondary-btn,
+    .secondary-button,
+    .copy-btn,
+    .remove-btn,
+    .tool-btn {
+        background-color: transparent;
+        border-color: var(--try-out-border);
+        color: var(--try-out-text);
+    }
+
+    .secondary-btn:hover,
+    .secondary-button:hover,
+    .copy-btn:hover,
+    .tool-btn:hover {
+        background-color: var(--try-out-surface-raised);
+        border-color: var(--try-out-primary);
+        color: var(--try-out-primary);
+    }
+
+    .remove-btn:hover {
+        background-color: var(--try-out-danger);
+        border-color: var(--try-out-danger);
+        color: white;
+    }
+
+    /* Modal Overlays */
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .try-out-modal .modal-overlay,
+    .response-modal .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        border: 1px solid var(--try-out-border);
+    }
+
+    /* Search and Filter Elements */
+    .search-box input,
+    .filter-input {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+        color: var(--try-out-text);
+    }
+
+    /* Tabs */
+    .tab:not(.active) {
+        color: var(--try-out-text-light);
+    }
+
+    .tab:hover:not(.active) {
+        background-color: var(--try-out-surface-raised);
+        color: var(--try-out-text);
+    }
+
+    .tab.active {
+        background-color: var(--try-out-primary);
+        color: white;
+    }
+
+    /* Badges in tabs */
+    .tab:not(.active) .badge {
+        background-color: var(--try-out-primary-light);
+        color: var(--try-out-primary);
+    }
+
+    /* Tooltips */
+    .tooltip::after,
+    .action-btn::after,
+    .tool-btn::after {
+        background-color: var(--try-out-text);
+        color: var(--try-out-bg);
+        border: 1px solid var(--try-out-border);
+    }
+
+    /* Required badges */
+    .required-badge {
+        background-color: var(--try-out-primary-light);
+        color: var(--try-out-primary);
+    }
+
+    /* Parameter toolbar */
+    .parameter-toolbar {
+        background-color: var(--try-out-surface-raised);
+        border-color: var(--try-out-border);
+    }
+
+    /* Headers list */
+    .header-item {
+        border-color: var(--try-out-border);
+    }
+
+    .header-name {
+        color: var(--try-out-text);
+    }
+
+    .header-value {
+        color: var(--try-out-text-light);
+    }
+
+    /* Detail values */
+    .detail-value {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+        color: var(--try-out-text-light);
+    }
+
+    /* Response stats */
+    .response-stats {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+    }
+
+    .stat-value {
+        color: var(--try-out-text);
+    }
+
+    /* Response toolbar */
+    .response-toolbar {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+    }
+
+    /* Modal sections */
+    .request-section {
+        background-color: var(--try-out-bg);
+        border-color: var(--try-out-border);
+    }
+
+    .response-section {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+    }
+
+    .modal-footer {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+    }
+
+    /* Action bar */
+    .action-bar {
+        border-color: var(--try-out-border);
+    }
+
+    /* Suggestions dropdown */
+    .suggestions-dropdown {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+        box-shadow: var(--try-out-shadow-lg);
+    }
+
+    .suggestion-item {
+        border-color: var(--try-out-border);
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.highlighted {
+        background-color: var(--try-out-primary-light);
+        color: var(--try-out-primary);
+    }
+
+    .suggestion-name {
+        color: var(--try-out-text);
+    }
+
+    .suggestion-description {
+        color: var(--try-out-text-light);
+    }
+
+    /* Format/validate buttons */
+    .format-btn,
+    .validate-btn {
+        background-color: transparent;
+        border-color: var(--try-out-border);
+        color: var(--try-out-text-light);
+    }
+
+    .format-btn:hover,
+    .validate-btn:hover {
+        background-color: var(--try-out-primary);
+        border-color: var(--try-out-primary);
+        color: white;
+    }
+
+    /* Code editor */
+    .code-editor {
+        background-color: var(--try-out-surface);
+        border-color: var(--try-out-border);
+        color: var(--try-out-text);
+    }
+
+    .code-editor:focus {
+        border-color: var(--try-out-primary);
+    }
+
+    /* Validation status */
+    .validation-status.valid {
+        color: var(--try-out-success);
+    }
+
+    .validation-status.invalid {
+        color: var(--try-out-danger);
+    }
+
+    /* Toast notifications */
+    .toast.toast-error {
+        background-color: var(--try-out-danger);
+    }
+
+    .toast.toast-warning {
+        background-color: var(--try-out-warning);
+    }
+
+    .toast.toast-info {
+        background-color: var(--try-out-info);
+    }
+}
+
+/* Smooth Theme Transition */
+body {
+    transition: var(--theme-transition);
+}
+
+/* Mobile Adjustments */
+@media screen and (max-width: 768px) {
+    .theme-toggle {
+        top: var(--try-out-spacing);
+        right: var(--try-out-spacing);
+        padding: var(--try-out-spacing-2xs) var(--try-out-spacing-xs);
+        font-size: var(--try-out-font-sm);
+    }
 }

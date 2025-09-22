@@ -1,22 +1,132 @@
 // Request execution functionality
 const RequestExecutor = {
-    async executeRequest() {
-        const executeBtn = document.getElementById('executeBtn');
-        if (!executeBtn) return;
+    // Toast notification system
+    showToast: function(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        // Trigger animation
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Remove toast
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    },
 
-        // Validate required parameters
-        const emptyParams = FormManager.validateRequiredParams();
-        if (emptyParams.length > 0) {
-            // Switch to parameters tab if we're on a different tab
-            const activeTab = document.querySelector('.try-out-form .tab.active');
-            if (activeTab && activeTab.getAttribute('data-tab') !== 'parameters') {
-                const parametersTab = document.querySelector('.try-out-form .tab[data-tab="parameters"]');
-                if (parametersTab) {
-                    TabManager.switchTab(parametersTab);
-                }
+    // Form validation
+    validateInput: function(input) {
+        const isValid = input.value.trim() !== '';
+        const validationMessage = input.parentElement.querySelector('.validation-message');
+        
+        if (!isValid) {
+            input.classList.add('error');
+            if (validationMessage) {
+                validationMessage.textContent = 'This field is required';
+                validationMessage.style.display = 'block';
             }
-            
-            this.showValidationError(`Please fill in the required parameters: ${emptyParams.join(', ')}`);
+        } else {
+            input.classList.remove('error');
+            if (validationMessage) {
+                validationMessage.textContent = '';
+                validationMessage.style.display = 'none';
+            }
+        }
+        
+        return isValid;
+    },
+
+    // Build complete request data
+    buildRequestData: function() {
+        const baseUrl = document.getElementById('baseUrl')?.value || '';
+        const pathDisplay = document.querySelector('.path-display')?.textContent || '';
+        
+        // Build full URL
+        let fullUrl = baseUrl + pathDisplay;
+        
+        // Replace path parameters
+        const pathParams = {};
+        document.querySelectorAll('#pathParams input').forEach(input => {
+            const param = input.dataset.param;
+            if (param && input.value) {
+                pathParams[param] = input.value;
+                fullUrl = fullUrl.replace(`{${param}}`, encodeURIComponent(input.value));
+            }
+        });
+
+        // Collect query parameters
+        const queryParams = {};
+        document.querySelectorAll('#queryParams .parameter-item').forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const valueInput = item.querySelector('.value-input');
+            if (nameInput?.value && valueInput?.value) {
+                queryParams[nameInput.value] = valueInput.value;
+            }
+        });
+
+        // Add query parameters to URL
+        if (Object.keys(queryParams).length > 0) {
+            const queryString = new URLSearchParams(queryParams).toString();
+            fullUrl += (fullUrl.includes('?') ? '&' : '?') + queryString;
+        }
+
+        // Collect headers
+        const headers = {};
+        document.querySelectorAll('#requestHeaders .header-item').forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const valueInput = item.querySelector('.value-input');
+            if (nameInput?.value && valueInput?.value) {
+                headers[nameInput.value] = valueInput.value;
+            }
+        });
+
+        // Get request body
+        const bodyEditor = document.getElementById('requestBody');
+        let body = null;
+        if (bodyEditor?.value.trim()) {
+            try {
+                body = JSON.parse(bodyEditor.value);
+            } catch (e) {
+                body = bodyEditor.value;
+            }
+        }
+
+        // Get method
+        const methodBadge = document.querySelector('.method-badge');
+        const method = methodBadge?.dataset.method || 'GET';
+
+        return {
+            url: fullUrl,
+            method,
+            headers,
+            body,
+            pathParams,
+            queryParams
+        };
+    },
+    async executeRequest() {
+        const executeBtn = document.querySelector('[data-action="send"], .primary-button, .primary-btn, #executeBtn');
+        if (!executeBtn) {
+            console.warn('Execute button not found');
+            return;
+        }
+
+        // Validate required fields
+        const requiredInputs = document.querySelectorAll('input[required]');
+        let isValid = true;
+        
+        requiredInputs.forEach(input => {
+            if (!this.validateInput(input)) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            this.showToast('Please fill in all required fields', 'error');
             return;
         }
 
@@ -25,37 +135,42 @@ const RequestExecutor = {
 
         try {
             const startTime = Date.now();
-            const url = FormManager.buildRequestUrl();
-            const headers = FormManager.getRequestHeaders();
-            const body = FormManager.getRequestBody();
-            const method = document.querySelector('.try-out-form')?.getAttribute('data-method') || 'GET';
-
+            const requestData = this.buildRequestData();
+            
             const requestOptions = {
-                method: method.toUpperCase(),
-                headers: headers
+                method: requestData.method.toUpperCase(),
+                headers: requestData.headers
             };
 
             // Add body for non-GET requests
-            if (body && !['GET', 'HEAD'].includes(method.toUpperCase())) {
-                if (typeof body === 'string') {
-                    requestOptions.body = body;
+            if (requestData.body && !['GET', 'HEAD'].includes(requestData.method.toUpperCase())) {
+                if (typeof requestData.body === 'string') {
+                    requestOptions.body = requestData.body;
                 } else {
-                    requestOptions.body = JSON.stringify(body);
-                    if (!headers['Content-Type']) {
+                    requestOptions.body = JSON.stringify(requestData.body);
+                    if (!requestData.headers['Content-Type']) {
                         requestOptions.headers['Content-Type'] = 'application/json';
                     }
                 }
             }
 
-            const response = await fetch(url, requestOptions);
+            // Show response section
+            const responseSection = document.querySelector('.response-section');
+            if (responseSection) {
+                responseSection.hidden = false;
+            }
+
+            const response = await fetch(requestData.url, requestOptions);
             const responseTime = Date.now() - startTime;
             const responseText = await response.text();
 
             ModalManager.showResponseModal(response.status, responseText, responseTime);
+            this.showToast('Request executed successfully');
 
         } catch (error) {
-            let errorMessage = error.message || 'Unknown error occurred';
-            ModalManager.showResponseModal('Error', errorMessage);
+            console.error('Request failed:', error);
+            this.showToast('Request failed: ' + error.message, 'error');
+            ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred');
         } finally {
             this.setLoadingState(executeBtn, false);
         }
@@ -63,20 +178,57 @@ const RequestExecutor = {
 
     setLoadingState(button, loading) {
         button.disabled = loading;
-        button.innerHTML = '';
         
         if (loading) {
-            const spinner = document.createElement('div');
-            spinner.className = 'spinner';
-            const text = document.createTextNode(' Sending...');
-            button.appendChild(spinner);
-            button.appendChild(text);
+            button.classList.add('loading');
+            const spinner = button.querySelector('.loading-spinner');
+            if (spinner) {
+                spinner.style.display = 'inline-block';
+            }
         } else {
-            const playIcon = document.createElement('span');
-            playIcon.textContent = '▶';
-            const text = document.createTextNode(' Execute Request');
-            button.appendChild(playIcon);
-            button.appendChild(text);
+            button.classList.remove('loading');
+            const spinner = button.querySelector('.loading-spinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }
+    },
+
+    // JSON formatting and validation
+    formatJson: function() {
+        const editor = document.getElementById('requestBody');
+        if (!editor) return;
+
+        try {
+            const formatted = JSON.stringify(JSON.parse(editor.value), null, 2);
+            editor.value = formatted;
+            this.validateJson();
+        } catch (e) {
+            this.showToast('Invalid JSON format', 'error');
+        }
+    },
+
+    validateJson: function() {
+        const editor = document.getElementById('requestBody');
+        const status = document.querySelector('.validation-status');
+        
+        if (!editor || !status) return true;
+
+        if (!editor.value.trim()) {
+            status.textContent = '';
+            status.className = 'validation-status';
+            return true;
+        }
+
+        try {
+            JSON.parse(editor.value);
+            status.textContent = '✓ Valid JSON';
+            status.className = 'validation-status valid';
+            return true;
+        } catch (e) {
+            status.textContent = '✗ ' + e.message;
+            status.className = 'validation-status invalid';
+            return false;
         }
     },
 
@@ -104,8 +256,10 @@ const RequestExecutor = {
     }
 };
 
-// Global function for onclick handlers
+// Global functions for onclick handlers and backward compatibility
 window.executeRequest = () => RequestExecutor.executeRequest();
+window.formatJson = () => RequestExecutor.formatJson();
+window.validateJson = () => RequestExecutor.validateJson();
 
 // Export for global access
 window.RequestExecutor = RequestExecutor;

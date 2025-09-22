@@ -1,14 +1,82 @@
 <!-- Try Out Modal -->
-<div id="tryOutModal" class="try-out-modal" role="dialog" aria-modal="true" aria-label="Try It Out">
-    <div class="modal-overlay" onclick="TryOutSidebar.closeTryOut()"></div>
-    <div class="modal-content">
+<div 
+    id="tryOutModal" 
+    class="try-out-modal" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="modalTitle"
+    aria-describedby="modalDescription"
+>
+    <!-- Backdrop with blur effect -->
+    <div 
+        class="modal-overlay" 
+        data-action="close"
+        onclick="TryOutSidebar.closeTryOut()"
+        style="backdrop-filter: blur(var(--try-out-backdrop-blur));"
+    ></div>
+
+    <!-- Modal Container with Grid Layout -->
+    <div class="modal-content" role="document">
         <div class="modal-header">
-            <span>🚀</span>
-            <h3>Try It Out</h3>
-            <button class="modal-close" aria-label="Close" onclick="TryOutSidebar.closeTryOut()">✕</button>
+            <div class="modal-title-group">
+                <span class="modal-icon" aria-hidden="true">🚀</span>
+                <h3 id="modalTitle">Try It Out</h3>
+                <span id="modalDescription" class="visually-hidden">API endpoint testing interface</span>
+            </div>
+
+            <!-- Accessibility Controls -->
+            <div class="modal-controls">
+                <button 
+                    class="modal-close" 
+                    aria-label="Close modal"
+                    onclick="TryOutSidebar.closeTryOut()"
+                    data-action="close"
+                >
+                    <span aria-hidden="true">✕</span>
+                </button>
+            </div>
         </div>
+
+        <!-- Main Content with Grid Layout -->
         <div class="modal-body">
-            {% include 'try-out/form.html' %}
+            <div class="modal-grid">
+                <!-- Form Section -->
+                <div class="modal-section request-section">
+                    {% include 'try-out/form.html' %}
+                </div>
+
+                <!-- Response Section (Initially Hidden) -->
+                <div class="modal-section response-section" aria-live="polite" hidden>
+                    {% include 'try-out/response-modal.html' %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer with Actions -->
+        <div class="modal-footer">
+            <div class="modal-actions">
+                <button 
+                    type="button" 
+                    class="secondary-button" 
+                    data-action="reset"
+                    onclick="resetForm()"
+                >
+                    <span class="icon">↺</span> Reset
+                </button>
+                <button 
+                    type="button" 
+                    class="primary-button" 
+                    data-action="send"
+                    onclick="executeRequest()"
+                >
+                    <span class="icon">▶</span> Send Request
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Keyboard trap functionality is now handled in modal.js -->
+
+<!-- Modal styles are now in modal.css -->

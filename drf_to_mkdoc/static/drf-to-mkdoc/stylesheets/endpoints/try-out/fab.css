@@ -1,0 +1,204 @@
+/* Try Out Floating Action Button Container */
+.try-out-fab-container {
+    position: fixed;
+    bottom: var(--try-out-spacing-xl);
+    right: var(--try-out-spacing-xl);
+    z-index: var(--try-out-z-fab);
+}
+
+/* Main FAB Button */
+.try-out-fab {
+    position: relative;
+    min-width: 3rem;
+    height: 3rem;
+    border-radius: 1.5rem;
+    background: var(--try-out-gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    padding: 0 var(--try-out-spacing);
+    overflow: hidden;
+    
+    /* Modern Shadow */
+    box-shadow: var(--try-out-shadow-lg),
+                0 0 0 0 rgba(var(--try-out-primary-rgb), 0.2);
+                
+    /* Smooth Transitions */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* FAB Content Layout */
+.fab-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--try-out-spacing-sm);
+    white-space: nowrap;
+}
+
+.fab-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-text {
+    font-size: var(--try-out-font-base);
+    font-weight: 500;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover State */
+.try-out-fab:hover {
+    width: auto;
+    padding-right: var(--try-out-spacing-lg);
+    transform: translateY(-2px);
+    box-shadow: var(--try-out-shadow-xl),
+                0 0 0 0 rgba(var(--try-out-primary-rgb), 0);
+}
+
+.try-out-fab:hover .fab-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.try-out-fab:hover .fab-icon {
+    transform: rotate(360deg);
+}
+
+/* Active State */
+.try-out-fab:active {
+    transform: translateY(1px);
+    box-shadow: var(--try-out-shadow-md);
+}
+
+/* Keyboard Trigger Animation */
+.try-out-fab.keyboard-triggered {
+    animation: pulse 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ripple Effect */
+.ripple-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+.ripple {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+}
+
+/* Pulse Animation */
+.pulse-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Keyboard Shortcut Hint */
+.shortcut-hint {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: var(--try-out-spacing-sm);
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
+    background: var(--try-out-glass-bg);
+    backdrop-filter: blur(var(--try-out-backdrop-blur));
+    border: 1px solid var(--try-out-glass-border);
+    border-radius: var(--try-out-border-radius);
+    font-size: var(--try-out-font-sm);
+    color: var(--try-out-text);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.shortcut-hint.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+kbd {
+    display: inline-block;
+    padding: 2px 4px;
+    background: var(--try-out-surface);
+    border: 1px solid var(--try-out-border);
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+    line-height: 1;
+}
+
+/* Animations */
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--try-out-primary-rgb), 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(var(--try-out-primary-rgb), 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--try-out-primary-rgb), 0);
+    }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* Mobile Adjustments */
+@media screen and (max-width: 768px) {
+    .try-out-fab-container {
+        bottom: var(--try-out-spacing-lg);
+        right: var(--try-out-spacing-lg);
+    }
+
+    .try-out-fab {
+        min-width: 3.5rem;
+        height: 3.5rem;
+        padding: 0;
+    }
+
+    .try-out-fab:hover {
+        width: 3.5rem;
+        padding: 0;
+    }
+
+    .fab-text {
+        display: none;
+    }
+
+    .shortcut-hint {
+        display: none;
+    }
+}

@@ -1,48 +1,100 @@
-/* Tabs */
-.tabs {
+/* Smart Tabs */
+.smart-tabs {
     display: flex;
-    gap: 0;
+    gap: var(--try-out-spacing-xs);
+    border-bottom: 1px solid var(--try-out-border);
+    padding-bottom: var(--try-out-spacing-xs);
     margin-bottom: var(--try-out-spacing-lg);
-    border: 1px solid var(--try-out-border);
-    border-radius: var(--try-out-border-radius);
-    overflow: hidden;
-    background-color: var(--try-out-surface);
 }
 
 .tab {
-    flex: 1;
-    padding: var(--try-out-spacing) var(--try-out-spacing-lg);
-    border: none;
+    display: flex;
+    align-items: center;
+    gap: var(--try-out-spacing-xs);
+    padding: var(--try-out-spacing-sm) var(--try-out-spacing);
+    border-radius: var(--try-out-border-radius);
     background: transparent;
+    border: none;
     color: var(--try-out-text-light);
     cursor: pointer;
+    transition: var(--try-out-transition);
     font-size: var(--try-out-font-base);
     font-weight: 500;
     position: relative;
-    transition: var(--try-out-transition);
-    border-right: 1px solid var(--try-out-border);
 }
 
-.tab:last-child {
-    border-right: none;
-}
-
-.tab:hover {
-    background-color: rgba(25, 118, 210, 0.05);
+.tab:hover:not(.active) {
+    background: var(--try-out-surface);
     color: var(--try-out-text);
 }
 
 .tab.active {
-    background-color: var(--try-out-primary);
+    background: var(--try-out-primary);
     color: white;
+    box-shadow: var(--try-out-shadow-md);
+}
+
+.tab .icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.tab.active .badge {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.tab:not(.active) .badge {
+    background: var(--try-out-primary-light);
+    color: var(--try-out-primary);
 }
 
 .tab-content {
     display: none;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .tab-content.active {
     display: block;
+}
+
+/* Response Tabs */
+.response-tabs {
+    display: flex;
+    gap: var(--try-out-spacing-xs);
+    border-bottom: 1px solid var(--try-out-border);
+    padding-bottom: var(--try-out-spacing-xs);
+    margin-bottom: var(--try-out-spacing);
+}
+
+.response-tabs .tab {
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
+    font-size: var(--try-out-font-sm);
+}
+
+/* Tab Focus States */
+.tab:focus-visible {
+    outline: 2px solid var(--try-out-primary);
+    outline-offset: 2px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Mobile Tabs */

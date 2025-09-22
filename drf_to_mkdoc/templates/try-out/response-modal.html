@@ -1,20 +1,278 @@
 <!-- Response Modal -->
-<div id="responseModal" class="response-modal" role="dialog" aria-modal="true" aria-label="API Response">
+<div 
+    id="responseModal" 
+    class="response-modal" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="responseTitle"
+    aria-describedby="responseDescription"
+>
     <div class="modal-overlay" onclick="TryOutSidebar.closeResponseModal()"></div>
     <div class="modal-content">
+        <!-- Modal Header -->
         <div class="modal-header">
-            <h3>API Response</h3>
-            <button class="modal-close" aria-label="Close" onclick="TryOutSidebar.closeResponseModal()">✕</button>
+            <div class="header-content">
+                <h3 id="responseTitle">API Response</h3>
+                <span id="responseDescription" class="visually-hidden">Displays the API response details and content</span>
+                <div class="header-actions">
+                    <button 
+                        class="action-btn" 
+                        onclick="copyResponse()" 
+                        aria-label="Copy response"
+                        data-tooltip="Copy to clipboard"
+                    >
+                        <span class="icon">📋</span>
+                    </button>
+                    <button 
+                        class="action-btn" 
+                        onclick="downloadResponse()" 
+                        aria-label="Download response"
+                        data-tooltip="Download as JSON"
+                    >
+                        <span class="icon">💾</span>
+                    </button>
+                    <button 
+                        class="modal-close" 
+                        aria-label="Close response modal" 
+                        onclick="TryOutSidebar.closeResponseModal()"
+                    >
+                        <span class="icon">✕</span>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-            <div class="response-header">
-                <div class="response-info">
-                    <span>Status:</span>
+
+        <!-- Response Stats -->
+        <div class="response-stats">
+            <div class="stat-group">
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
                     <span class="status-badge" id="modalStatusBadge"></span>
                 </div>
-                <div class="response-info" id="responseInfo"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Time</span>
+                    <span class="stat-value" id="responseTime">0 ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Size</span>
+                    <span class="stat-value" id="responseSize">0 KB</span>
+                </div>
             </div>
-            <div class="response-body" id="modalResponseBody"></div>
+            <div class="response-info" id="responseInfo"></div>
+        </div>
+
+        <!-- Response Content -->
+        <div class="modal-body">
+            <!-- Response Tabs -->
+            <div class="response-tabs" role="tablist">
+                <button 
+                    class="tab active" 
+                    role="tab" 
+                    aria-selected="true"
+                    aria-controls="responseBody"
+                    data-tab="body"
+                >
+                    <span class="icon">📄</span>
+                    Response
+                </button>
+                <button 
+                    class="tab" 
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="responseHeaders"
+                    data-tab="headers"
+                >
+                    <span class="icon">📋</span>
+                    Headers
+                </button>
+                <button 
+                    class="tab" 
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="requestDetails"
+                    data-tab="request"
+                >
+                    <span class="icon">📤</span>
+                    Request
+                </button>
+            </div>
+
+            <!-- Response Body Tab -->
+            <div 
+                id="responseBody" 
+                class="tab-content active" 
+                role="tabpanel"
+            >
+                <div class="response-toolbar">
+                    <div class="toolbar-group">
+                        <button 
+                            class="tool-btn" 
+                            onclick="formatResponse()"
+                            data-tooltip="Format JSON"
+                        >
+                            <span class="icon">🔧</span>
+                        </button>
+                        <button 
+                            class="tool-btn" 
+                            onclick="collapseAll()"
+                            data-tooltip="Collapse all"
+                        >
+                            <span class="icon">📦</span>
+                        </button>
+                        <button 
+                            class="tool-btn" 
+                            onclick="expandAll()"
+                            data-tooltip="Expand all"
+                        >
+                            <span class="icon">📂</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-group">
+                        <div class="search-box">
+                            <input 
+                                type="text" 
+                                id="responseSearch"
+                                placeholder="Search in response..."
+                                aria-label="Search in response"
+                            >
+                            <span class="search-count" id="searchCount"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="response-viewer">
+                    <div class="response-content" id="modalResponseBody"></div>
+                </div>
+            </div>
+
+            <!-- Response Headers Tab -->
+            <div 
+                id="responseHeaders" 
+                class="tab-content" 
+                role="tabpanel"
+            >
+                <div class="headers-list" id="responseHeadersList"></div>
+            </div>
+
+            <!-- Request Details Tab -->
+            <div 
+                id="requestDetails" 
+                class="tab-content" 
+                role="tabpanel"
+            >
+                <div class="request-details" id="requestDetailsList"></div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabs = document.querySelectorAll('.response-tabs .tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab));
+    });
+
+    // Response search
+    const searchInput = document.getElementById('responseSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(searchInResponse, 300));
+    }
+
+    // Initialize syntax highlighting
+    initializePrism();
+});
+
+function switchTab(tab) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.response-tabs .tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.remove('active');
+    });
+
+    // Add active class to clicked tab and its content
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    const contentId = tab.getAttribute('aria-controls');
+    document.getElementById(contentId).classList.add('active');
+}
+
+function copyResponse() {
+    const responseText = document.getElementById('modalResponseBody').textContent;
+    navigator.clipboard.writeText(responseText).then(() => {
+        showToast('Response copied to clipboard');
+    });
+}
+
+function downloadResponse() {
+    const responseText = document.getElementById('modalResponseBody').textContent;
+    const blob = new Blob([responseText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'response.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function formatResponse() {
+    try {
+        const responseEl = document.getElementById('modalResponseBody');
+        const json = JSON.parse(responseEl.textContent);
+        responseEl.textContent = JSON.stringify(json, null, 2);
+        Prism.highlightElement(responseEl);
+    } catch (e) {
+        showToast('Invalid JSON format');
+    }
+}
+
+function searchInResponse() {
+    const searchText = document.getElementById('responseSearch').value.toLowerCase();
+    const responseText = document.getElementById('modalResponseBody').textContent;
+    const matches = responseText.toLowerCase().split(searchText).length - 1;
+    document.getElementById('searchCount').textContent = matches ? `${matches} matches` : '';
+    
+    // Highlight matches
+    highlightMatches(searchText);
+}
+
+function highlightMatches(searchText) {
+    const responseEl = document.getElementById('modalResponseBody');
+    let html = responseEl.textContent;
+    if (!searchText) {
+        responseEl.innerHTML = html;
+        return;
+    }
+    
+    const regex = new RegExp(searchText, 'gi');
+    html = html.replace(regex, match => `<mark class="search-match">${match}</mark>`);
+    responseEl.innerHTML = html;
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>

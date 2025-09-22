@@ -1,113 +1,258 @@
 {% load custom_filters %}
 
 <div class="try-out-form" data-method="{{ method }}">
-    <!-- Base URL Section -->
-    <div class="base-url-section">
-        <label for="baseUrl">Request URL</label>
-        <div class="url-display">
-            <input type="text" id="baseUrl" class="base-url-input" value="http://localhost:8000" placeholder="https://api.example.com">
-            <span class="path-display">{{ path }}</span>
+    <!-- Method Badge and Base URL Section -->
+    <div class="request-header">
+        <div class="method-badge" data-method="{{ method|upper }}">{{ method|upper }}</div>
+        <div class="base-url-section">
+            <div class="floating-label-group">
+                <input type="text" 
+                       id="baseUrl" 
+                       class="base-url-input floating-input" 
+                       value="http://localhost:8000" 
+                       placeholder=" "
+                       required>
+                <label for="baseUrl" class="floating-label">Request URL</label>
+                <div class="url-preview">
+                    <code class="path-display">{{ path }}</code>
+                    <button class="copy-btn" onclick="copyToClipboard(this)" aria-label="Copy URL">
+                        <span class="icon">📋</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-        <button class="tab active" data-tab="parameters">Parameters</button>
-        <button class="tab" data-tab="headers">Headers</button>
+    <!-- Smart Tabs with Icons -->
+    <div class="smart-tabs" role="tablist">
+        <button class="tab active" 
+                role="tab" 
+                aria-selected="true"
+                aria-controls="parametersTab"
+                data-tab="parameters">
+            <span class="icon">📝</span>
+            Parameters
+            {% if path_params %}<span class="badge">{{ path_params|length }}</span>{% endif %}
+        </button>
+        <button class="tab" 
+                role="tab"
+                aria-selected="false"
+                aria-controls="headersTab"
+                data-tab="headers">
+            <span class="icon">📋</span>
+            Headers
+        </button>
         {% if method|upper in "POST,PUT,PATCH" %}
-        <button class="tab" data-tab="body">Request Body</button>
+        <button class="tab" 
+                role="tab"
+                aria-selected="false"
+                aria-controls="bodyTab"
+                data-tab="body">
+            <span class="icon">📦</span>
+            Request Body
+        </button>
         {% endif %}
     </div>
 
     <!-- Parameters Tab -->
-    <div class="tab-content active" id="parametersTab">
+    <div class="tab-content active" 
+         id="parametersTab" 
+         role="tabpanel"
+         aria-labelledby="parametersTab">
         {% if path_params %}
-        <div class="form-group">
-            <label class="form-label">Path Parameters</label>
-            <div class="kv-container" id="pathParams">
+        <div class="form-section">
+            <div class="section-header">
+                <h4>Path Parameters</h4>
+                <div class="tooltip" data-tooltip="Values that are part of the URL path">ℹ️</div>
+            </div>
+            <div class="parameter-grid" id="pathParams">
                 {% for param in path_params %}
-                <div class="kv-item">
-                    <label class="param-label{% if param.required %} required{% endif %}">{{ param.name }}</label>
-                    <input type="text" 
-                           placeholder="Enter {{ param.name }} value" 
-                           data-param="{{ param.name }}"
-                           {% if param.required %}required{% endif %}>
-                    <div class="error-message"></div>
+                <div class="parameter-card{% if param.required %} required{% endif %}">
+                    <div class="parameter-header">
+                        <label class="param-label">{{ param.name }}</label>
+                        {% if param.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </div>
+                    <div class="parameter-input-group">
+                        <input type="text" 
+                               class="modern-input"
+                               placeholder="Enter value"
+                               data-param="{{ param.name }}"
+                               {% if param.required %}required{% endif %}>
+                        {% if param.description %}
+                        <div class="param-description">{{ param.description }}</div>
+                        {% endif %}
+                        <div class="validation-message"></div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        <div class="form-group">
-            <label class="form-label">Query Parameters</label>
-            <div class="kv-container" id="queryParams">
-                <div class="kv-item">
-                    <input type="text" placeholder="Parameter name">
-                    <input type="text" placeholder="Parameter value">
-                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
-                </div>
+        <div class="form-section">
+            <div class="section-header">
+                <h4>Query Parameters</h4>
+                <div class="tooltip" data-tooltip="Parameters added to the URL after ?">ℹ️</div>
             </div>
-            <button class="add-btn" onclick="TryOutSidebar.addQueryParam()">
-                <span>+</span> Add Parameter
-            </button>
+            <div class="parameter-container" id="queryParams">
+                <div class="parameter-toolbar">
+                    <div class="search-box">
+                        <input type="text" 
+                               placeholder="Filter parameters..."
+                               class="parameter-search"
+                               onkeyup="filterParameters(this.value)">
+                    </div>
+                    <button class="add-param-btn" onclick="TryOutSidebar.addQueryParam()">
+                        <span class="icon">+</span> Add Parameter
+                    </button>
+                </div>
+                <div class="parameter-list">
+                    <div class="parameter-item">
+                        <div class="parameter-inputs">
+                            <input type="text" 
+                                   class="modern-input name-input" 
+                                   placeholder="Parameter name"
+                                   list="paramSuggestions">
+                            <input type="text" 
+                                   class="modern-input value-input" 
+                                   placeholder="Value">
+                            <button class="remove-btn" 
+                                    onclick="TryOutSidebar.removeKvItem(this)"
+                                    aria-label="Remove parameter">
+                                <span class="icon">✕</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Parameter Suggestions -->
+                <datalist id="paramSuggestions">
+                    {% for field in query_parameters.filter_fields %}
+                    <option value="{{ field }}">Filter</option>
+                    {% endfor %}
+                    {% for field in query_parameters.search_fields %}
+                    <option value="{{ field }}">Search</option>
+                    {% endfor %}
+                    {% for field in query_parameters.ordering_fields %}
+                    <option value="{{ field }}">Order</option>
+                    {% endfor %}
+                </datalist>
+            </div>
         </div>
     </div>
 
     <!-- Headers Tab -->
-    <div class="tab-content" id="headersTab">
-        <div class="form-group">
-            <label class="form-label">Request Headers</label>
-            <div class="kv-container" id="requestHeaders">
-                <div class="kv-item">
-                    <input type="text" value="Content-Type">
-                    <input type="text" value="application/json">
-                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
-                </div>
-                <div class="kv-item">
-                    <input type="text" value="Authorization">
-                    <input type="text" placeholder="Bearer your-token">
-                    <button class="remove-btn" onclick="TryOutSidebar.removeKvItem(this)">✕</button>
-                </div>
+    <div class="tab-content" 
+         id="headersTab"
+         role="tabpanel"
+         aria-labelledby="headersTab">
+        <div class="form-section">
+            <div class="section-header">
+                <h4>Request Headers</h4>
+                <div class="tooltip" data-tooltip="HTTP headers sent with the request">ℹ️</div>
             </div>
-            <button class="add-btn" onclick="TryOutSidebar.addHeader()">
-                <span>+</span> Add Header
-            </button>
+            <div class="header-container" id="requestHeaders">
+                <div class="header-toolbar">
+                    <button class="add-header-btn" onclick="TryOutSidebar.addHeader()">
+                        <span class="icon">+</span> Add Header
+                    </button>
+                    <button class="preset-btn" onclick="loadCommonHeaders()">
+                        <span class="icon">📋</span> Common Headers
+                    </button>
+                </div>
+                <div class="header-list">
+                    <div class="header-item">
+                        <div class="header-inputs">
+                            <input type="text" 
+                                   class="modern-input name-input" 
+                                   value="Content-Type"
+                                   list="headerSuggestions">
+                            <input type="text" 
+                                   class="modern-input value-input" 
+                                   value="application/json">
+                            <button class="remove-btn" 
+                                    onclick="TryOutSidebar.removeKvItem(this)"
+                                    aria-label="Remove header">
+                                <span class="icon">✕</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="header-item">
+                        <div class="header-inputs">
+                            <input type="text" 
+                                   class="modern-input name-input" 
+                                   value="Authorization"
+                                   list="headerSuggestions">
+                            <input type="text" 
+                                   class="modern-input value-input" 
+                                   placeholder="Bearer your-token">
+                            <button class="remove-btn" 
+                                    onclick="TryOutSidebar.removeKvItem(this)"
+                                    aria-label="Remove header">
+                                <span class="icon">✕</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Header Suggestions -->
+                <datalist id="headerSuggestions">
+                    <option value="Accept">Response format preference</option>
+                    <option value="Authorization">Authentication credentials</option>
+                    <option value="Content-Type">Request body format</option>
+                    <option value="Cache-Control">Caching behavior</option>
+                </datalist>
+            </div>
         </div>
     </div>
 
     <!-- Request Body Tab -->
     {% if method|upper in "POST,PUT,PATCH" %}
-    <div class="tab-content" id="bodyTab">
-        <div class="form-group">
-            <label class="form-label">Request Body</label>
-            <textarea id="requestBody" 
-                      class="form-input form-textarea" 
-                      placeholder="Enter JSON request body..."
-                      rows="8">{% if request_example %}{{ request_example|extract_json_from_markdown }}{% endif %}</textarea>
+    <div class="tab-content" 
+         id="bodyTab"
+         role="tabpanel"
+         aria-labelledby="bodyTab">
+        <div class="form-section">
+            <div class="section-header">
+                <h4>Request Body</h4>
+                <div class="body-toolbar">
+                    <button class="format-btn" onclick="formatJson()">
+                        <span class="icon">🔧</span> Format
+                    </button>
+                    <button class="validate-btn" onclick="validateJson()">
+                        <span class="icon">✓</span> Validate
+                    </button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <div class="editor-wrapper">
+                    <textarea id="requestBody" 
+                              class="code-editor" 
+                              placeholder="Enter JSON request body..."
+                              spellcheck="false"
+                              rows="8">{% if request_example %}{{ request_example|extract_json_from_markdown }}{% endif %}</textarea>
+                    <div class="editor-overlay"></div>
+                </div>
+                <div class="validation-status"></div>
+            </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Execute Button -->
-    <button class="execute-btn" id="executeBtn" onclick="executeRequest()">
-        <span>▶</span> Execute Request
-    </button>
+    <!-- Action Bar - Hidden since buttons are in modal footer -->
+    <div class="action-bar" style="display: none;">
+        <div class="action-group">
+            <button class="secondary-btn" onclick="resetForm()">
+                <span class="icon">↺</span> Reset
+            </button>
+            <button class="primary-btn" id="executeBtn" onclick="executeRequest()">
+                <span class="icon">▶</span> Execute Request
+                <div class="loading-spinner"></div>
+            </button>
+        </div>
+    </div>
 </div>
 
-<script>
-// Pass query parameters data to JavaScript
-window.queryParametersData = {
-    {% if query_parameters %}
-    filter_fields: {{ query_parameters.filter_fields|default:"[]"|safe }},
-    search_fields: {{ query_parameters.search_fields|default:"[]"|safe }},
-    ordering_fields: {{ query_parameters.ordering_fields|default:"[]"|safe }},
-    pagination_fields: {{ query_parameters.pagination_fields|default:"[]"|safe }}
-    {% else %}
-    filter_fields: [],
-    search_fields: [],
-    ordering_fields: [],
-    pagination_fields: []
-    {% endif %}
-};
-</script>
+<!-- Form styles are now in form.css -->
+
+<!-- JavaScript functionality is now handled in the modular try-out/*.js files -->
