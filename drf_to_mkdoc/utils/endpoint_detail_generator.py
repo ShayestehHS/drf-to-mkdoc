@@ -539,7 +539,7 @@ def _generate_field_value(
     operation_id: str,
     components: dict,
     is_response: bool = True,
-) -> any:
+) -> Any:
     """Generate a realistic value for a specific field based on its name and schema."""
     # Get field-specific generator from settings
     field_generator = get_field_generator(field_name)
