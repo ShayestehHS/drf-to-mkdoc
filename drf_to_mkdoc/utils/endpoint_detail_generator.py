@@ -712,8 +712,8 @@ def create_endpoint_page(
         query_params = extract_query_parameters_from_view(operation_id)
         _add_custom_parameters(operation_id, query_params)
         for key, value in query_params.items():
-            # Prevent duplicate value in list
-            query_params[key] = list(set(value))
+            # Prevent duplicates while preserving order
+            query_params[key] = list(dict.fromkeys(value))
         context["query_parameters"] = query_params
 
     return render_to_string("endpoints/detail/base.html", context)
