@@ -643,9 +643,7 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
         formatted_response = {
             "status_code": status_code,
             "description": response_data.get("description", ""),
-            "examples": [
-                f"```json\n{json.dumps(example, indent=2)}\n```" for example in examples
-            ],
+            "examples": examples,
         }
         formatted_responses.append(formatted_response)
     return formatted_responses
