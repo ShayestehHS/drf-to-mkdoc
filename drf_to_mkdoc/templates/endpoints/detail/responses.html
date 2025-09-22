@@ -10,9 +10,9 @@
 {{ response.description }}
 {% endif %}
 
-{% if response.example %}
-{{ response.example|format_json }}
-{% endif %}
+{% for example in response.examples %}
+{{ example|format_json }}
+{% endfor %}
 
 {% endfor %}
 {% endif %}

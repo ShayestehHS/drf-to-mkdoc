@@ -366,10 +366,17 @@ def _enhance_method_field_schema(_operation_id, schema: dict, _components: dict)
 
 def _resolve_schema_reference(schema: dict, components: dict) -> dict:
     """Resolve $ref references in schema."""
-    if "$ref" in schema:
-        ref = schema["$ref"]
-        return components.get("schemas", {}).get(ref.split("/")[-1], {})
-    return schema
+    if "$ref" not in schema:
+        return schema
+
+    ref = schema["$ref"]
+    target = components.get("schemas", {}).get(ref.split("/")[-1], {})
+    # Work on a copy to avoid mutating components
+    resolved = dict(target) if isinstance(target, dict) else {}
+    for key, value in schema.items():
+        if key != "$ref":
+            resolved[key] = value
+    return resolved
 
 
 def _handle_all_of_schema(schema: dict, components: dict, _for_response: bool) -> dict:
@@ -401,16 +408,22 @@ def _handle_all_of_schema(schema: dict, components: dict, _for_response: bool) -
 
 def _get_explicit_value(schema: dict):
     """Get explicit value from schema (enum, example, or default)."""
-    # Ensure schema is a dictionary
     if not isinstance(schema, dict):
         return None
 
     if "enum" in schema:
         return schema["enum"][0]
+
     if "example" in schema:
         return schema["example"]
+
     if "default" in schema:
+        # For array types with items schema, don't use empty default
+        # Let the generator create a proper example instead
+        if schema.get("type") == "array" and "items" in schema:
+            return None
         return schema["default"]
+
     return None
 
 
@@ -499,11 +512,7 @@ def format_schema_as_json_example(
     if description:
         result += f"{description}\n\n"
 
-    result += "```json\n"
-    result += json.dumps(example_json, indent=2)
-    result += "\n```\n"
-
-    return result
+    return json.dumps(example_json, indent=2)
 
 
 def _format_schema_for_display(
@@ -518,22 +527,122 @@ def _format_schema_for_display(
             operation_id, schema["$ref"], components, for_response
         )
 
-    example = schema_to_example_json(operation_id, schema, components, for_response)
-    return f"```json\n{json.dumps(example, indent=2)}\n```"
+    return schema_to_example_json(operation_id, schema, components, for_response)
+
+
+def _generate_field_value(
+    field_name: str,
+    prop_schema: dict,
+    operation_id: str,
+    components: dict,
+    is_response: bool = True,
+) -> Any:
+    """Generate a realistic value for a specific field based on its name and schema."""
+    # Get field-specific generator from settings
+    field_generator = get_field_generator(field_name)
+
+    if field_generator:
+        return field_generator(prop_schema)
+
+    # Fallback to schema-based generation
+    return schema_to_example_json(operation_id, prop_schema, components, is_response)
+
+
+def get_field_generator(field_name: str):
+    """Get appropriate generator function for a field name from settings."""
+    return drf_to_mkdoc_settings.FIELD_GENERATORS.get(field_name.lower())
+
+
+def _generate_examples(operation_id: str, schema: dict, components: dict) -> list:
+    """Generate examples for a schema."""
+
+    if "$ref" in schema:
+        schema = _resolve_schema_reference(schema, components)
+
+    examples = []
+
+    # Handle object with array properties
+    if schema.get("type") == "object" and "properties" in schema:
+        empty_example = {}
+        populated_example = {}
+        has_array_default = False
+
+        # Check for array fields with default=[]
+        for _prop_name, prop_schema in schema["properties"].items():
+            resolved_prop_schema = (
+                _resolve_schema_reference(prop_schema, components)
+                if "$ref" in prop_schema
+                else prop_schema
+            )
+            if (
+                resolved_prop_schema.get("type") == "array"
+                and resolved_prop_schema.get("default") == []
+            ):
+                has_array_default = True
+                break
+
+        # Generate examples
+        for prop_name, prop_schema in schema["properties"].items():
+            resolved_prop_schema = (
+                _resolve_schema_reference(prop_schema, components)
+                if "$ref" in prop_schema
+                else prop_schema
+            )
+
+            if (
+                resolved_prop_schema.get("type") == "array"
+                and resolved_prop_schema.get("default") == []
+            ):
+                empty_example[prop_name] = []
+                items_schema = resolved_prop_schema.get("items", {})
+                populated_example[prop_name] = [
+                    _generate_field_value(
+                        prop_name, items_schema, operation_id, components, True
+                    )
+                ]
+            else:
+                value = _generate_field_value(
+                    prop_name, resolved_prop_schema, operation_id, components, True
+                )
+                empty_example[prop_name] = value
+                populated_example[prop_name] = value
+
+        if has_array_default:
+            examples.append(empty_example)
+            examples.append(populated_example)
+        else:
+            examples.append(empty_example)
+
+    # Handle array field with default=[]
+    elif schema.get("type") == "array" and schema.get("default") == []:
+        examples.append([])
+        items_schema = schema.get("items", {})
+        populated_example = [
+            _generate_field_value("items", items_schema, operation_id, components, True)
+        ]
+        examples.append(populated_example)
+    else:
+        example = _generate_field_value("root", schema, operation_id, components, True)
+        examples.append(example)
+
+    return examples
 
 
 def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
     """Prepare response data for template rendering."""
+
     formatted_responses = []
     for status_code, response_data in responses.items():
         schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
-        formatted_responses.append(
-            {
-                "status_code": status_code,
-                "description": response_data.get("description", ""),
-                "example": _format_schema_for_display(operation_id, schema, components, True),
-            }
-        )
+
+        examples = _generate_examples(operation_id, schema, components)
+
+        formatted_response = {
+            "status_code": status_code,
+            "description": response_data.get("description", ""),
+            "examples": examples,
+        }
+        formatted_responses.append(formatted_response)
     return formatted_responses
 
 
@@ -598,8 +707,8 @@ def create_endpoint_page(
         query_params = extract_query_parameters_from_view(operation_id)
         _add_custom_parameters(operation_id, query_params)
         for key, value in query_params.items():
-            # Prevent duplicate value in list
-            query_params[key] = list(set(value))
+            # Prevent duplicates while preserving order
+            query_params[key] = list(dict.fromkeys(value))
         context["query_parameters"] = query_params
 
     return render_to_string("endpoints/detail/base.html", context)

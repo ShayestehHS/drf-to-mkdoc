@@ -1,8 +1,9 @@
 import json
+from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import yaml
 from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
@@ -19,16 +20,6 @@ class QueryParamTypeError(Exception):
     """Custom exception for query parameter type errors."""
 
     pass
-
-
-def load_schema() -> dict[str, Any] | None:
-    """Load the OpenAPI schema from doc-schema.yaml"""
-    schema_file = Path(drf_to_mkdoc_settings.CONFIG_DIR) / "doc-schema.yaml"
-    if not schema_file.exists():
-        return None
-
-    with schema_file.open(encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 def get_custom_schema():
@@ -152,16 +143,17 @@ def _apply_custom_overrides(
                 target_schema[key] = custom_value
 
 
+@lru_cache(maxsize=1)
 def get_schema():
     base_schema = SchemaGenerator().get_schema(request=None, public=True)
     custom_data = get_custom_schema()
     if not custom_data:
-        return base_schema
+        return deepcopy(base_schema)
 
     operation_map = _build_operation_map(base_schema)
     _apply_custom_overrides(base_schema, operation_map, custom_data)
 
-    return base_schema
+    return deepcopy(base_schema)
 
 
 class OperationExtractor:
