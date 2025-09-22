@@ -512,11 +512,7 @@ def format_schema_as_json_example(
     if description:
         result += f"{description}\n\n"
 
-    result += "```json\n"
-    result += json.dumps(example_json, indent=2)
-    result += "\n```\n"
-
-    return result
+    return json.dumps(example_json, indent=2)
 
 
 def _format_schema_for_display(
@@ -531,8 +527,7 @@ def _format_schema_for_display(
             operation_id, schema["$ref"], components, for_response
         )
 
-    example = schema_to_example_json(operation_id, schema, components, for_response)
-    return f"```json\n{json.dumps(example, indent=2)}\n```"
+    return schema_to_example_json(operation_id, schema, components, for_response)
 
 
 def _generate_field_value(

@@ -114,7 +114,7 @@ def format_json(value):
     elif isinstance(value, dict | list):
         value = json.dumps(value, indent=2)
 
-    return mark_safe(value)  # noqa: S308
+    return mark_safe(f"```json\n{value}\n```")  # noqa: S308
 
 
 @register.filter
