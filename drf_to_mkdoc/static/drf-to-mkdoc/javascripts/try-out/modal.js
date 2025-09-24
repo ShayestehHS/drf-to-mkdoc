@@ -97,6 +97,13 @@ const ModalManager = {
         if (modal) {
             modal.classList.add('show');
             modal.style.display = 'flex';
+            
+            // Reinitialize tabs for response modal
+            setTimeout(() => {
+                if (window.TabManager) {
+                    window.TabManager.init();
+                }
+            }, 100);
         }
     },
 
@@ -108,11 +115,12 @@ const ModalManager = {
         }
     },
 
-    showResponseModal: function(status, responseText, responseTime) {
+    showResponseModal: function(status, responseText, responseTime, responseHeaders, requestHeaders) {
         const modal = document.getElementById('responseModal');
         const statusBadge = document.getElementById('modalStatusBadge');
         const responseBody = document.getElementById('modalResponseBody');
         const responseInfo = document.getElementById('responseInfo');
+        const headersList = document.getElementById('responseHeadersList');
 
         if (modal && statusBadge && responseBody) {
             // Handle error status
@@ -151,7 +159,135 @@ const ModalManager = {
                 }
             }
 
+            // Display headers
+            if (headersList) {
+                this.displayHeaders(headersList, responseHeaders, requestHeaders);
+            }
+
             this.openResponseModal();
+        }
+    },
+
+    displayHeaders: function(headersList, responseHeaders, requestHeaders) {
+        headersList.innerHTML = '';
+
+        // Create response headers section
+        if (responseHeaders && Object.keys(responseHeaders).length > 0) {
+            const responseSection = document.createElement('div');
+            responseSection.className = 'headers-section';
+            
+            const responseTitle = document.createElement('h4');
+            responseTitle.textContent = `Response Headers (${Object.keys(responseHeaders).length})`;
+            responseTitle.className = 'headers-title';
+            responseSection.appendChild(responseTitle);
+
+            const responseList = document.createElement('div');
+            responseList.className = 'headers-grid';
+            
+            // Sort headers alphabetically
+            const sortedResponseHeaders = Object.entries(responseHeaders).sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            
+            sortedResponseHeaders.forEach(([key, value]) => {
+                const headerItem = document.createElement('div');
+                headerItem.className = 'header-item';
+                
+                const headerKey = document.createElement('div');
+                headerKey.className = 'header-key';
+                headerKey.textContent = key;
+                
+                const headerValue = document.createElement('div');
+                headerValue.className = 'header-value';
+                
+                // Special formatting for cookies
+                if (key.toLowerCase() === 'set-cookie') {
+                    const cookieList = document.createElement('div');
+                    cookieList.className = 'cookie-list';
+                    
+                    // Handle multiple Set-Cookie headers
+                    const cookies = Array.isArray(value) ? value : [value];
+                    cookies.forEach(cookie => {
+                        const cookieItem = document.createElement('div');
+                        cookieItem.className = 'cookie-item';
+                        cookieItem.textContent = cookie;
+                        cookieList.appendChild(cookieItem);
+                    });
+                    
+                    headerValue.appendChild(cookieList);
+                } else {
+                    headerValue.textContent = value;
+                }
+                
+                headerItem.appendChild(headerKey);
+                headerItem.appendChild(headerValue);
+                responseList.appendChild(headerItem);
+            });
+            
+            responseSection.appendChild(responseList);
+            headersList.appendChild(responseSection);
+        }
+
+        // Create request headers section
+        if (requestHeaders && Object.keys(requestHeaders).length > 0) {
+            const requestSection = document.createElement('div');
+            requestSection.className = 'headers-section';
+            
+            const requestTitle = document.createElement('h4');
+            requestTitle.textContent = `Request Headers (${Object.keys(requestHeaders).length})`;
+            requestTitle.className = 'headers-title';
+            requestSection.appendChild(requestTitle);
+
+            const requestList = document.createElement('div');
+            requestList.className = 'headers-grid';
+            
+            // Sort headers alphabetically
+            const sortedRequestHeaders = Object.entries(requestHeaders).sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            
+            sortedRequestHeaders.forEach(([key, value]) => {
+                const headerItem = document.createElement('div');
+                headerItem.className = 'header-item';
+                
+                const headerKey = document.createElement('div');
+                headerKey.className = 'header-key';
+                headerKey.textContent = key;
+                
+                const headerValue = document.createElement('div');
+                headerValue.className = 'header-value';
+                
+                // Special formatting for cookies
+                if (key.toLowerCase() === 'cookie') {
+                    const cookieList = document.createElement('div');
+                    cookieList.className = 'cookie-list';
+                    
+                    // Split cookies by semicolon and display each on a new line
+                    const cookies = value.split(';').map(c => c.trim()).filter(c => c);
+                    cookies.forEach(cookie => {
+                        const cookieItem = document.createElement('div');
+                        cookieItem.className = 'cookie-item';
+                        cookieItem.textContent = cookie;
+                        cookieList.appendChild(cookieItem);
+                    });
+                    
+                    headerValue.appendChild(cookieList);
+                } else {
+                    headerValue.textContent = value;
+                }
+                
+                headerItem.appendChild(headerKey);
+                headerItem.appendChild(headerValue);
+                requestList.appendChild(headerItem);
+            });
+            
+            requestSection.appendChild(requestList);
+            headersList.appendChild(requestSection);
+        }
+
+        // Show message if no headers
+        if ((!responseHeaders || Object.keys(responseHeaders).length === 0) && 
+            (!requestHeaders || Object.keys(requestHeaders).length === 0)) {
+            const noHeadersMsg = document.createElement('div');
+            noHeadersMsg.className = 'no-headers-message';
+            noHeadersMsg.textContent = 'No headers available';
+            headersList.appendChild(noHeadersMsg);
         }
     }
 };

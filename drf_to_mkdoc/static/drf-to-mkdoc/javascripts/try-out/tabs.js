@@ -1,7 +1,7 @@
 // Tab management functionality
 const TabManager = {
     init: function() {
-        document.querySelectorAll('.try-out-form .tab, .smart-tabs .tab').forEach(tab => {
+        document.querySelectorAll('.try-out-form .tab, .smart-tabs .tab, .response-tabs .tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 this.switchTab(tab);
             });
@@ -46,6 +46,9 @@ const TabManager = {
                 content.classList.add('active');
             }
         }
+        
+        // Debug logging
+        console.log('Tab switched to:', contentId, 'Content element:', content);
     }
 };
 

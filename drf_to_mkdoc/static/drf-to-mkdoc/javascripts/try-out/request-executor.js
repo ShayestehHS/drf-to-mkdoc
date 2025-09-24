@@ -124,6 +124,31 @@ const RequestExecutor = {
             }
         });
 
+        // Add default headers if not already set
+        if (!headers['Accept']) {
+            headers['Accept'] = '*/*';
+        }
+        if (!headers['User-Agent']) {
+            headers['User-Agent'] = navigator.userAgent;
+        }
+        if (!headers['Accept-Language']) {
+            headers['Accept-Language'] = navigator.language || 'en-US,en;q=0.9';
+        }
+        if (!headers['Accept-Encoding']) {
+            headers['Accept-Encoding'] = 'gzip, deflate, br';
+        }
+        if (!headers['Connection']) {
+            headers['Connection'] = 'keep-alive';
+        }
+        if (!headers['Cache-Control']) {
+            headers['Cache-Control'] = 'no-cache';
+        }
+
+        // Add cookies if available
+        if (document.cookie) {
+            headers['Cookie'] = document.cookie;
+        }
+
         // Get request body
         const bodyEditor = document.getElementById('requestBody');
         let body = null;
@@ -206,11 +231,27 @@ const RequestExecutor = {
             const responseTime = Date.now() - startTime;
             const responseText = await response.text();
 
-            ModalManager.showResponseModal(response.status, responseText, responseTime);
+            // Convert response headers to object
+            const responseHeaders = {};
+            response.headers.forEach((value, key) => {
+                // Handle multiple headers with the same name (like Set-Cookie)
+                if (responseHeaders[key]) {
+                    if (Array.isArray(responseHeaders[key])) {
+                        responseHeaders[key].push(value);
+                    } else {
+                        responseHeaders[key] = [responseHeaders[key], value];
+                    }
+                } else {
+                    responseHeaders[key] = value;
+                }
+            });
+
+            ModalManager.showResponseModal(response.status, responseText, responseTime, responseHeaders, requestData.headers);
 
         } catch (error) {
             console.error('Request failed:', error);
-            ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred');
+            const requestData = this.buildRequestData();
+            ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred', null, null, requestData.headers);
         } finally {
             this.setLoadingState(executeBtn, false);
         }
