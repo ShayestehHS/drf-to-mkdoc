@@ -1,21 +1,61 @@
 // Request execution functionality
 const RequestExecutor = {
-    // Toast notification system
-    showToast: function(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
+    // Show validation error in the appropriate section
+    showValidationError: function(message, section) {
+        let errorContainer;
         
-        document.body.appendChild(toast);
-        
-        // Trigger animation
-        setTimeout(() => toast.classList.add('show'), 10);
-        
-        // Remove toast
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        if (section === 'json') {
+            // Show error in JSON validation status
+            errorContainer = document.querySelector('.validation-status');
+            if (errorContainer) {
+                errorContainer.textContent = '✗ ' + message;
+                errorContainer.className = 'validation-status invalid';
+            }
+        } else if (section === 'parameters') {
+            // Show error in parameters section
+            const parametersTab = document.querySelector('[data-tab="parameters"]');
+                if (parametersTab) {
+                window.TabManager?.switchTab(parametersTab);
+            }
+            
+            // Create or update error message
+            errorContainer = document.querySelector('#parametersError');
+            if (!errorContainer) {
+                errorContainer = document.createElement('div');
+                errorContainer.id = 'parametersError';
+                errorContainer.className = 'error-message';
+                const parametersSection = document.querySelector('#parametersTab .form-section');
+                if (parametersSection) {
+                    parametersSection.insertBefore(errorContainer, parametersSection.firstChild);
+                }
+            }
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+        }
+    },
+
+    // Clear validation errors
+    clearValidationErrors: function() {
+        // Clear JSON validation status
+        const jsonStatus = document.querySelector('.validation-status');
+        if (jsonStatus) {
+            jsonStatus.textContent = '';
+            jsonStatus.className = 'validation-status';
+        }
+
+        // Clear parameters error
+        const paramsError = document.querySelector('#parametersError');
+        if (paramsError) {
+            paramsError.style.display = 'none';
+        }
+
+        // Clear all input validation states
+        document.querySelectorAll('.error').forEach(el => {
+            el.classList.remove('error');
+        });
+        document.querySelectorAll('.validation-message').forEach(msg => {
+            msg.style.display = 'none';
+        });
     },
 
     // Form validation
@@ -116,17 +156,19 @@ const RequestExecutor = {
         }
 
         // Validate required fields
-        const requiredInputs = document.querySelectorAll('input[required]');
-        let isValid = true;
+        const requiredInputs = document.querySelectorAll('#pathParams input[required]');
+        let emptyFields = [];
         
         requiredInputs.forEach(input => {
-            if (!this.validateInput(input)) {
-                isValid = false;
+            if (!input.value.trim()) {
+                const paramName = input.dataset.param || 'parameter';
+                emptyFields.push(paramName);
+                this.validateInput(input);
             }
         });
 
-        if (!isValid) {
-            this.showToast('Please fill in all required fields', 'error');
+        if (emptyFields.length > 0) {
+            this.showValidationError(`Please fill in required fields: ${emptyFields.join(', ')}`, 'parameters');
             return;
         }
 
@@ -136,7 +178,7 @@ const RequestExecutor = {
         try {
             const startTime = Date.now();
             const requestData = this.buildRequestData();
-            
+
             const requestOptions = {
                 method: requestData.method.toUpperCase(),
                 headers: requestData.headers
@@ -165,11 +207,9 @@ const RequestExecutor = {
             const responseText = await response.text();
 
             ModalManager.showResponseModal(response.status, responseText, responseTime);
-            this.showToast('Request executed successfully');
 
         } catch (error) {
             console.error('Request failed:', error);
-            this.showToast('Request failed: ' + error.message, 'error');
             ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred');
         } finally {
             this.setLoadingState(executeBtn, false);
@@ -204,7 +244,7 @@ const RequestExecutor = {
             editor.value = formatted;
             this.validateJson();
         } catch (e) {
-            this.showToast('Invalid JSON format', 'error');
+            this.showValidationError('Invalid JSON format', 'json');
         }
     },
 
@@ -232,28 +272,7 @@ const RequestExecutor = {
         }
     },
 
-    showValidationError(message) {
-        // Create or update validation error display
-        let errorDiv = document.getElementById('validation-error');
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.id = 'validation-error';
-            errorDiv.className = 'error-message show';
-            
-            const executeBtn = document.getElementById('executeBtn');
-            if (executeBtn) {
-                executeBtn.parentNode.insertBefore(errorDiv, executeBtn);
-            }
-        }
-        
-        errorDiv.textContent = message;
-        errorDiv.classList.add('show');
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            errorDiv.classList.remove('show');
-        }, 5000);
-    }
+    // This method is now handled by the main showValidationError method above
 };
 
 // Global functions for onclick handlers and backward compatibility

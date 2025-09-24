@@ -115,19 +115,60 @@ const ModalManager = {
         const responseInfo = document.getElementById('responseInfo');
 
         if (modal && statusBadge && responseBody) {
-            statusBadge.textContent = String(status);
-            const code = Number(status);
-            statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
-
-            try {
-                const jsonResponse = JSON.parse(responseText);
-                responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
-            } catch (e) {
+            // Handle error status
+            if (status === 'Error') {
+                statusBadge.textContent = 'Error';
+                statusBadge.className = 'status-badge status-error';
                 responseBody.textContent = responseText;
-            }
+                if (responseInfo) {
+                    responseInfo.textContent = 'Request failed';
+                }
+            } else {
+                // Handle regular response
+                statusBadge.textContent = String(status);
+                const code = Number(status);
+                statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
 
-            if (responseInfo && responseTime) {
-                responseInfo.textContent = `Response time: ${responseTime}ms`;
+                try {
+                    const jsonResponse = JSON.parse(responseText);
+                    
+                    // Handle API error responses
+                    if (code >= 400) {
+                        // Format error message nicely
+                        let errorMessage = '';
+                        if (typeof jsonResponse === 'object') {
+                            if (jsonResponse.detail) {
+                                errorMessage = jsonResponse.detail;
+                            } else {
+                                // Handle DRF's error format
+                                Object.entries(jsonResponse).forEach(([key, value]) => {
+                                    if (Array.isArray(value)) {
+                                        errorMessage += `${key}: ${value.join(', ')}\\n`;
+                                    } else {
+                                        errorMessage += `${key}: ${value}\\n`;
+                                    }
+                                });
+                            }
+                        }
+                        
+                        // Show formatted error and raw response
+                        if (errorMessage) {
+                            responseBody.textContent = `Error Details:\\n${errorMessage}\\n\\nRaw Response:\\n${JSON.stringify(jsonResponse, null, 2)}`;
+                        } else {
+                            responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
+                        }
+                    } else {
+                        // Show successful response
+                        responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
+                    }
+                } catch (e) {
+                    // Handle non-JSON response
+                    responseBody.textContent = responseText;
+                }
+
+                if (responseInfo && responseTime) {
+                    responseInfo.textContent = `Response time: ${responseTime}ms`;
+                }
             }
 
             this.openResponseModal();

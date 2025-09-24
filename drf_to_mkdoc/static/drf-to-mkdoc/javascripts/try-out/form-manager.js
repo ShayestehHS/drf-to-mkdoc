@@ -358,9 +358,9 @@ const FormManager = {
                 window.TabManager.switchTab(firstTab);
             }
 
-            // Show success toast
+            // Clear any error messages
             if (window.RequestExecutor) {
-                window.RequestExecutor.showToast('Form reset successfully');
+                window.RequestExecutor.clearValidationErrors();
             }
         }
     },
@@ -389,13 +389,17 @@ const FormManager = {
         const url = baseUrl + pathDisplay;
 
         navigator.clipboard.writeText(url).then(() => {
-            if (window.RequestExecutor) {
-                window.RequestExecutor.showToast('URL copied to clipboard');
+            // Show copy success in the URL preview
+            const copyBtn = document.querySelector('.copy-btn');
+            if (copyBtn) {
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<span class="icon">✓</span>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
             }
         }).catch(() => {
-            if (window.RequestExecutor) {
-                window.RequestExecutor.showToast('Failed to copy URL', 'error');
-            }
+            console.error('Failed to copy URL');
         });
     }
 };
