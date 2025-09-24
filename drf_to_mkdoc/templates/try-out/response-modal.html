@@ -127,20 +127,9 @@
                             <span class="icon">📂</span>
                         </button>
                     </div>
-                    <div class="toolbar-group">
-                        <div class="search-box">
-                            <input 
-                                type="text" 
-                                id="responseSearch"
-                                placeholder="Search in response..."
-                                aria-label="Search in response"
-                            >
-                            <span class="search-count" id="searchCount"></span>
-                        </div>
-                    </div>
                 </div>
-                <div class="response-viewer">
-                    <div class="response-content" id="modalResponseBody"></div>
+                <div class="response-viewer" role="region" aria-live="polite">
+                    <div class="response-content" id="modalResponseBody" tabindex="0"></div>
                 </div>
             </div>
 
@@ -172,12 +161,6 @@ document.addEventListener('DOMContentLoaded', function() {
     tabs.forEach(tab => {
         tab.addEventListener('click', () => switchTab(tab));
     });
-
-    // Response search
-    const searchInput = document.getElementById('responseSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce(searchInResponse, 300));
-    }
 
     // Initialize syntax highlighting
     initializePrism();
@@ -231,29 +214,6 @@ function formatResponse() {
     }
 }
 
-function searchInResponse() {
-    const searchText = document.getElementById('responseSearch').value.toLowerCase();
-    const responseText = document.getElementById('modalResponseBody').textContent;
-    const matches = responseText.toLowerCase().split(searchText).length - 1;
-    document.getElementById('searchCount').textContent = matches ? `${matches} matches` : '';
-    
-    // Highlight matches
-    highlightMatches(searchText);
-}
-
-function highlightMatches(searchText) {
-    const responseEl = document.getElementById('modalResponseBody');
-    let html = responseEl.textContent;
-    if (!searchText) {
-        responseEl.innerHTML = html;
-        return;
-    }
-    
-    const regex = new RegExp(searchText, 'gi');
-    html = html.replace(regex, match => `<mark class="search-match">${match}</mark>`);
-    responseEl.innerHTML = html;
-}
-
 function showToast(message) {
     const toast = document.createElement('div');
     toast.className = 'toast';
@@ -264,15 +224,4 @@ function showToast(message) {
     }, 3000);
 }
 
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
 </script>

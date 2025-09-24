@@ -350,40 +350,6 @@
     visibility: visible;
 }
 
-.search-box {
-    display: flex;
-    align-items: center;
-    gap: var(--try-out-spacing-sm);
-    background: var(--try-out-bg);
-    border: 1px solid var(--try-out-border);
-    border-radius: var(--try-out-border-radius);
-    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
-    min-width: 250px;
-}
-
-#responseSearch {
-    border: none;
-    outline: none;
-    background: transparent;
-    flex: 1;
-    font-size: var(--try-out-font-sm);
-    color: var(--try-out-text);
-    font-family: inherit;
-    padding: 0;
-}
-
-#responseSearch::placeholder {
-    color: var(--try-out-text-light);
-}
-
-.search-count {
-    font-size: var(--try-out-font-sm);
-    color: var(--try-out-text-light);
-    font-weight: 500;
-    padding-left: var(--try-out-spacing-xs);
-    border-left: 1px solid var(--try-out-border);
-}
-
 /* Response Viewer */
 .response-viewer {
     flex: 1;
@@ -486,14 +452,6 @@
     line-height: var(--try-out-line-height);
     color: var(--try-out-text);
     background: transparent;
-}
-
-/* Search Highlighting */
-.search-match {
-    background: var(--try-out-warning);
-    color: #333;
-    padding: 1px 2px;
-    border-radius: 2px;
 }
 
 /* Toast Notifications */
