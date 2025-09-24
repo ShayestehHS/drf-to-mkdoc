@@ -127,7 +127,7 @@ const ModalManager = {
                 // Handle regular response
                 statusBadge.textContent = String(status);
                 const code = Number(status);
-                statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)*100}` : '');
+                statusBadge.className = 'status-badge' + (Number.isFinite(code) ? ` status-${Math.floor(code/100)}xx` : '');
 
                 try {
                     const jsonResponse = JSON.parse(responseText);

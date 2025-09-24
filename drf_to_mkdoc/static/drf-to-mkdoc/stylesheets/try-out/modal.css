@@ -255,7 +255,7 @@
 }
 
 /* Toast Notifications */
-.toast {
+.try-out-modal .toast {
     position: fixed;
     top: 20px;
     right: 20px;
@@ -272,16 +272,16 @@
     max-width: 300px;
 }
 
-.toast.show {
+.try-out-modal .toast.show {
     opacity: 1;
     transform: translateX(0);
 }
 
-.toast.toast-success {
+.try-out-modal .toast.toast-success {
     background: var(--try-out-success);
 }
 
-.toast.toast-error {
+.try-out-modal .toast.toast-error {
     background: var(--try-out-danger);
 }
 

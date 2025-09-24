@@ -44,3 +44,7 @@ window.TryOutForm = {
     resetForm: () => window.FormManager?.resetForm(),
     sendRequest: () => window.RequestExecutor?.executeRequest()
 };
+
+// Global proxy functions for template onclick handlers
+window.resetForm = () => window.TryOutForm?.resetForm?.();
+window.executeRequest = () => window.TryOutForm?.sendRequest?.();
