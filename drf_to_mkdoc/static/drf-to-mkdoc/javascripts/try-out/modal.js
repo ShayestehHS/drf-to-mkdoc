@@ -144,6 +144,8 @@ const ModalManager = {
                                 Object.entries(jsonResponse).forEach(([key, value]) => {
                                     if (Array.isArray(value)) {
                                         errorMessage += `${key}: ${value.join(', ')}\\n`;
+                                    } else if (typeof value === 'object' && value !== null) {
+                                        errorMessage += `${key}:\\n${JSON.stringify(value, null, 2)}\\n`;
                                     } else {
                                         errorMessage += `${key}: ${value}\\n`;
                                     }
@@ -151,11 +153,14 @@ const ModalManager = {
                             }
                         }
                         
-                        // Show formatted error and raw response
+                        // Show formatted error
                         if (errorMessage) {
-                            responseBody.textContent = `Error Details:\\n${errorMessage}\\n\\nRaw Response:\\n${JSON.stringify(jsonResponse, null, 2)}`;
+                            responseBody.innerHTML = `<div class="error-message">
+                                <div class="error-title">Error Details</div>
+                                <pre class="error-content">${errorMessage.trim()}</pre>
+                            </div>`;
                         } else {
-                            responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
+                            responseBody.innerHTML = `<pre class="error-content">${JSON.stringify(jsonResponse, null, 2)}</pre>`;
                         }
                     } else {
                         // Show successful response
@@ -163,7 +168,14 @@ const ModalManager = {
                     }
                 } catch (e) {
                     // Handle non-JSON response
-                    responseBody.textContent = responseText;
+                    if (code >= 400) {
+                        responseBody.innerHTML = `<div class="error-message">
+                            <div class="error-title">Error Response</div>
+                            <pre class="error-content">${responseText}</pre>
+                        </div>`;
+                    } else {
+                        responseBody.innerHTML = `<pre class="error-content">${responseText}</pre>`;
+                    }
                 }
 
                 if (responseInfo && responseTime) {
