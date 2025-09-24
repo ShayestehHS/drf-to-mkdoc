@@ -132,40 +132,8 @@ const ModalManager = {
                 try {
                     const jsonResponse = JSON.parse(responseText);
                     
-                    // Handle API error responses
-                    if (code >= 400) {
-                        // Format error message nicely
-                        let errorMessage = '';
-                        if (typeof jsonResponse === 'object') {
-                            if (jsonResponse.detail) {
-                                errorMessage = jsonResponse.detail;
-                            } else {
-                                // Handle DRF's error format
-                                Object.entries(jsonResponse).forEach(([key, value]) => {
-                                    if (Array.isArray(value)) {
-                                        errorMessage += `${key}: ${value.join(', ')}\\n`;
-                                    } else if (typeof value === 'object' && value !== null) {
-                                        errorMessage += `${key}:\\n${JSON.stringify(value, null, 2)}\\n`;
-                                    } else {
-                                        errorMessage += `${key}: ${value}\\n`;
-                                    }
-                                });
-                            }
-                        }
-                        
-                        // Show formatted error
-                        if (errorMessage) {
-                            responseBody.innerHTML = `<div class="error-message">
-                                <div class="error-title">Error Details</div>
-                                <pre class="error-content">${errorMessage.trim()}</pre>
-                            </div>`;
-                        } else {
-                            responseBody.innerHTML = `<pre class="error-content">${JSON.stringify(jsonResponse, null, 2)}</pre>`;
-                        }
-                    } else {
-                        // Show successful response
-                        responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
-                    }
+                    // Show formatted JSON response
+                    responseBody.textContent = JSON.stringify(jsonResponse, null, 2);
                 } catch (e) {
                     // Handle non-JSON response
                     if (code >= 400) {
