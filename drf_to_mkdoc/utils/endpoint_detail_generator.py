@@ -693,6 +693,7 @@ def create_endpoint_page(
         ],
         "scripts": [
             "javascripts/try-out/modal.js",
+            "javascripts/try-out/response-modal.js",
             "javascripts/try-out/tabs.js",
             "javascripts/try-out/form-manager.js",
             "javascripts/try-out/request-executor.js",

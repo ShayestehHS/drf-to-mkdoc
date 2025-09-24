@@ -179,3 +179,10 @@ document.addEventListener('keydown', function(e) {
 
 // Export for global access
 window.ModalManager = ModalManager;
+
+// Create TryOutSidebar alias for backward compatibility
+window.TryOutSidebar = {
+    closeResponseModal: function() {
+        ModalManager.closeResponseModal();
+    }
+};
