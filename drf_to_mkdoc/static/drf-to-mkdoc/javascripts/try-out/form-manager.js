@@ -4,6 +4,39 @@ const FormManager = {
     init: function() {
         this.setupEventListeners();
         this.setupFormValidation();
+        this.initializeRequestBody();
+    },
+
+    initializeRequestBody: function() {
+        const requestExample = document.querySelector('.request-example');
+        const requestBody = document.getElementById('requestBody');
+        
+        if (requestExample && requestBody) {
+            try {
+                let example = requestExample.getAttribute('data-example');
+                if (example) {
+                    // Remove markdown code block syntax if present
+                    example = example.replace(/^```json\n/, '').replace(/```$/, '');
+                    // Remove any leading/trailing whitespace
+                    example = example.trim();
+                    
+                    // Try to parse and format the JSON
+                    const formattedJson = JSON.stringify(JSON.parse(example), null, 2);
+                    requestBody.value = formattedJson;
+                    
+                    // Validate the JSON after setting it
+                    if (window.RequestExecutor) {
+                        window.RequestExecutor.validateJson();
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse request example:', e);
+                // If parsing fails, try to at least show the raw example
+                if (example) {
+                    requestBody.value = example;
+                }
+            }
+        }
     },
 
     setupEventListeners: function() {
