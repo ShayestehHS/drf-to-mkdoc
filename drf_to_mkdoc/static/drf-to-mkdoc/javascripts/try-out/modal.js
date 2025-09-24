@@ -121,8 +121,21 @@ const ModalManager = {
         const responseBody = document.getElementById('modalResponseBody');
         const responseInfo = document.getElementById('responseInfo');
         const headersList = document.getElementById('responseHeadersList');
+        const timeElement = document.getElementById('responseTime');
+        const sizeElement = document.getElementById('responseSize');
 
         if (modal && statusBadge && responseBody) {
+            // Update time and size stats
+            if (timeElement && responseTime !== null && responseTime !== undefined) {
+                timeElement.textContent = `${responseTime} ms`;
+            }
+            
+            if (sizeElement && responseText) {
+                const sizeInBytes = new Blob([responseText]).size;
+                const formattedSize = this.formatSize(sizeInBytes);
+                sizeElement.textContent = formattedSize;
+            }
+
             // Handle error status
             if (status === 'Error') {
                 statusBadge.textContent = 'Error';
@@ -154,8 +167,8 @@ const ModalManager = {
                     }
                 }
 
-                if (responseInfo && responseTime) {
-                    responseInfo.textContent = `Response time: ${responseTime}ms`;
+                if (responseInfo) {
+                    responseInfo.textContent = '';
                 }
             }
 
@@ -289,6 +302,16 @@ const ModalManager = {
             noHeadersMsg.textContent = 'No headers available';
             headersList.appendChild(noHeadersMsg);
         }
+    },
+
+    formatSize: function(bytes) {
+        if (bytes === 0) return '0 B';
+        
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 };
 

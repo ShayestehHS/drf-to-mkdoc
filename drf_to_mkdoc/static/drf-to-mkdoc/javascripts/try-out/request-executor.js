@@ -200,8 +200,9 @@ const RequestExecutor = {
         // Show loading state
         this.setLoadingState(executeBtn, true);
 
+        const startTime = Date.now();
+        
         try {
-            const startTime = Date.now();
             const requestData = this.buildRequestData();
 
             const requestOptions = {
@@ -251,7 +252,8 @@ const RequestExecutor = {
         } catch (error) {
             console.error('Request failed:', error);
             const requestData = this.buildRequestData();
-            ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred', null, null, requestData.headers);
+            const errorTime = Date.now() - startTime;
+            ModalManager.showResponseModal('Error', error.message || 'Unknown error occurred', errorTime, null, requestData.headers);
         } finally {
             this.setLoadingState(executeBtn, false);
         }
