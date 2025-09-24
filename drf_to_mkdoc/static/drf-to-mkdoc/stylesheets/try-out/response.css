@@ -55,6 +55,7 @@
     display: flex;
     align-items: center;
     gap: var(--try-out-spacing-sm);
+    margin-right: 40px; /* Space for absolutely positioned close button */
 }
 
 .action-btn {
@@ -117,6 +118,10 @@
     align-items: center;
     justify-content: center;
     transition: var(--try-out-transition);
+    position: absolute;
+    top: var(--try-out-spacing);
+    right: var(--try-out-spacing);
+    z-index: 10;
 }
 
 .response-modal .modal-close:hover {
@@ -598,5 +603,16 @@
     .response-modal .response-body {
         font-size: 12px;
         max-height: 250px;
+    }
+    
+    .response-modal .modal-close {
+        top: var(--try-out-spacing-sm);
+        right: var(--try-out-spacing-sm);
+        width: 28px;
+        height: 28px;
+    }
+    
+    .header-actions {
+        margin-right: 32px; /* Adjust for smaller close button on mobile */
     }
 }
