@@ -10,10 +10,10 @@ const FormManager = {
     initializeRequestBody: function() {
         const requestExample = document.querySelector('.request-example');
         const requestBody = document.getElementById('requestBody');
-        
+        let example = null;
         if (requestExample && requestBody) {
             try {
-                let example = requestExample.getAttribute('data-example');
+                example = requestExample.getAttribute('data-example');
                 if (example) {
                     // Remove markdown code block syntax if present
                     example = example.replace(/^```json\n/, '').replace(/```$/, '');
@@ -202,12 +202,15 @@ const FormManager = {
                        class="modern-input value-input" 
                        placeholder="Header value">
                 <button class="remove-btn" 
-                        onclick="FormManager.removeKvItem(this)"
                         aria-label="Remove header">
                     <span class="icon">✕</span>
                 </button>
             </div>
         `;
+        
+        // Attach the removal handler programmatically
+        const removeBtn = headerItem.querySelector('.remove-btn');
+        removeBtn.addEventListener('click', (e) => FormManager.removeKvItem(e.currentTarget));
         
         return headerItem;
     },
