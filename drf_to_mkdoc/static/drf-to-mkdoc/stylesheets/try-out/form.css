@@ -118,36 +118,6 @@
     margin-bottom: var(--try-out-spacing-lg);
 }
 
-.method-badge {
-    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
-    border-radius: var(--try-out-border-radius);
-    font-weight: 600;
-    font-size: var(--try-out-font-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.method-badge[data-method="GET"] { 
-    background: var(--try-out-success); 
-    color: white; 
-}
-.method-badge[data-method="POST"] { 
-    background: var(--try-out-primary); 
-    color: white; 
-}
-.method-badge[data-method="PUT"] { 
-    background: var(--try-out-warning); 
-    color: #333; 
-}
-.method-badge[data-method="DELETE"] { 
-    background: var(--try-out-danger); 
-    color: white; 
-}
-.method-badge[data-method="PATCH"] { 
-    background: var(--try-out-info); 
-    color: white; 
-}
-
 /* Floating Label Input */
 .floating-label-group {
     position: relative;
@@ -414,22 +384,6 @@
     border-bottom: 1px solid var(--try-out-border);
 }
 
-.search-box {
-    flex: 1;
-    max-width: 250px;
-}
-
-.parameter-search {
-    width: 100%;
-    padding: var(--try-out-spacing-sm) var(--try-out-spacing);
-    border: 1px solid var(--try-out-border);
-    border-radius: var(--try-out-border-radius);
-    background: var(--try-out-bg);
-    color: var(--try-out-text);
-    font-size: var(--try-out-font-base);
-    min-height: 40px;
-}
-
 .add-param-btn {
     padding: var(--try-out-spacing-sm) var(--try-out-spacing-lg);
     background: var(--try-out-primary);
@@ -694,11 +648,6 @@
         gap: var(--try-out-spacing-sm);
     }
 
-    .search-box {
-        max-width: none;
-        order: 2;
-    }
-
     .add-param-btn {
         order: 1;
         align-self: flex-start;
@@ -707,8 +656,7 @@
     /* Ensure inputs are easily tappable */
     .modern-input,
     .name-input,
-    .value-input,
-    .parameter-search {
+    .value-input {
         min-height: 44px;
         padding: var(--try-out-spacing) var(--try-out-spacing-sm);
         font-size: 16px; /* Prevent zoom on iOS */

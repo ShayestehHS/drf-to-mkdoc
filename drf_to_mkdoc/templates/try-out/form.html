@@ -98,12 +98,6 @@
             </div>
             <div class="parameter-container" id="queryParams">
                 <div class="parameter-toolbar">
-                    <div class="search-box">
-                        <input type="text" 
-                               placeholder="Filter parameters..."
-                               class="parameter-search"
-                               onkeyup="filterParameters(this.value)">
-                    </div>
                     <button class="add-param-btn" onclick="TryOutSidebar.addQueryParam()">
                         <span class="icon">+</span> Add Parameter
                     </button>
@@ -156,9 +150,6 @@
                 <div class="header-toolbar">
                     <button class="add-header-btn" onclick="TryOutSidebar.addHeader()">
                         <span class="icon">+</span> Add Header
-                    </button>
-                    <button class="preset-btn" onclick="loadCommonHeaders()">
-                        <span class="icon">📋</span> Common Headers
                     </button>
                 </div>
                 <div class="header-list">

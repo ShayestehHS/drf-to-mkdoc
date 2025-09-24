@@ -55,7 +55,6 @@
     /* Input Fields */
     .modern-input,
     .floating-input,
-    .parameter-search,
     .name-input,
     .value-input,
     textarea {
@@ -65,8 +64,7 @@
     }
 
     .modern-input::placeholder,
-    .floating-input::placeholder,
-    .parameter-search::placeholder {
+    .floating-input::placeholder {
         color: var(--try-out-text-lighter);
     }
 
@@ -140,7 +138,6 @@
     }
 
     /* Search and Filter Elements */
-    .search-box input,
     .filter-input {
         background-color: var(--try-out-surface);
         border-color: var(--try-out-border);
