@@ -3,7 +3,7 @@
 <div class="try-out-form" data-method="{{ method }}">
     <!-- Method Badge and Base URL Section -->
     <div class="request-header">
-        <div class="method-badge" data-method="{{ method|upper }}">{{ method|upper }}</div>
+        <div class="method-badge method-{{ method|lower }}" data-method="{{ method|upper }}">{{ method|upper }}</div>
         <div class="base-url-section">
             <div class="floating-label-group">
                 <input type="text" 
