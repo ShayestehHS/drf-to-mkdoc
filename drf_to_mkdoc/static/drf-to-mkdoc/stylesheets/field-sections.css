@@ -1,0 +1,136 @@
+/* Styles for API parameter sections */
+.api-parameters-section {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.api-parameters-section h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #333;
+    font-size: 1.25rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+}
+
+.api-parameters-section .headerlink {
+    opacity: 0.4;
+    font-size: 0.8em;
+    margin-left: 0.5rem;
+}
+
+.api-parameters-section .headerlink:hover {
+    opacity: 1;
+}
+
+.parameters-description {
+    margin-bottom: 1rem;
+    color: #666;
+    font-style: italic;
+}
+
+.parameters-list ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.parameters-list li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.parameters-list code {
+    background-color: #f0f0f0;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: monospace;
+    border: 1px solid #e0e0e0;
+    font-weight: 500;
+}
+
+/* Try parameter buttons */
+.try-param-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.try-param-btn:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+/* Try all parameters button */
+.try-all-params-btn {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: block;
+    width: 100%;
+}
+
+.try-all-params-btn:hover {
+    background-color: #3a80d2;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .api-parameters-section {
+        background-color: #222;
+        border-color: #444;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .api-parameters-section h3 {
+        color: #eee;
+        border-color: #444;
+    }
+    
+    .parameters-description {
+        color: #aaa;
+    }
+    
+    .parameters-list code {
+        background-color: #333;
+        border-color: #555;
+        color: #eee;
+    }
+    
+    .try-param-btn {
+        background-color: #333;
+        border-color: #555;
+        color: #ccc;
+    }
+    
+    .try-param-btn:hover {
+        background-color: #444;
+        color: #fff;
+    }
+    
+    .try-all-params-btn {
+        background-color: #2a70c2;
+    }
+    
+    .try-all-params-btn:hover {
+        background-color: #1a60b2;
+    }
+}

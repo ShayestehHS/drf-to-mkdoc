@@ -1,0 +1,323 @@
+/* Response Modal Base */
+.response-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--try-out-z-response);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--try-out-spacing-lg);
+    box-sizing: border-box;
+    backdrop-filter: blur(var(--try-out-backdrop-blur));
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Modal Content */
+.response-modal .modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    background-color: var(--try-out-bg);
+    border-radius: var(--try-out-border-radius-xl);
+    box-shadow: var(--try-out-shadow-xl);
+    overflow: hidden;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--try-out-border);
+    animation: modal-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal Header */
+.response-modal .modal-header {
+    background: var(--try-out-gradient-primary);
+    padding: var(--try-out-spacing) var(--try-out-spacing-xl);
+    color: white;
+}
+
+.response-modal .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.response-modal .header-content h3 {
+    margin: 0;
+    font-size: var(--try-out-font-lg);
+    font-weight: 600;
+}
+
+.response-modal .header-actions {
+    display: flex;
+    gap: var(--try-out-spacing-sm);
+}
+
+/* Action Buttons */
+.response-modal .action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--try-out-border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--try-out-transition);
+}
+
+.response-modal .action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Response Stats */
+.response-modal .response-stats {
+    padding: var(--try-out-spacing);
+    background: var(--try-out-surface);
+    border-bottom: 1px solid var(--try-out-border);
+}
+
+.response-modal .stat-group {
+    display: flex;
+    gap: var(--try-out-spacing-lg);
+    margin-bottom: var(--try-out-spacing);
+}
+
+.response-modal .stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--try-out-spacing-sm);
+}
+
+.response-modal .stat-label {
+    color: var(--try-out-text-light);
+    font-size: var(--try-out-font-sm);
+}
+
+.response-modal .stat-value {
+    font-weight: 500;
+    font-family: var(--try-out-font-mono);
+}
+
+/* Status Badges */
+.response-modal .status-badge {
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
+    border-radius: var(--try-out-border-radius);
+    font-size: var(--try-out-font-sm);
+    font-weight: 600;
+    font-family: var(--try-out-font-mono);
+}
+
+.response-modal .status-200 { 
+    background-color: var(--try-out-success);
+    color: white;
+}
+
+.response-modal .status-300 { 
+    background-color: var(--try-out-info);
+    color: white;
+}
+
+.response-modal .status-400 { 
+    background-color: var(--try-out-warning);
+    color: var(--try-out-text);
+}
+
+.response-modal .status-500 { 
+    background-color: var(--try-out-danger);
+    color: white;
+}
+
+/* Response Tabs */
+.response-modal .response-tabs {
+    display: flex;
+    gap: var(--try-out-spacing-xs);
+    padding: var(--try-out-spacing) var(--try-out-spacing) 0;
+    border-bottom: 1px solid var(--try-out-border);
+}
+
+.response-modal .tab {
+    display: flex;
+    align-items: center;
+    gap: var(--try-out-spacing-xs);
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing);
+    border: none;
+    background: transparent;
+    color: var(--try-out-text-light);
+    cursor: pointer;
+    transition: var(--try-out-transition);
+    border-radius: var(--try-out-border-radius) var(--try-out-border-radius) 0 0;
+}
+
+.response-modal .tab.active {
+    background: var(--try-out-surface);
+    color: var(--try-out-primary);
+    border: 1px solid var(--try-out-border);
+    border-bottom: none;
+}
+
+/* Response Toolbar */
+.response-modal .response-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--try-out-spacing);
+    background: var(--try-out-surface);
+    border-bottom: 1px solid var(--try-out-border);
+}
+
+.response-modal .toolbar-group {
+    display: flex;
+    gap: var(--try-out-spacing-sm);
+}
+
+.response-modal .tool-btn {
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
+    border: 1px solid var(--try-out-border);
+    border-radius: var(--try-out-border-radius);
+    background: var(--try-out-bg);
+    color: var(--try-out-text);
+    cursor: pointer;
+    transition: var(--try-out-transition);
+}
+
+.response-modal .tool-btn:hover {
+    background: var(--try-out-surface);
+    border-color: var(--try-out-primary);
+}
+
+.response-modal input {
+    padding: var(--try-out-spacing-xs) var(--try-out-spacing-sm);
+    border: 1px solid var(--try-out-border);
+    border-radius: var(--try-out-border-radius);
+    font-size: var(--try-out-font-sm);
+    width: 200px;
+}
+
+.response-modal .search-count {
+    position: absolute;
+    right: var(--try-out-spacing-sm);
+    color: var(--try-out-text-light);
+    font-size: var(--try-out-font-sm);
+}
+
+/* Response Content */
+.response-modal .response-viewer {
+    padding: var(--try-out-spacing);
+    background: var(--try-out-surface);
+    border-radius: var(--try-out-border-radius);
+    overflow: auto;
+    max-height: 400px;
+}
+
+.response-modal .response-content {
+    font-family: var(--try-out-font-mono);
+    font-size: var(--try-out-font-sm);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    tab-size: 2;
+}
+
+/* Headers List */
+.response-modal .headers-list {
+    padding: var(--try-out-spacing);
+}
+
+.response-modal .header-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--try-out-spacing-sm);
+    border-bottom: 1px solid var(--try-out-border);
+}
+
+.response-modal .header-name {
+    font-weight: 500;
+    color: var(--try-out-text);
+}
+
+.response-modal .header-value {
+    color: var(--try-out-text-light);
+    font-family: var(--try-out-font-mono);
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: var(--try-out-spacing-xl);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--try-out-glass-bg);
+    backdrop-filter: blur(var(--try-out-backdrop-blur));
+    border: 1px solid var(--try-out-glass-border);
+    padding: var(--try-out-spacing-sm) var(--try-out-spacing);
+    border-radius: var(--try-out-border-radius);
+    color: var(--try-out-text);
+    box-shadow: var(--try-out-shadow-lg);
+    z-index: var(--try-out-z-toast);
+    animation: toast-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Search Highlighting */
+.response-modal .search-match {
+    background: var(--try-out-warning);
+    color: var(--try-out-text);
+    border-radius: 2px;
+}
+
+/* Animations */
+@keyframes modal-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes toast-slide-up {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+/* Mobile Responsive Design */
+@media screen and (max-width: 768px) {
+    .response-modal {
+        padding: var(--try-out-spacing-sm);
+    }
+    
+    .response-modal .modal-content {
+        max-height: 95vh;
+    }
+    
+    .response-modal .stat-group {
+        flex-direction: column;
+        gap: var(--try-out-spacing-sm);
+    }
+    
+    .response-modal .response-toolbar {
+        flex-direction: column;
+        gap: var(--try-out-spacing-sm);
+    }
+
+    .response-modal .response-viewer {
+        max-height: 300px;
+    }
+    
+    .response-modal .response-content {
+        font-size: 12px;
+    }
+}

@@ -1,0 +1,139 @@
+:root {
+    /* Theme Transition */
+    --theme-transition: background-color 0.3s ease,
+                       color 0.3s ease,
+                       border-color 0.3s ease,
+                       box-shadow 0.3s ease;
+
+    /* Modern Color System - Light Theme */
+    --try-out-primary: #2563eb;
+    --try-out-primary-rgb: 37, 99, 235;
+    --try-out-primary-hover: #1d4ed8;
+    --try-out-primary-light: #60a5fa;
+    --try-out-success: #10b981;
+    --try-out-success-hover: #059669;
+    --try-out-danger: #ef4444;
+    --try-out-danger-hover: #dc2626;
+    --try-out-warning: #f59e0b;
+    --try-out-info: #3b82f6;
+
+    /* Light Theme Colors */
+    --try-out-bg: #ffffff;
+    --try-out-surface: #f8fafc;
+    --try-out-surface-raised: #ffffff;
+    --try-out-border: #e2e8f0;
+    --try-out-text: #1e293b;
+    --try-out-text-light: #475569;
+    --try-out-text-lighter: #64748b;
+
+    /* Glass Morphism Effects - Light */
+    --try-out-glass-bg: rgba(255, 255, 255, 0.7);
+    --try-out-glass-border: rgba(255, 255, 255, 0.1);
+    --try-out-backdrop-blur: 8px;
+    --try-out-glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                           0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+    /* Elevation Shadows - Light */
+    --try-out-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --try-out-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --try-out-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --try-out-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    /* Gradients - Light */
+    --try-out-gradient-primary: linear-gradient(135deg, var(--try-out-primary), var(--try-out-primary-light));
+    --try-out-gradient-surface: linear-gradient(135deg, var(--try-out-surface), var(--try-out-surface-raised));
+
+    /* Layout and Spacing */
+    --try-out-border-radius-sm: 0.25rem;
+    --try-out-border-radius: 0.375rem;
+    --try-out-border-radius-lg: 0.5rem;
+    --try-out-border-radius-xl: 0.75rem;
+    --try-out-border-radius-2xl: 1rem;
+    
+    /* Fluid Spacing System */
+    --try-out-spacing-3xs: clamp(0.25rem, 0.5vw, 0.35rem);
+    --try-out-spacing-2xs: clamp(0.35rem, 0.75vw, 0.5rem);
+    --try-out-spacing-xs: clamp(0.5rem, 1vw, 0.75rem);
+    --try-out-spacing-sm: clamp(0.75rem, 1.5vw, 1rem);
+    --try-out-spacing: clamp(1rem, 2vw, 1.25rem);
+    --try-out-spacing-lg: clamp(1.25rem, 2.5vw, 1.5rem);
+    --try-out-spacing-xl: clamp(1.5rem, 3vw, 2rem);
+    --try-out-spacing-2xl: clamp(2rem, 4vw, 2.5rem);
+
+    /* Typography */
+    --try-out-font-sm: clamp(0.75rem, 1.5vw, 0.875rem);
+    --try-out-font-base: clamp(0.875rem, 1.75vw, 1rem);
+    --try-out-font-lg: clamp(1rem, 2vw, 1.125rem);
+    --try-out-font-xl: clamp(1.125rem, 2.25vw, 1.25rem);
+    --try-out-line-height: 1.5;
+    --try-out-line-height-tight: 1.25;
+    --try-out-line-height-relaxed: 1.75;
+    --try-out-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Transitions */
+    --try-out-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --try-out-transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --try-out-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Z-index Stack */
+    --try-out-z-negative: -1;
+    --try-out-z-elevate: 1;
+    --try-out-z-sticky: 100;
+    --try-out-z-fab: 200;
+    --try-out-z-drawer: 300;
+    --try-out-z-modal: 400;
+    --try-out-z-popover: 500;
+    --try-out-z-toast: 600;
+}
+
+/* Dark Theme Overrides */
+[data-md-color-scheme="slate"] {
+    /* Dark Theme Colors */
+    --try-out-bg: #0f172a;
+    --try-out-surface: #1e293b;
+    --try-out-surface-raised: #334155;
+    --try-out-border: #334155;
+    --try-out-text: #f8fafc;
+    --try-out-text-light: #cbd5e1;
+    --try-out-text-lighter: #94a3b8;
+
+    /* Dark Theme Accents */
+    --try-out-primary: #60a5fa;
+    --try-out-primary-rgb: 96, 165, 250;
+    --try-out-primary-hover: #3b82f6;
+    --try-out-primary-light: #93c5fd;
+    --try-out-success: #34d399;
+    --try-out-success-hover: #10b981;
+    --try-out-danger: #f87171;
+    --try-out-danger-hover: #ef4444;
+    --try-out-warning: #fbbf24;
+    --try-out-info: #60a5fa;
+
+    /* Dark Theme Glass Morphism */
+    --try-out-glass-bg: rgba(15, 23, 42, 0.7);
+    --try-out-glass-border: rgba(255, 255, 255, 0.05);
+    --try-out-backdrop-blur: 8px;
+    --try-out-glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
+                           0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    
+    /* Dark Theme Shadows */
+    --try-out-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --try-out-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+                        0 2px 4px -1px rgba(0, 0, 0, 0.32);
+    --try-out-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4),
+                        0 4px 6px -2px rgba(0, 0, 0, 0.32);
+    --try-out-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
+                        0 10px 10px -5px rgba(0, 0, 0, 0.32);
+
+    /* Dark Theme Gradients */
+    --try-out-gradient-primary: linear-gradient(135deg, var(--try-out-primary), var(--try-out-primary-light));
+    --try-out-gradient-surface: linear-gradient(135deg, var(--try-out-surface), var(--try-out-surface-raised));
+}
+
+/* Apply transitions to theme-sensitive properties */
+*, *::before, *::after {
+    transition: var(--theme-transition);
+}

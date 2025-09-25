@@ -1,20 +1,149 @@
 <!-- Response Modal -->
-<div id="responseModal" class="response-modal" role="dialog" aria-modal="true" aria-label="API Response">
+<div 
+    id="responseModal" 
+    class="response-modal" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="responseTitle"
+    aria-describedby="responseDescription"
+>
     <div class="modal-overlay" onclick="TryOutSidebar.closeResponseModal()"></div>
     <div class="modal-content">
+        <!-- Modal Header -->
         <div class="modal-header">
-            <h3>API Response</h3>
-            <button class="modal-close" aria-label="Close" onclick="TryOutSidebar.closeResponseModal()">✕</button>
+            <div class="header-content">
+                <h3 id="responseTitle">API Response</h3>
+                <span id="responseDescription" class="visually-hidden">Displays the API response details and content</span>
+                <div class="header-actions">
+                    <button 
+                        class="action-btn" 
+                        onclick="copyResponse()" 
+                        aria-label="Copy response"
+                        data-tooltip="Copy to clipboard"
+                    >
+                        <span class="icon">📋</span>
+                    </button>
+                    <button 
+                        class="action-btn" 
+                        onclick="downloadResponse()" 
+                        aria-label="Download response"
+                        data-tooltip="Download as JSON"
+                    >
+                        <span class="icon">💾</span>
+                    </button>
+                    <button 
+                        class="modal-close" 
+                        aria-label="Close response modal" 
+                        onclick="TryOutSidebar.closeResponseModal()"
+                    >
+                        <span class="icon">✕</span>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-            <div class="response-header">
-                <div class="response-info">
-                    <span>Status:</span>
+
+        <!-- Response Stats -->
+        <div class="response-stats">
+            <div class="stat-group">
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
                     <span class="status-badge" id="modalStatusBadge"></span>
                 </div>
-                <div class="response-info" id="responseInfo"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Time</span>
+                    <span class="stat-value" id="responseTime">0 ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Size</span>
+                    <span class="stat-value" id="responseSize">0 KB</span>
+                </div>
             </div>
-            <div class="response-body" id="modalResponseBody"></div>
+            <div class="response-info" id="responseInfo"></div>
+        </div>
+
+        <!-- Response Content -->
+        <div class="modal-body">
+            <!-- Response Tabs -->
+            <div class="response-tabs" role="tablist">
+                <button 
+                    class="tab active" 
+                    role="tab" 
+                    aria-selected="true"
+                    aria-controls="responseBody"
+                    data-tab="body"
+                >
+                    <span class="icon">📄</span>
+                    Response
+                </button>
+                <button 
+                    class="tab" 
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="responseHeaders"
+                    data-tab="headers"
+                >
+                    <span class="icon">📋</span>
+                    Headers
+                </button>
+            </div>
+
+            <!-- Response Body Tab -->
+            <div 
+                id="responseBody" 
+                class="tab-content active" 
+                role="tabpanel"
+            >
+                <div class="response-toolbar">
+                    <div class="toolbar-group">
+                        <button 
+                            class="tool-btn" 
+                            onclick="formatResponse()"
+                            data-tooltip="Format JSON"
+                        >
+                            <span class="icon">🔧</span>
+                        </button>
+                        <button 
+                            class="tool-btn" 
+                            onclick="collapseAll()"
+                            data-tooltip="Collapse all"
+                        >
+                            <span class="icon">📦</span>
+                        </button>
+                        <button 
+                            class="tool-btn" 
+                            onclick="expandAll()"
+                            data-tooltip="Expand all"
+                        >
+                            <span class="icon">📂</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="response-viewer" role="region" aria-live="polite">
+                    <div class="response-content" id="modalResponseBody" tabindex="0"></div>
+                </div>
+            </div>
+
+            <!-- Response Headers Tab -->
+            <div 
+                id="responseHeaders" 
+                class="tab-content" 
+                role="tabpanel"
+            >
+                <div class="headers-list" id="responseHeadersList"></div>
+            </div>
+
         </div>
     </div>
 </div>
+
+<script>
+    // Update event handlers to use the ResponseModalManager
+    document.addEventListener('DOMContentLoaded', function() {
+        // Update button click handlers
+        document.querySelector('button[onclick="copyResponse()"]').setAttribute('onclick', 'ResponseModalManager.copyResponse()');
+        document.querySelector('button[onclick="downloadResponse()"]').setAttribute('onclick', 'ResponseModalManager.downloadResponse()');
+        document.querySelector('button[onclick="formatResponse()"]').setAttribute('onclick', 'ResponseModalManager.formatResponse()');
+        document.querySelector('button[onclick="collapseAll()"]').setAttribute('onclick', 'ResponseModalManager.collapseAll()');
+        document.querySelector('button[onclick="expandAll()"]').setAttribute('onclick', 'ResponseModalManager.expandAll()');
+    });
+</script>

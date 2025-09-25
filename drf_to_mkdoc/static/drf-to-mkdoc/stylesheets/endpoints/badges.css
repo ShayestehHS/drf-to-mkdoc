@@ -1,16 +1,22 @@
 /* ===== METHOD BADGES ===== */
 .method-badge {
     position: relative;
-    padding: 6px 12px;
+    display: inline-block;
+    padding: 4px 8px;
     font-size: 12px;
     font-weight: bold;
-    border-radius: 20px;
+    border-radius: 16px;
     color: white;
     text-transform: uppercase;
     overflow: hidden;
-    min-width: 60px;
+    min-width: 50px;
     text-align: center;
     flex-shrink: 0;
+    z-index: 0;
+    vertical-align: middle;
+    line-height: 1.2;
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 
 .method-badge::before {
@@ -20,8 +26,10 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s ease;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s ease;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .method-badge:hover::before {

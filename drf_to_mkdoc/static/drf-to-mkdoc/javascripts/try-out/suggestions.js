@@ -2,22 +2,30 @@
 const TryOutSuggestions = {
     init: function() {
         this.suggestions = this.getAvailableSuggestions();
-        this.setupAutocomplete();
+        this.updateDatalist();
+        
+        // Re-initialize when window.queryParametersData changes
+        if (window.MutationObserver) {
+            this.setupDataObserver();
+        }
+    },
+    
+    setupDataObserver: function() {
+        // Check for changes in queryParametersData every second
+        setInterval(() => {
+            if (window.queryParametersData && window.queryParametersData._lastUpdate !== this._lastDataUpdate) {
+                this._lastDataUpdate = window.queryParametersData._lastUpdate;
+                this.suggestions = this.getAvailableSuggestions();
+                this.updateDatalist();
+            }
+        }, 1000);
     },
 
     setupAutocomplete: function() {
-        // Setup event listeners for all query parameter inputs
-        document.addEventListener('click', (e) => {
-            // Hide all suggestion dropdowns when clicking outside
-            if (!e.target.matches('#queryParams input')) {
-                this.hideAllSuggestions();
-            }
-        });
-
-        // Initial setup for existing inputs
+        // Using native datalist, just make sure all inputs are properly initialized
         this.setupExistingInputs();
-
-        // Setup for the add button to attach listeners to new inputs
+        
+        // Setup for the add button to mark new inputs as initialized
         const addBtn = document.querySelector('.add-btn');
         if (addBtn) {
             addBtn.addEventListener('click', () => {
@@ -28,10 +36,27 @@ const TryOutSuggestions = {
             });
         }
     },
+    
+    updateDatalist: function() {
+        // Update the datalist with our suggestions
+        const datalist = document.getElementById('paramSuggestions');
+        if (datalist && this.suggestions.length > 0) {
+            // Clear existing options
+            datalist.innerHTML = '';
+            
+            // Add new options from our suggestions - without descriptions
+            this.suggestions.forEach(suggestion => {
+                const option = document.createElement('option');
+                option.value = suggestion.name;
+                // No description text as per requirement
+                datalist.appendChild(option);
+            });
+        }
+    },
 
     setupExistingInputs: function() {
         // Find all parameter name inputs
-        const paramInputs = document.querySelectorAll('#queryParams .kv-item input:first-child');
+        const paramInputs = document.querySelectorAll('#queryParams .name-input');
         paramInputs.forEach(input => {
             // Skip if already initialized
             if (input.dataset.autocompleteInitialized) return;
@@ -39,114 +64,52 @@ const TryOutSuggestions = {
             // Mark as initialized
             input.dataset.autocompleteInitialized = 'true';
             
-            // Create suggestions container for this input
-            const suggestionsContainer = document.createElement('div');
-            suggestionsContainer.className = 'param-suggestions';
-            suggestionsContainer.id = 'suggestions-' + Math.random().toString(36).substr(2, 9);
-            input.parentNode.style.position = 'relative';
-            input.parentNode.appendChild(suggestionsContainer);
-            
-            // Store reference to container
-            input.dataset.suggestionsContainer = suggestionsContainer.id;
-            
-            // Add event listeners
-            input.addEventListener('focus', () => this.showSuggestions(input));
-            input.addEventListener('input', () => this.filterSuggestions(input));
-            input.addEventListener('keydown', (e) => this.handleKeyNavigation(e, input));
+            // We're using the native datalist for autocomplete
+            // No need for custom suggestions dropdown
         });
     },
 
     getAvailableSuggestions: function() {
+        // Get query parameters only from window.queryParametersData
         const suggestions = [];
         
-        // Try to get query parameters from the page context
         if (window.queryParametersData) {
             const data = window.queryParametersData;
             
             // Add filter fields
             if (data.filter_fields && data.filter_fields.length > 0) {
-                suggestions.push(...data.filter_fields);
+                suggestions.push(...data.filter_fields.map(field => ({
+                    name: field
+                })));
             }
             
-            // Add search if available
-            if (data.search_fields && data.search_fields.length > 0) {
-                suggestions.push('search');
+            // Add search fields - only add the 'search' key, not individual fields
+            // The 'search' key will be added via special_keys
+            
+            // Add ordering fields - only add the 'ordering' key, not individual fields
+            // The 'ordering' key will be added via special_keys
+            
+            // Add special keys
+            if (data.special_keys && data.special_keys.length > 0) {
+                suggestions.push(...data.special_keys.map(key => ({
+                    name: key
+                })));
             }
             
-            // Add ordering if available
-            if (data.ordering_fields && data.ordering_fields.length > 0) {
-                suggestions.push('ordering');
-            }
-            
-            // Add pagination
+            // Add pagination fields
             if (data.pagination_fields && data.pagination_fields.length > 0) {
-                suggestions.push(...data.pagination_fields);
+                suggestions.push(...data.pagination_fields.map(field => ({
+                    name: field
+                })));
             }
         }
         
-        // Default common parameters
-        if (suggestions.length === 0) {
-            suggestions.push('search', 'ordering', 'page', 'page_size');
-        }
-        
-        // Remove duplicates and return
-        return [...new Set(suggestions)];
-    },
-
-    showSuggestions: function(input) {
-        const container = document.getElementById(input.dataset.suggestionsContainer);
-        if (!container) return;
-        
-        // Clear existing suggestions
-        container.innerHTML = '';
-        
-        // Filter suggestions based on input value
-        const inputValue = input.value.toLowerCase();
-        const filteredSuggestions = this.suggestions.filter(suggestion => 
-            suggestion.toLowerCase().includes(inputValue)
-        );
-        
-        if (filteredSuggestions.length === 0) {
-            container.classList.remove('show');
-            return;
-        }
-        
-        // Add suggestions to container
-        filteredSuggestions.forEach(suggestion => {
-            const suggestionElement = document.createElement('div');
-            suggestionElement.className = 'param-suggestion';
-            suggestionElement.textContent = suggestion;
-            suggestionElement.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.selectSuggestion(input, suggestion);
-            });
-            container.appendChild(suggestionElement);
-        });
-        
-        // Show suggestions
-        container.classList.add('show');
-    },
-    
-    filterSuggestions: function(input) {
-        // Just re-show suggestions with current filter
-        this.showSuggestions(input);
-    },
-    
-    hideAllSuggestions: function() {
-        document.querySelectorAll('.param-suggestions').forEach(container => {
-            container.classList.remove('show');
-        });
+        return suggestions;
     },
     
     selectSuggestion: function(input, suggestion) {
         // Set input value
         input.value = suggestion;
-        
-        // Hide suggestions
-        const container = document.getElementById(input.dataset.suggestionsContainer);
-        if (container) {
-            container.classList.remove('show');
-        }
         
         // Focus on value input
         const valueInput = input.nextElementSibling;
@@ -154,62 +117,6 @@ const TryOutSuggestions = {
             valueInput.focus();
         }
     },
-    
-    handleKeyNavigation: function(event, input) {
-        const container = document.getElementById(input.dataset.suggestionsContainer);
-        if (!container || !container.classList.contains('show')) return;
-        
-        const suggestions = container.querySelectorAll('.param-suggestion');
-        if (suggestions.length === 0) return;
-        
-        // Find currently selected suggestion
-        const selectedIndex = Array.from(suggestions).findIndex(el => el.classList.contains('selected'));
-        
-        switch (event.key) {
-            case 'ArrowDown':
-                event.preventDefault();
-                this.navigateSuggestion(suggestions, selectedIndex, 1);
-                break;
-                
-            case 'ArrowUp':
-                event.preventDefault();
-                this.navigateSuggestion(suggestions, selectedIndex, -1);
-                break;
-                
-            case 'Enter':
-                event.preventDefault();
-                if (selectedIndex >= 0) {
-                    this.selectSuggestion(input, suggestions[selectedIndex].textContent);
-                } else if (suggestions.length > 0) {
-                    this.selectSuggestion(input, suggestions[0].textContent);
-                }
-                break;
-                
-            case 'Escape':
-                event.preventDefault();
-                container.classList.remove('show');
-                break;
-        }
-    },
-    
-    navigateSuggestion: function(suggestions, currentIndex, direction) {
-        // Remove current selection
-        if (currentIndex >= 0) {
-            suggestions[currentIndex].classList.remove('selected');
-        }
-        
-        // Calculate new index
-        let newIndex;
-        if (currentIndex < 0) {
-            newIndex = direction > 0 ? 0 : suggestions.length - 1;
-        } else {
-            newIndex = (currentIndex + direction + suggestions.length) % suggestions.length;
-        }
-        
-        // Select new suggestion
-        suggestions[newIndex].classList.add('selected');
-        suggestions[newIndex].scrollIntoView({ block: 'nearest' });
-    }
 };
 
 // Export for global access
