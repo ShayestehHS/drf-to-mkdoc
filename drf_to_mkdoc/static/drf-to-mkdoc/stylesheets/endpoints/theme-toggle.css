@@ -186,6 +186,12 @@
         border-color: var(--try-out-border);
     }
 
+    /* Header toolbar */
+    .header-toolbar {
+        background-color: var(--try-out-surface-raised);
+        border-color: var(--try-out-border);
+    }
+
     /* Headers list */
     .header-item {
         border-color: var(--try-out-border);
