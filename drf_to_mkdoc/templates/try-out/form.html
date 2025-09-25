@@ -126,13 +126,21 @@
                 <!-- Parameter Suggestions -->
                 <datalist id="paramSuggestions">
                     {% for field in query_parameters.filter_fields %}
-                    <option value="{{ field }}">Filter</option>
+                    <option value="{{ field }}"></option>
                     {% endfor %}
-                    {% for field in query_parameters.search_fields %}
-                    <option value="{{ field }}">Search</option>
-                    {% endfor %}
-                    {% for field in query_parameters.ordering_fields %}
-                    <option value="{{ field }}">Order</option>
+                    
+                    {% if query_parameters.search_fields %}
+
+                    <option value="search"></option>
+                    {% endif %}
+                    
+                    {% if query_parameters.ordering_fields %}
+
+                    <option value="ordering"></option>
+                    {% endif %}
+                    
+                    {% for field in query_parameters.pagination_fields %}
+                    <option value="{{ field }}"></option>
                     {% endfor %}
                 </datalist>
             </div>

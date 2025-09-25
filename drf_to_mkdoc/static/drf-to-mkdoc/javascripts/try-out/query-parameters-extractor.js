@@ -2,8 +2,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const QueryParametersExtractor = {
         init: function() {
-            // Extract parameters from the query-parameters-data script tag
-            const parameters = this.extractParameters();
+            // Extract parameters directly from HTML content
+            const parameters = this.extractParametersFromHTML();
             
             // Make parameters available for suggestions
             if (parameters) {
@@ -16,24 +16,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        extractParameters: function() {
-            // Try to get parameters from the script tag
-            const dataScript = document.getElementById('query-parameters-data');
-            if (!dataScript) {
-                return null;
+        extractParametersFromHTML: function() {
+            const data = {
+                filter_fields: [],
+                search_fields: [],
+                ordering_fields: [],
+                pagination_fields: [],
+                special_keys: []
+            };
+            
+            // Extract filter fields
+            this.extractFieldsFromSection('filter-fields', data.filter_fields);
+            
+            // Extract search fields
+            this.extractFieldsFromSection('search-fields', data.search_fields);
+            
+            // Extract ordering fields
+            this.extractFieldsFromSection('ordering-fields', data.ordering_fields);
+            
+            // Extract pagination fields
+            this.extractFieldsFromSection('pagination-fields', data.pagination_fields);
+            
+            // Add special keys
+            this.addSpecialKeys(data);
+            
+            return data;
+        },
+        
+        extractFieldsFromSection: function(sectionId, targetArray) {
+            const heading = document.querySelector(`h3#${sectionId}`);
+            if (!heading) return;
+            
+            // Find the next UL element after the heading
+            let currentElement = heading.nextElementSibling;
+            while (currentElement && currentElement.tagName !== 'UL') {
+                currentElement = currentElement.nextElementSibling;
             }
             
-            try {
-                const data = JSON.parse(dataScript.textContent);
-                
-                // Add special keys
-                this.addSpecialKeys(data);
-                
-                return data;
-            } catch (e) {
-                console.error('Failed to parse query parameters data:', e);
-                return null;
-            }
+            if (!currentElement || currentElement.tagName !== 'UL') return;
+            
+            // Extract field names from code elements
+            const codeElements = currentElement.querySelectorAll('code');
+            codeElements.forEach(code => {
+                const fieldName = code.textContent.trim();
+                if (fieldName && !targetArray.includes(fieldName)) {
+                    targetArray.push(fieldName);
+                }
+            });
         },
         
         addSpecialKeys: function(data) {
@@ -43,9 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data) {
                 // Special keys for search fields
                 if (data.search_fields && data.search_fields.length > 0) {
-                    if (!data.special_keys) {
-                        data.special_keys = [];
-                    }
                     if (!data.special_keys.includes('search')) {
                         data.special_keys.push('search');
                     }
@@ -53,9 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Special keys for ordering fields
                 if (data.ordering_fields && data.ordering_fields.length > 0) {
-                    if (!data.special_keys) {
-                        data.special_keys = [];
-                    }
                     if (!data.special_keys.includes('ordering')) {
                         data.special_keys.push('ordering');
                     }
