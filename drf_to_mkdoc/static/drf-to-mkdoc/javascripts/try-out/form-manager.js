@@ -129,17 +129,26 @@ const FormManager = {
             timeout = setTimeout(later, wait);
         };
     },
-    addQueryParam: function() {
+    addQueryParam: function(paramName) {
         const container = document.querySelector('#queryParams .parameter-list');
         if (!container) return;
 
         const paramItem = this.createParameterItem();
         container.appendChild(paramItem);
         
-        // Focus on the first input
-        const firstInput = paramItem.querySelector('.name-input');
-        if (firstInput) {
-            firstInput.focus();
+        // If a parameter name was provided, set it
+        const nameInput = paramItem.querySelector('.name-input');
+        if (nameInput && paramName) {
+            nameInput.value = paramName;
+            
+            // Focus on the value input instead
+            const valueInput = paramItem.querySelector('.value-input');
+            if (valueInput) {
+                valueInput.focus();
+            }
+        } else if (nameInput) {
+            // Otherwise focus on the name input
+            nameInput.focus();
         }
 
         // Setup suggestions for new input if available
@@ -148,6 +157,8 @@ const FormManager = {
                 window.TryOutSuggestions.setupExistingInputs();
             }, 10);
         }
+        
+        return paramItem;
     },
 
     createParameterItem: function() {

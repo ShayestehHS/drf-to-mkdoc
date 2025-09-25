@@ -243,31 +243,6 @@
         border-color: var(--try-out-border);
     }
 
-    /* Suggestions dropdown */
-    .suggestions-dropdown {
-        background-color: var(--try-out-surface);
-        border-color: var(--try-out-border);
-        box-shadow: var(--try-out-shadow-lg);
-    }
-
-    .suggestion-item {
-        border-color: var(--try-out-border);
-    }
-
-    .suggestion-item:hover,
-    .suggestion-item.highlighted {
-        background-color: var(--try-out-primary-light);
-        color: var(--try-out-primary);
-    }
-
-    .suggestion-name {
-        color: var(--try-out-text);
-    }
-
-    .suggestion-description {
-        color: var(--try-out-text-light);
-    }
-
     /* Format/validate buttons */
     .format-btn,
     .validate-btn {

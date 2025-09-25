@@ -440,54 +440,7 @@
     box-shadow: 0 0 0 2px var(--try-out-primary-light);
 }
 
-/* Parameter Suggestions Dropdown */
-.suggestions-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--try-out-bg);
-    border: 1px solid var(--try-out-border);
-    border-top: none;
-    border-radius: 0 0 var(--try-out-border-radius) var(--try-out-border-radius);
-    box-shadow: var(--try-out-shadow-lg);
-    z-index: 100;
-    max-height: 200px;
-    overflow-y: auto;
-    display: none;
-}
-
-.suggestions-dropdown.show {
-    display: block;
-}
-
-.suggestion-item {
-    padding: var(--try-out-spacing-sm);
-    cursor: pointer;
-    border-bottom: 1px solid var(--try-out-border);
-    transition: var(--try-out-transition);
-}
-
-.suggestion-item:last-child {
-    border-bottom: none;
-}
-
-.suggestion-item:hover,
-.suggestion-item.highlighted {
-    background: var(--try-out-primary-light);
-    color: var(--try-out-primary);
-}
-
-.suggestion-name {
-    font-weight: 500;
-    color: var(--try-out-text);
-}
-
-.suggestion-description {
-    font-size: var(--try-out-font-sm);
-    color: var(--try-out-text-light);
-    margin-top: 2px;
-}
+/* Parameter Suggestions */
 
 .remove-btn {
     padding: var(--try-out-spacing-xs);

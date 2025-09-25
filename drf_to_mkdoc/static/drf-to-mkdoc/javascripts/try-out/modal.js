@@ -343,5 +343,17 @@ window.ModalManager = ModalManager;
 window.TryOutSidebar = {
     closeResponseModal: function() {
         ModalManager.closeResponseModal();
+    },
+    
+    addQueryParam: function(paramName) {
+        if (window.FormManager && window.FormManager.addQueryParam) {
+            return window.FormManager.addQueryParam(paramName);
+        }
+    },
+    
+    removeKvItem: function(button) {
+        if (window.FormManager && window.FormManager.removeKvItem) {
+            return window.FormManager.removeKvItem(button);
+        }
     }
 };
