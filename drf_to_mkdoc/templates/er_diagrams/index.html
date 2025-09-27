@@ -10,5 +10,5 @@ View the complete ER diagram showing all models and their relationships.
 
 | Application | Models 
 |------------|--------|
-{% for app in apps %}| [{{ app.name|title|cut:"_"|safe }}]({{ app.name }}.md) | {{ app.model_count }} |
+{% for app in apps %}| [{{ app.name|title|cut:"_" }}]({{ app.name }}.md) | {{ app.model_count }} |
 {% endfor %}
