@@ -1,0 +1,22 @@
+# Complete Entity-Relationship Diagram
+
+```mermaid
+erDiagram
+{% for entity in entities %}
+    {{ entity.model_name }} {
+{% for field in entity.fields %}
+        {{ field.name }} {{ field.type }}{% if field.is_pk %} "PK"{% elif field.nullable %} "NULLABLE"{% endif %}
+{% endfor %}
+    }
+{% endfor %}
+{% for relationship in relationships %}
+    {{ relationship.source_model }} {{ relationship.type }} {{ relationship.target_model }} : "{{ relationship.description }}"
+{% endfor %}
+
+```
+
+<div class="er-diagram-controls">
+  <button class="zoom-in">Zoom In</button>
+  <button class="zoom-out">Zoom Out</button>
+  <button class="reset-zoom">Reset</button>
+</div>
