@@ -22,6 +22,7 @@ class DRFToMkDocSettings:
 
     path_settings = {
         "CONFIG_DIR",
+        "ER_DIAGRAMS_DIR",
         "MODEL_DOCS_FILE",
         "DOC_CONFIG_FILE",
         "CUSTOM_SCHEMA_FILE",

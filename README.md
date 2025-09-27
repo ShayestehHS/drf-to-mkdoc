@@ -6,6 +6,7 @@ Generate beautiful, interactive Markdown API documentation from Django REST Fram
 
 - **Zero-hassle docs**: Beautiful, always-in-sync API docs straight from your codebase
 - **Model deep dive**: Auto-generated model pages with fields, relationships, and choices
+- **ER Diagrams**: Entity-Relationship diagrams showing model relationships
 - **Lightning-fast discovery**: Interactive endpoint index with powerful filters and search
 - **Try-it-out**: Interactive API testing directly in the documentation with request/response examples
 - **AI-powered**: Optional AI-generated documentation with custom field generators(Wait for it...)
@@ -47,8 +48,9 @@ DRF_TO_MKDOC = {
         'inventory',
     ],
     # Optional: Override default paths
-    # 'DOCS_DIR': 'docs',
+    # 'DOCS_DIR': 'docs',  # Base directory for all generated docs
     # 'CONFIG_DIR': 'docs/configs',
+    # 'ER_DIAGRAMS_DIR': 'er_diagrams',  # Directory for ER diagrams (relative to DOCS_DIR)
     # 'MODEL_DOCS_FILE': 'docs/model-docs.json',
     # 'DOC_CONFIG_FILE': 'docs/configs/doc_config.json',
     # 'CUSTOM_SCHEMA_FILE': 'docs/configs/custom_schema.json',
@@ -63,6 +65,8 @@ DRF_TO_MKDOC = {
 
 2. **Create MkDocs configuration**:  
    Copy the [`docs/mkdocs.yml`](docs/mkdocs.yml) file to your project root and customize it as needed.
+   
+   **Note**: If you change the `ER_DIAGRAMS_DIR` setting, update the navigation path in `mkdocs.yml` accordingly.
 
 3. **Build documentation**:
 
@@ -75,8 +79,9 @@ python manage.py build_docs --settings=docs_settings
 The `DRF_TO_MKDOC` setting supports several configuration options:
 
 - **`DJANGO_APPS`** (required): List of Django app names to process
-- **`DOCS_DIR`**: Directory where docs will be generated (default: `docs`)
+- **`DOCS_DIR`**: Base directory where docs will be generated (default: `docs`)
 - **`CONFIG_DIR`**: Directory for configuration files (default: `docs/configs`)
+- **`ER_DIAGRAMS_DIR`**: Directory for ER diagrams (default: `er_diagrams`, relative to `DOCS_DIR`)
 - **`FIELD_GENERATORS`**: Custom field value generators for better examples
 - **`ENABLE_AI_DOCS`**: Enable AI-powered documentation features (default: `False`)
 - **`PATH_PARAM_SUBSTITUTE_FUNCTION`**: Custom function for path parameter substitution
@@ -103,6 +108,12 @@ See a detailed overview of generated files in `docs/structure.md` and a feature 
 - **Response viewer**: Real-time response display with syntax highlighting
 - **Floating action button**: Easy access to testing interface
 - **Multiple examples**: Support for both empty and populated response examples
+
+### 📊 Entity-Relationship Diagrams
+- **Visual model relationships**: Interactive ER diagrams showing all model connections
+- **App-specific views**: Detailed diagrams for each Django app with field information
+- **Mermaid-powered**: Clean, professional diagrams with zoom and navigation controls
+- **Auto-generated**: Automatically created from your Django model relationships
 
 ### 🤖 AI-Powered Documentation
 - **Custom field generators**: Define custom value generators for specific fields
@@ -184,6 +195,10 @@ drf-to-mkdoc/
 │       ├── model_list_generator.py
 │       └── schema.py
 ├── docs/                      # Generated documentation
+│   ├── endpoints/             # API endpoint documentation
+│   ├── models/                # Model documentation
+│   ├── er_diagrams/           # Entity-Relationship diagrams
+│   └── configs/               # Configuration files
 ├── pyproject.toml            # Project configuration
 └── README.md
 ```
@@ -202,6 +217,7 @@ To avoid committing generated files to your repository, add the following to you
 # Documentation
 /docs/endpoints/
 /docs/models/
+/docs/er_diagrams/
 /docs/configs/doc-schema.yaml
 
 # Build artifacts
@@ -238,6 +254,10 @@ your-project/
 ├── docs_settings.py     # Documentation-specific settings
 ├── mkdocs.yml          # MkDocs configuration
 ├── docs/               # Generated documentation (gitignored)
+│   ├── endpoints/      # API endpoint docs
+│   ├── models/         # Model documentation
+│   ├── er_diagrams/    # ER diagrams
+│   └── configs/        # Configuration files
 └── site/               # Built site (gitignored)
 ```
 

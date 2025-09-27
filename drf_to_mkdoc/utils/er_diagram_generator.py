@@ -3,30 +3,135 @@ from typing import Any
 
 from django.template.loader import render_to_string
 
+from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+
+from .commons.file_utils import write_file
+
+
+def _get_relationship_type_and_description(rel_type_class: str) -> tuple[str, str] | None:
+    """Map Django relationship type to Mermaid ER diagram syntax and description."""
+    mapping = {
+        "ForeignKey": ("}o--||", "many to 1"),
+        "OneToOneField": ("||--||", "1 to 1"),
+        "OneToOneRel": ("||--||", "1 to 1"),
+        "ManyToManyField": ("}o--o{", "many to many"),
+        "ManyToManyRel": ("}o--o{", "many to many"),
+        "ManyToOneRel": ("||--o{", "1 to many"),
+    }
+    return mapping.get(rel_type_class)
+
+
+def _create_entity_from_model(
+    app_name: str, model_name: str, model_info: dict[str, Any], include_fields: bool = False
+) -> dict[str, Any]:
+    """Create entity dictionary from model data, optionally including field details."""
+    table_name = model_info.get("table_name", model_name)
+    entity_id = f"{app_name}__{table_name}"
+
+    entity = {
+        "id": entity_id,
+        "app_name": app_name,
+        "model_name": model_name,
+        "table_name": table_name,
+        "fields": [],
+    }
+
+    if include_fields:
+        fields = []
+        has_pk = False
+
+        for field_name, field_info in model_info.get("column_fields", {}).items():
+            field_type = field_info.get("type", "")
+            is_pk = field_info.get("primary_key", False)
+            nullable = field_info.get("null", False) or field_info.get("blank", False)
+
+            fields.append({
+                "name": field_name,
+                "type": field_type,
+                "is_pk": is_pk,
+                "nullable": nullable
+            })
+
+            if is_pk:
+                has_pk = True
+
+        if not has_pk:
+            fields.insert(0, {
+                "name": "id",
+                "type": "AutoField",
+                "is_pk": True,
+                "nullable": False
+            })
+
+        entity["fields"] = fields
+
+    return entity
+
+
+def _process_model_relationships(
+    source_entity_id: str,
+    source_model_name: str,
+    model_info: dict[str, Any],
+    all_models_data: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Extract and process model relationships, returning Mermaid-compatible relationship data."""
+    relationships = []
+
+    for rel_name, rel_info in model_info.get("relationships", {}).items():
+        if not isinstance(rel_info, dict):
+            continue
+
+        related_model_label = rel_info.get("related_model", "")
+        if not related_model_label or "." not in related_model_label:
+            continue
+
+        target_app, target_model = related_model_label.split(".", 1)
+
+        target_table_name = rel_info.get("table_name", target_model.lower())
+        if target_app in all_models_data and target_model in all_models_data[target_app]:
+            target_table_name = all_models_data[target_app][target_model].get(
+                "table_name", target_model.lower()
+            )
+
+        target_entity_id = f"{target_app}__{target_table_name}"
+
+        rel_type_class = rel_info.get("type", "")
+        type_info = _get_relationship_type_and_description(rel_type_class)
+        if not type_info:
+            continue
+
+        rel_type, description = type_info
+
+        relationships.append({
+            "source": source_entity_id,
+            "target": target_entity_id,
+            "source_model": source_model_name,
+            "target_model": target_model,
+            "type": rel_type,
+            "label": rel_name,
+            "description": description,
+        })
+
+    return relationships
+
 
 def generate_er_diagrams(models_data: dict[str, Any], docs_dir: Path) -> None:
-    # Create directory for ER diagrams
-    er_dir = docs_dir / "er_diagrams"
-    er_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate the main ER diagram with all models
+    """Generate main ER diagram, app-specific diagrams, and index page from model data."""
     generate_main_er_diagram(models_data, docs_dir)
 
-    # Generate ER diagrams for each app
     for app_name, models in models_data.items():
         if not isinstance(models, dict):
             continue
         generate_app_er_diagram(app_name, models, models_data, docs_dir)
 
-    # Generate the ER diagrams index page
     generate_er_diagrams_index(models_data, docs_dir)
 
 
-def generate_main_er_diagram(models_data: dict[str, Any], docs_dir: Path) -> None:
+def generate_main_er_diagram(models_data: dict[str, Any], _docs_dir: Path) -> None:
+    """Create main ER diagram showing all models and their relationships."""
     entities = []
     relationships = []
 
-    # Process all models to extract entities and relationships
     for app_name, models in models_data.items():
         if not isinstance(models, dict):
             continue
@@ -35,198 +140,57 @@ def generate_main_er_diagram(models_data: dict[str, Any], docs_dir: Path) -> Non
             if not isinstance(model_info, dict):
                 continue
 
-            table_name = model_info["table_name"]
-            entity_id = f"{app_name}__{table_name}"
+            entity = _create_entity_from_model(app_name, model_name, model_info, include_fields=False)
+            entities.append(entity)
 
-            entities.append(
-                {
-                    "id": entity_id,
-                    "app_name": app_name,
-                    "model_name": model_name,
-                    "table_name": table_name,
-                    "fields": [],  # No fields for main diagram - just show model boxes
-                }
+            model_relationships = _process_model_relationships(
+                entity["id"], model_name, model_info, models_data
             )
+            relationships.extend(model_relationships)
 
-            # Process relationships directly from the relationships field
-            source_table = entity_id
-            for rel_name, rel_info in model_info.get("relationships", {}).items():
-                if not isinstance(rel_info, dict):
-                    continue
-
-                related_model_label = rel_info.get("related_model", "")
-                if not related_model_label or "." not in related_model_label:
-                    continue
-
-                # Parse app_label.ModelName format
-                target_app, target_model = related_model_label.split(".", 1)
-
-                # Find target table name
-                target_table_name = rel_info.get("table_name", target_model.lower())
-                if target_app in models_data and target_model in models_data[target_app]:
-                    target_table_name = models_data[target_app][target_model].get(
-                        "table_name", target_model.lower()
-                    )
-
-                target_table = f"{target_app}__{target_table_name}"
-
-                # Determine relationship type and description
-                rel_type_class = rel_info.get("type", "")
-                if rel_type_class == "ForeignKey":
-                    rel_type = "}o--||"
-                    description = "many to 1"
-                elif rel_type_class == "OneToOneField" or rel_type_class == "OneToOneRel":
-                    rel_type = "||--||"
-                    description = "1 to 1"
-                elif rel_type_class == "ManyToManyField" or rel_type_class == "ManyToManyRel":
-                    rel_type = "}o--o{"
-                    description = "many to many"
-                elif rel_type_class == "ManyToOneRel":
-                    rel_type = "||--o{"
-                    description = "1 to many"
-                else:
-                    continue  # Skip unknown relationship types
-
-                # Add relationship
-                relationships.append(
-                    {
-                        "source": source_table,
-                        "target": target_table,
-                        "source_model": model_name,
-                        "target_model": target_model,
-                        "type": rel_type,
-                        "label": rel_name,
-                        "description": description,
-                    }
-                )
-
-    # Render the template with the collected data
     content = render_to_string(
         "er_diagrams/main.html", {"entities": entities, "relationships": relationships}
     )
 
-    # Write the main ER diagram file
-    er_main_path = docs_dir / "er_diagrams" / "main.md"
-    er_main_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with er_main_path.open("w", encoding="utf-8") as f:
-        f.write(content)
+    write_file(f"{drf_to_mkdoc_settings.ER_DIAGRAMS_DIR}/main.md", content)
 
 
 def generate_app_er_diagram(
-    app_name: str, app_models: dict[str, Any], all_models_data: dict[str, Any], docs_dir: Path
+    app_name: str, app_models: dict[str, Any], all_models_data: dict[str, Any], _docs_dir: Path
 ) -> None:
+    """Create app-specific ER diagram with detailed fields and related models."""
     app_entities = []
     related_entities = []
     relationships = []
     related_entity_ids = set()
 
-    # First pass: Create entities for this app and collect related entities
     for model_name, model_info in app_models.items():
         if not isinstance(model_info, dict):
             continue
 
-        table_name = model_info.get("table_name", model_name)
-        entity_id = f"{app_name}__{table_name}"
+        entity = _create_entity_from_model(app_name, model_name, model_info, include_fields=True)
+        app_entities.append(entity)
 
-        # Extract fields for this entity
-        fields = []
-        has_pk = False
-
-        # Add all fields
-        for field_name, field_info in model_info.get("column_fields", {}).items():
-            field_type = field_info.get("type", "")
-            is_pk = field_info.get("primary_key", False)
-            nullable = field_info.get("null", False) or field_info.get("blank", False)
-
-            fields.append(
-                {"name": field_name, "type": field_type, "is_pk": is_pk, "nullable": nullable}
-            )
-
-            if is_pk:
-                has_pk = True
-
-        # If no PK found, add a default id field
-        if not has_pk:
-            fields.insert(
-                0, {"name": "id", "type": "AutoField", "is_pk": True, "nullable": False}
-            )
-
-        # Add entity to the list
-        app_entities.append(
-            {
-                "id": entity_id,
-                "app_name": app_name,
-                "model_name": model_name,
-                "table_name": table_name,
-                "fields": fields,
-            }
+        model_relationships = _process_model_relationships(
+            entity["id"], model_name, model_info, all_models_data
         )
 
-        # Process relationships to find related entities
-        for rel_name, rel_info in model_info.get("relationships", {}).items():
-            if not isinstance(rel_info, dict):
-                continue
+        for relationship in model_relationships:
+            target_entity_id = relationship["target"]
+            target_model = relationship["target_model"]
+            target_app = target_entity_id.split("__")[0]
 
-            related_model_label = rel_info.get("related_model", "")
-            if not related_model_label or "." not in related_model_label:
-                continue
-
-            # Parse app_label.ModelName format
-            target_app, target_model = related_model_label.split(".", 1)
-
-            # Find target table name
-            target_table_name = rel_info.get("table_name", target_model.lower())
-            if target_app in all_models_data and target_model in all_models_data[target_app]:
-                target_table_name = all_models_data[target_app][target_model].get(
-                    "table_name", target_model.lower()
-                )
-
-            target_entity_id = f"{target_app}__{target_table_name}"
-
-            # Add to related entities if from another app
             if target_app != app_name and target_entity_id not in related_entity_ids:
-                related_entities.append(
-                    {
-                        "id": target_entity_id,
-                        "app_name": target_app,
-                        "model_name": target_model,
-                        "table_name": target_table_name,
-                        "fields": [],
-                    }
-                )
-                related_entity_ids.add(target_entity_id)
+                if target_app in all_models_data and target_model in all_models_data[target_app]:
+                    target_model_info = all_models_data[target_app][target_model]
+                    related_entity = _create_entity_from_model(
+                        target_app, target_model, target_model_info, include_fields=False
+                    )
+                    related_entities.append(related_entity)
+                    related_entity_ids.add(target_entity_id)
 
-            # Create relationship with proper description
-            rel_type_class = rel_info.get("type", "")
-            if rel_type_class == "ForeignKey":
-                rel_type = "}o--||"
-                description = "many to 1"
-            elif rel_type_class == "OneToOneField" or rel_type_class == "OneToOneRel":
-                rel_type = "||--||"
-                description = "1 to 1"
-            elif rel_type_class == "ManyToManyField" or rel_type_class == "ManyToManyRel":
-                rel_type = "}o--o{"
-                description = "many to many"
-            elif rel_type_class == "ManyToOneRel":
-                rel_type = "||--o{"
-                description = "1 to many"
-            else:
-                continue  # Skip unknown relationship types
+            relationships.append(relationship)
 
-            relationships.append(
-                {
-                    "source": entity_id,
-                    "target": target_entity_id,
-                    "source_model": model_name,
-                    "target_model": target_model,
-                    "type": rel_type,
-                    "label": rel_name,
-                    "description": description,
-                }
-            )
-
-    # Render the template
     content = render_to_string(
         "er_diagrams/app.html",
         {
@@ -237,34 +201,22 @@ def generate_app_er_diagram(
         },
     )
 
-    # Write the file
-    er_app_path = docs_dir / "er_diagrams" / f"{app_name}.md"
-    er_app_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with er_app_path.open("w", encoding="utf-8") as f:
-        f.write(content)
+    write_file(f"{drf_to_mkdoc_settings.ER_DIAGRAMS_DIR}/{app_name}.md", content)
 
 
-def generate_er_diagrams_index(models_data: dict[str, Any], docs_dir: Path) -> None:
-    """Generate the ER diagrams index page"""
-    # Prepare app data for the template
+def generate_er_diagrams_index(models_data: dict[str, Any], _docs_dir: Path) -> None:
+    """Create index page listing all available ER diagrams with app summaries."""
     apps = []
 
-    # Sort app names alphabetically
     for app_name in sorted(models_data.keys()):
         if not isinstance(models_data[app_name], dict):
             continue
 
-        # Count models in this app
-        model_count = len(
-            [
-                m
-                for m in models_data[app_name].keys()
-                if isinstance(models_data[app_name][m], dict)
-            ]
-        )
+        model_count = len([
+            m for m in models_data[app_name]
+            if isinstance(models_data[app_name][m], dict)
+        ])
 
-        # Get some model names for description
         model_names = []
         for model_name, model_info in models_data[app_name].items():
             if isinstance(model_info, dict):
@@ -272,23 +224,7 @@ def generate_er_diagrams_index(models_data: dict[str, Any], docs_dir: Path) -> N
                 if len(model_names) >= 3:
                     break
 
-        # Create description with sample models
-        if model_names:
-            description = f"Includes {', '.join(model_names[:2])}"
-            if len(model_names) > 2:
-                description += " and others"
-        else:
-            description = "No models found"
+        apps.append({"name": app_name, "model_count": model_count})
 
-        # Add app data
-        apps.append({"name": app_name, "model_count": model_count, "description": description})
-
-    # Render the template
     content = render_to_string("er_diagrams/index.html", {"apps": apps})
-
-    # Write the index file
-    er_index_path = docs_dir / "er_diagrams" / "index.md"
-    er_index_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with er_index_path.open("w", encoding="utf-8") as f:
-        f.write(content)
+    write_file(f"{drf_to_mkdoc_settings.ER_DIAGRAMS_DIR}/index.md", content)
