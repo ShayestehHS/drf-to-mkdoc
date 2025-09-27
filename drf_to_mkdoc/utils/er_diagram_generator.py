@@ -45,23 +45,17 @@ def _create_entity_from_model(
             is_pk = field_info.get("primary_key", False)
             nullable = field_info.get("null", False) or field_info.get("blank", False)
 
-            fields.append({
-                "name": field_name,
-                "type": field_type,
-                "is_pk": is_pk,
-                "nullable": nullable
-            })
+            fields.append(
+                {"name": field_name, "type": field_type, "is_pk": is_pk, "nullable": nullable}
+            )
 
             if is_pk:
                 has_pk = True
 
         if not has_pk:
-            fields.insert(0, {
-                "name": "id",
-                "type": "AutoField",
-                "is_pk": True,
-                "nullable": False
-            })
+            fields.insert(
+                0, {"name": "id", "type": "AutoField", "is_pk": True, "nullable": False}
+            )
 
         entity["fields"] = fields
 
@@ -72,7 +66,7 @@ def _process_model_relationships(
     source_entity_id: str,
     source_model_name: str,
     model_info: dict[str, Any],
-    all_models_data: dict[str, Any]
+    all_models_data: dict[str, Any],
 ) -> list[dict[str, Any]]:
     """Extract and process model relationships, returning Mermaid-compatible relationship data."""
     relationships = []
@@ -102,15 +96,17 @@ def _process_model_relationships(
 
         rel_type, description = type_info
 
-        relationships.append({
-            "source": source_entity_id,
-            "target": target_entity_id,
-            "source_model": source_model_name,
-            "target_model": target_model,
-            "type": rel_type,
-            "label": rel_name,
-            "description": description,
-        })
+        relationships.append(
+            {
+                "source": source_entity_id,
+                "target": target_entity_id,
+                "source_model": source_model_name,
+                "target_model": target_model,
+                "type": rel_type,
+                "label": rel_name,
+                "description": description,
+            }
+        )
 
     return relationships
 
@@ -140,7 +136,9 @@ def generate_main_er_diagram(models_data: dict[str, Any], _docs_dir: Path) -> No
             if not isinstance(model_info, dict):
                 continue
 
-            entity = _create_entity_from_model(app_name, model_name, model_info, include_fields=False)
+            entity = _create_entity_from_model(
+                app_name, model_name, model_info, include_fields=False
+            )
             entities.append(entity)
 
             model_relationships = _process_model_relationships(
@@ -168,7 +166,9 @@ def generate_app_er_diagram(
         if not isinstance(model_info, dict):
             continue
 
-        entity = _create_entity_from_model(app_name, model_name, model_info, include_fields=True)
+        entity = _create_entity_from_model(
+            app_name, model_name, model_info, include_fields=True
+        )
         app_entities.append(entity)
 
         model_relationships = _process_model_relationships(
@@ -181,7 +181,10 @@ def generate_app_er_diagram(
             target_app = target_entity_id.split("__")[0]
 
             if target_app != app_name and target_entity_id not in related_entity_ids:
-                if target_app in all_models_data and target_model in all_models_data[target_app]:
+                if (
+                    target_app in all_models_data
+                    and target_model in all_models_data[target_app]
+                ):
                     target_model_info = all_models_data[target_app][target_model]
                     related_entity = _create_entity_from_model(
                         target_app, target_model, target_model_info, include_fields=False
@@ -212,10 +215,9 @@ def generate_er_diagrams_index(models_data: dict[str, Any], _docs_dir: Path) -> 
         if not isinstance(models_data[app_name], dict):
             continue
 
-        model_count = len([
-            m for m in models_data[app_name]
-            if isinstance(models_data[app_name][m], dict)
-        ])
+        model_count = len(
+            [m for m in models_data[app_name] if isinstance(models_data[app_name][m], dict)]
+        )
 
         model_names = []
         for model_name, model_info in models_data[app_name].items():
