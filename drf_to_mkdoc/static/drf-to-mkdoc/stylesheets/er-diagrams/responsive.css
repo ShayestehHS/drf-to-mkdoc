@@ -1,0 +1,80 @@
+/* Responsive styles for ER diagrams */
+
+/* Small screens (phones) */
+@media (max-width: 576px) {
+  .er-diagram-container {
+    padding: 10px 0;
+  }
+  
+  .er-tab {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .er-content {
+    padding: 10px;
+  }
+  
+  .er-diagram-title {
+    font-size: 1.2rem;
+  }
+  
+  .er-zoom-controls {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .er-zoom-btn {
+    --er-zoom-control-size: 28px;
+  }
+}
+
+/* Medium screens (tablets) */
+@media (min-width: 577px) and (max-width: 992px) {
+  .er-diagram-container {
+    padding: 15px 0;
+  }
+  
+  .er-tab {
+    padding: 8px 12px;
+  }
+  
+  .er-content {
+    padding: 12px;
+  }
+}
+
+/* Touch devices */
+@media (hover: none) {
+  .er-tab:hover {
+    background-color: transparent;
+  }
+  
+  .er-zoom-btn {
+    --er-zoom-control-size: 36px; /* Larger touch targets */
+    --er-zoom-control-spacing: 10px;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .er-diagram {
+    min-height: 300px; /* Smaller height for landscape */
+  }
+  
+  .er-zoom-controls {
+    flex-direction: row; /* Horizontal layout for zoom controls */
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .er-zoom-btn {
+    background-color: var(--er-hover-color);
+  }
+  
+  .er-zoom-btn:hover {
+    background-color: var(--er-active-color);
+  }
+}
+

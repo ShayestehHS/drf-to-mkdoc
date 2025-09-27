@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.commons.file_utils import load_json_data
+from drf_to_mkdoc.utils.er_diagram_generator import generate_er_diagrams
 from drf_to_mkdoc.utils.model_detail_generator import generate_model_docs
 from drf_to_mkdoc.utils.model_list_generator import create_models_index
 
@@ -42,9 +43,17 @@ class Command(BaseCommand):
         self.stdout.write("📋 Generating model documentation...")
 
         try:
+            # Generate model detail pages
             generate_model_docs(models_data)
+            self.stdout.write(self.style.SUCCESS("✅ Model detail pages generated"))
+
+            # Generate ER diagrams
+            generate_er_diagrams(models_data, docs_dir)
+            self.stdout.write(self.style.SUCCESS("✅ ER diagrams generated"))
+
+            # Create models index page
             create_models_index(models_data, docs_dir)
-            self.stdout.write(self.style.SUCCESS("✅ Model documentation generated"))
+            self.stdout.write(self.style.SUCCESS("✅ Models index page generated"))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"⚠️  Failed to generate model docs: {e}"))
             raise

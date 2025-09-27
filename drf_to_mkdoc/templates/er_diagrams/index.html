@@ -1,0 +1,14 @@
+# Entity-Relationship Diagrams
+
+This section contains Entity-Relationship (ER) diagrams for all Django models in the system.
+
+## [Complete System Diagram](main.md)
+
+View the complete ER diagram showing all models and their relationships.
+
+## Application Diagrams
+
+| Application | Models 
+|------------|--------|
+{% for app in apps %}| [{{ app.name|title|cut:"_"|safe }}]({{ app.name }}.md) | {{ app.model_count }} |
+{% endfor %}

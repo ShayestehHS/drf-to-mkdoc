@@ -1,0 +1,26 @@
+# {{ app_name|title|cut:"_"|safe }} Models
+
+```mermaid
+erDiagram
+{% for entity in app_entities %}
+    {{ entity.model_name }} {
+{% for field in entity.fields %}
+        {{ field.name }} {{ field.type }}{% if field.is_pk %} "PK"{% elif field.nullable %} "NULLABLE"{% endif %}
+{% endfor %}
+    }
+{% endfor %}
+{% for entity in related_entities %}
+    {{ entity.model_name }} {
+        id AutoField "PK"
+    }
+{% endfor %}
+{% for relationship in relationships %}
+    {{ relationship.source_model }} {{ relationship.type }} {{ relationship.target_model }} : "{{ relationship.description }}"
+{% endfor %}
+
+```
+
+## Models
+
+{% for entity in app_entities %}- [{{ entity.model_name }}](../../{{ entity.app_name }}/{{ entity.table_name }}/)
+{% endfor %}

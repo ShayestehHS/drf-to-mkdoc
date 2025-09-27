@@ -37,6 +37,7 @@ plugins:
 nav:
   - Home: index.md
   - Models: models/
+  - ER Diagrams: er_diagrams/
   - API Endpoints: endpoints/
 
 markdown_extensions:
