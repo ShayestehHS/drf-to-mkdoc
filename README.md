@@ -16,8 +16,6 @@ Unlock effortless API documentation for your Django REST Framework project. Auto
 
 ## Gallery
 
-For a live preview of these features, you can view the [animated GIFs](https://github.com/ShayestehHS/drf-to-mkdoc/tree/master/docs/gifs).
-
 <details>
 <summary>🚀 Interactive Endpoint List & Filtering</summary>
 <img width="1434" height="943" alt="List-EndPoint" src="https://github.com/user-attachments/assets/f886fc7f-afa0-4faa-b9c2-d6f754ca3597" />
