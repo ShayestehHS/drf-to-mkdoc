@@ -742,7 +742,7 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
 
     for path, methods in paths.items():
         app_name = extract_app_from_operation_id(next(iter(methods.values()))["operationId"])
-        if app_name not in django_apps:
+        if django_apps and app_name not in django_apps:
             continue
 
         for method, endpoint_data in methods.items():

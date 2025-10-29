@@ -7,13 +7,14 @@ from drf_to_mkdoc.conf.defaults import DEFAULTS
 
 
 class DRFToMkDocSettings:
-    required_settings: ClassVar[list[str]] = ["DJANGO_APPS"]
+    required_settings: ClassVar[list[str]] = []
     project_settings: ClassVar[dict[str, Any]] = {"PROJECT_NAME": "drf-to-mkdoc"}
 
     settings_types: ClassVar[dict[str, type]] = {
         "ENABLE_AI_DOCS": bool,
         "AI_CONFIG_DIR_NAME": str,
         "SERIALIZERS_INHERITANCE_DEPTH": int,
+        "DJANGO_APPS": list,
     }
 
     settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {
