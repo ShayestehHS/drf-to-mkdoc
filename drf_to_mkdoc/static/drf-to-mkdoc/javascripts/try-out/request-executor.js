@@ -160,9 +160,25 @@ const RequestExecutor = {
             }
         }
 
-        // Get method
+        // Get method - try multiple sources for reliability
+        let method = 'GET'; // Default fallback
+        
+        // First try: method badge data attribute
         const methodBadge = document.querySelector('.method-badge');
-        const method = methodBadge?.dataset.method || 'GET';
+        if (methodBadge?.dataset.method) {
+            method = methodBadge.dataset.method;
+        } else {
+            // Second try: try-out form data attribute
+            const tryOutForm = document.querySelector('.try-out-form');
+            if (tryOutForm?.dataset.method) {
+                method = tryOutForm.dataset.method.toUpperCase();
+            } else {
+                // Third try: method badge text content
+                if (methodBadge?.textContent) {
+                    method = methodBadge.textContent.trim();
+                }
+            }
+        }
 
         return {
             url: fullUrl,

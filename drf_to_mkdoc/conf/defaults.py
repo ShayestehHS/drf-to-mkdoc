@@ -14,6 +14,5 @@ DEFAULTS = {
     "AI_CONFIG_DIR_NAME": "ai_code",  # Directory name for AI-generated code files
     "AI_OPERATION_MAP_FILE": "docs/configs/operation_map.json",  # Path to operation map file
     "SERIALIZERS_INHERITANCE_DEPTH": 1,  # Maximum depth for class inheritance analysis
-    # Django apps - required, no default
-    "DJANGO_APPS": None,  # List of Django app names to process
+    "DJANGO_APPS": [],  # If it is empty list, there is no any exclusion
 }

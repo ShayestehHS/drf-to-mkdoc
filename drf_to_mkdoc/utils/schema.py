@@ -2,7 +2,7 @@ import inspect
 import logging
 from importlib import import_module
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, List
 
 from drf_spectacular.openapi import AutoSchema as SpectacularAutoSchema
 from drf_spectacular.plumbing import ComponentRegistry
@@ -207,6 +207,15 @@ class AutoSchema(SpectacularAutoSchema):
     Custom AutoSchema that extends drf_spectacular's AutoSchema to add view metadata
     directly to the operation during schema generation instead of using a postprocessing hook.
     """
+
+    def __init__(self, *args, **kwargs):
+        self.tags = kwargs.pop("tags", [])
+        super().__init__()
+
+    def get_tags(self) -> List[str]:
+        if self.tags:
+            return self.tags
+        return super().get_tags()
 
     def get_operation(
         self,
