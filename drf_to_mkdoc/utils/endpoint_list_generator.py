@@ -37,6 +37,7 @@ class EndpointsIndexGenerator:
                 "stylesheets/endpoints/base.css",
                 "stylesheets/endpoints/theme-toggle.css",
                 "stylesheets/endpoints/filter-section.css",
+                "stylesheets/endpoints/settings-modal.css",
                 "stylesheets/endpoints/layout.css",
                 "stylesheets/endpoints/endpoints-grid.css",
                 "stylesheets/endpoints/badges.css",
@@ -54,6 +55,7 @@ class EndpointsIndexGenerator:
 
         scripts = [
             static(prefix_path + "javascripts/endpoints-filter.js"),
+            static(prefix_path + "javascripts/settings-modal.js"),
         ]
 
         # Process endpoints to add view_class

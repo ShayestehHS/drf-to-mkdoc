@@ -1,0 +1,122 @@
+<!-- Settings Modal -->
+<div 
+    id="settingsModal" 
+    class="settings-modal" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="settingsModalTitle"
+    aria-describedby="settingsModalDescription"
+>
+    <!-- Backdrop with blur effect -->
+    <div 
+        class="modal-overlay" 
+        data-action="close"
+        onclick="closeSettingsModal()"
+        style="backdrop-filter: blur(2px);"
+    ></div>
+
+    <!-- Modal Container -->
+    <div class="modal-content" role="document">
+        <div class="modal-header">
+            <div class="modal-title-group">
+                <span class="modal-icon" aria-hidden="true">⚙️</span>
+                <h3 id="settingsModalTitle">API Settings</h3>
+                <span id="settingsModalDescription" class="visually-hidden">Configure API host and default request headers</span>
+            </div>
+
+            <!-- Close Button -->
+            <div class="modal-controls">
+                <button 
+                    class="modal-close" 
+                    aria-label="Close modal"
+                    onclick="closeSettingsModal()"
+                    data-action="close"
+                >
+                    <span aria-hidden="true">✕</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="modal-body">
+            <div class="settings-form">
+                <!-- Host Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h4>API Host</h4>
+                        <div class="tooltip" data-tooltip="Base URL for API requests">ℹ️</div>
+                    </div>
+                    <div class="floating-label-group">
+                        <input type="text" 
+                               id="settingsHost" 
+                               class="floating-input" 
+                               placeholder=" "
+                               required>
+                        <label for="settingsHost" class="floating-label">Host URL</label>
+                    </div>
+                    <div class="field-help">Default will use current browser host</div>
+                </div>
+
+                <!-- Default Headers Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h4>Default Request Headers</h4>
+                        <div class="tooltip" data-tooltip="Headers that will be automatically added to all requests">ℹ️</div>
+                    </div>
+                    <div class="header-container" id="settingsHeaders">
+                        <div class="header-toolbar">
+                            <button class="add-header-btn" onclick="SettingsManager.addHeaderField()">
+                                <span class="icon">+</span> Add Header
+                            </button>
+                        </div>
+                        <div class="header-list">
+                            <div class="header-item">
+                                <div class="header-inputs">
+                                    <input type="text" 
+                                           class="modern-input name-input" 
+                                           placeholder="Header name"
+                                           list="settingsHeaderSuggestions">
+                                    <input type="text" 
+                                           class="modern-input value-input" 
+                                           placeholder="Header value">
+                                    <button class="remove-btn" 
+                                            onclick="SettingsManager.removeHeaderField(this)"
+                                            aria-label="Remove header">
+                                        <span class="icon">✕</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Header Suggestions -->
+                        <datalist id="settingsHeaderSuggestions">
+                            <option value="Authorization">Authentication credentials (e.g., Bearer token)</option>
+                            <option value="Accept">Response format preference</option>
+                            <option value="Content-Type">Request body format</option>
+                            <option value="X-API-Key">API key header</option>
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer with Actions -->
+        <div class="modal-footer">
+            <div class="modal-actions">
+                <button 
+                    type="button" 
+                    class="secondary-button" 
+                    onclick="closeSettingsModal()"
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="button" 
+                    class="primary-button" 
+                    onclick="SettingsManager.saveSettings()"
+                >
+                    <span class="icon">💾</span> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
