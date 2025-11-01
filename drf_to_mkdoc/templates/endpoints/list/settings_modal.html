@@ -63,6 +63,22 @@
                         <h4>Default Request Headers</h4>
                         <div class="tooltip" data-tooltip="Headers that will be automatically added to all requests">ℹ️</div>
                     </div>
+                    
+                    <!-- Security Warning and Persist Checkbox -->
+                    <div class="header-security-section">
+                        <div class="security-warning">
+                            <span class="warning-icon">⚠️</span>
+                            <span class="warning-text">Headers are stored in sessionStorage (cleared when tab closes). Enable persistence to store in localStorage.</span>
+                        </div>
+                        <label class="persist-checkbox-label">
+                            <input type="checkbox" 
+                                   id="persistHeaders" 
+                                   class="persist-checkbox">
+                            <span class="checkbox-label-text">Persist headers in localStorage</span>
+                            <span class="security-note">(Less secure: persists across sessions)</span>
+                        </label>
+                    </div>
+                    
                     <div class="header-container" id="settingsHeaders">
                         <div class="header-toolbar">
                             <button class="add-header-btn" onclick="SettingsManager.addHeaderField()">

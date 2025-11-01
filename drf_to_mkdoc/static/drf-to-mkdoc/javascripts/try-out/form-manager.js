@@ -10,24 +10,36 @@ const FormManager = {
     
     // Load settings and pre-fill form
     loadSettings: function() {
-        // Get saved settings if available - try SettingsManager first, then localStorage as fallback
+        // Get saved settings if available - try SettingsManager first, then storage as fallback
         let settings = { host: null, headers: {} };
         
         if (window.SettingsManager) {
             settings = window.SettingsManager.getSettings();
         } else {
-            // Fallback: read directly from localStorage
+            // Fallback: read from storage (host from localStorage, headers from sessionStorage)
             try {
-                const saved = localStorage.getItem('drfToMkdocSettings');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    settings = {
-                        host: parsed.host || null,
-                        headers: parsed.headers || {}
-                    };
+                // Get host from localStorage
+                const savedHost = localStorage.getItem('drfToMkdocSettings');
+                if (savedHost) {
+                    const parsed = JSON.parse(savedHost);
+                    settings.host = parsed.host || null;
+                }
+                
+                // Get headers from sessionStorage (secure by default)
+                const savedHeaders = sessionStorage.getItem('drfToMkdocHeaders');
+                if (savedHeaders) {
+                    settings.headers = JSON.parse(savedHeaders);
+                } else {
+                    // Fallback: check localStorage if persistHeaders was enabled
+                    if (savedHost) {
+                        const parsed = JSON.parse(savedHost);
+                        if (parsed.persistHeaders === true && parsed.headers) {
+                            settings.headers = parsed.headers;
+                        }
+                    }
                 }
             } catch (e) {
-                console.warn('Failed to parse settings from localStorage:', e);
+                console.warn('Failed to parse settings from storage:', e);
             }
         }
         
@@ -37,9 +49,9 @@ const FormManager = {
             // Priority: settings.host > browser origin > localhost:8000
             if (settings.host && settings.host.trim()) {
                 let hostValue = settings.host.trim();
-                // Ensure host has protocol (add http:// if missing)
+                // Ensure host has protocol (add https:// if missing for secure default)
                 if (!hostValue.match(/^https?:\/\//)) {
-                    hostValue = 'http://' + hostValue;
+                    hostValue = 'https://' + hostValue;
                 }
                 baseUrlInput.value = hostValue;
             } else {

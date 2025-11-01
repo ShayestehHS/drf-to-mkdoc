@@ -1,6 +1,8 @@
 // Settings Modal Management
 const SettingsManager = {
     storageKey: 'drfToMkdocSettings',
+    headersStorageKey: 'drfToMkdocHeaders', // Separate key for headers
+    usePersistentHeaders: false, // Track whether user opted in to persistent storage
     
     // Open settings modal
     openSettingsModal: function() {
@@ -14,10 +16,11 @@ const SettingsManager = {
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         
-        // Focus on first input
+        // Focus on first input after modal transition
         const firstInput = modal.querySelector('#settingsHost');
         if (firstInput) {
-            setTimeout(() => firstInput.focus(), 100);
+            // Wait for CSS transition to complete before focusing
+            modal.addEventListener('transitionend', () => firstInput.focus(), { once: true });
         }
     },
     
@@ -35,25 +38,59 @@ const SettingsManager = {
         return window.location.origin;
     },
     
-    // Load settings from localStorage
-    loadSettings: function() {
-        const saved = localStorage.getItem(this.storageKey);
-        let settings = {
-            host: this.getDefaultHost(),
-            headers: {}
-        };
+    // Helper to load host and headers from storage
+    _loadStoredSettings: function() {
+        // Load host from localStorage (non-sensitive)
+        let host = this.getDefaultHost();
+        let usePersistentHeaders = false;
         
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                settings = {
-                    host: parsed.host || this.getDefaultHost(),
-                    headers: parsed.headers || {}
-                };
-            } catch (e) {
-                console.warn('Failed to parse saved settings:', e);
+        try {
+            const savedHost = localStorage.getItem(this.storageKey);
+            if (savedHost) {
+                const parsed = JSON.parse(savedHost);
+                host = parsed.host || this.getDefaultHost();
+                usePersistentHeaders = parsed.persistHeaders === true;
+                this.usePersistentHeaders = usePersistentHeaders;
             }
+        } catch (e) {
+            console.warn('Failed to parse saved host settings:', e);
         }
+        
+        // Load headers from sessionStorage by default (sensitive)
+        // Fall back to localStorage if persistHeaders was enabled
+        let headers = {};
+        try {
+            const sessionHeaders = sessionStorage.getItem(this.headersStorageKey);
+            if (sessionHeaders) {
+                headers = JSON.parse(sessionHeaders);
+            }
+            
+            // Also check localStorage if persistHeaders was enabled
+            if (usePersistentHeaders) {
+                const saved = localStorage.getItem(this.storageKey);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.headers) {
+                        // Merge: sessionStorage takes precedence, then localStorage
+                        headers = { ...parsed.headers, ...headers };
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to parse saved headers:', e);
+        }
+        
+        return {
+            host: host,
+            headers: headers,
+            usePersistentHeaders: usePersistentHeaders
+        };
+    },
+    
+    // Load settings from storage and populate UI
+    loadSettings: function() {
+        // Load stored settings using helper
+        const settings = this._loadStoredSettings();
         
         // Populate host input
         const hostInput = document.getElementById('settingsHost');
@@ -61,10 +98,15 @@ const SettingsManager = {
             hostInput.value = settings.host;
         }
         
-        // Clear existing header items (except first empty one)
+        // Populate persist headers checkbox
+        const persistCheckbox = document.getElementById('persistHeaders');
+        if (persistCheckbox) {
+            persistCheckbox.checked = settings.usePersistentHeaders;
+        }
+        
+        // Clear all header items
         const headerList = document.querySelector('#settingsHeaders .header-list');
         if (headerList) {
-            const firstItem = headerList.querySelector('.header-item');
             headerList.innerHTML = '';
             
             // Add saved headers or one empty item
@@ -83,10 +125,14 @@ const SettingsManager = {
         return settings;
     },
     
-    // Save settings to localStorage
+    // Save settings to storage
     saveSettings: function() {
         const hostInput = document.getElementById('settingsHost');
         const host = hostInput?.value.trim() || this.getDefaultHost();
+        
+        // Get persist headers preference
+        const persistCheckbox = document.getElementById('persistHeaders');
+        this.usePersistentHeaders = persistCheckbox?.checked === true;
         
         // Collect headers
         const headers = {};
@@ -102,20 +148,50 @@ const SettingsManager = {
             }
         });
         
-        // Save to localStorage
-        const settings = {
-            host: host,
-            headers: headers
-        };
-        
         try {
-            localStorage.setItem(this.storageKey, JSON.stringify(settings));
+            // Save host to localStorage (non-sensitive)
+            const hostSettings = {
+                host: host,
+                persistHeaders: this.usePersistentHeaders
+            };
+            localStorage.setItem(this.storageKey, JSON.stringify(hostSettings));
+            
+            // Save headers based on user preference
+            if (this.usePersistentHeaders) {
+                // Save to localStorage (less secure, but user opted in)
+                const allSettings = {
+                    ...hostSettings,
+                    headers: headers
+                };
+                localStorage.setItem(this.storageKey, JSON.stringify(allSettings));
+                // Also save to sessionStorage for immediate use
+                sessionStorage.setItem(this.headersStorageKey, JSON.stringify(headers));
+            } else {
+                // Save to sessionStorage only (more secure, cleared on tab close)
+                sessionStorage.setItem(this.headersStorageKey, JSON.stringify(headers));
+                // Remove headers from localStorage if they were there
+                const existing = localStorage.getItem(this.storageKey);
+                if (existing) {
+                    try {
+                        const parsed = JSON.parse(existing);
+                        delete parsed.headers;
+                        localStorage.setItem(this.storageKey, JSON.stringify({
+                            ...parsed,
+                            ...hostSettings
+                        }));
+                    } catch (e) {
+                        // If parsing fails, just save host settings
+                        localStorage.setItem(this.storageKey, JSON.stringify(hostSettings));
+                    }
+                }
+            }
             
             // Close modal
             this.closeSettingsModal();
             
-            // Show success feedback (optional)
-            this.showToast('Settings saved successfully', 'success');
+            // Show success feedback
+            const storageType = this.usePersistentHeaders ? 'localStorage' : 'sessionStorage';
+            this.showToast(`Settings saved (headers in ${storageType})`, 'success');
             
             // Reload settings in try-out form if it exists
             if (window.FormManager && typeof window.FormManager.loadSettings === 'function') {
@@ -127,29 +203,14 @@ const SettingsManager = {
         }
     },
     
-    // Get saved settings
+    // Get saved settings (reads from both storage locations)
     getSettings: function() {
-        const saved = localStorage.getItem(this.storageKey);
-        if (!saved) {
-            return {
-                host: this.getDefaultHost(),
-                headers: {}
-            };
-        }
-        
-        try {
-            const parsed = JSON.parse(saved);
-            return {
-                host: parsed.host || this.getDefaultHost(),
-                headers: parsed.headers || {}
-            };
-        } catch (e) {
-            console.warn('Failed to parse saved settings:', e);
-            return {
-                host: this.getDefaultHost(),
-                headers: {}
-            };
-        }
+        // Use helper method to load settings
+        const settings = this._loadStoredSettings();
+        return {
+            host: settings.host,
+            headers: settings.headers
+        };
     },
     
     // Add header field
@@ -167,29 +228,55 @@ const SettingsManager = {
         }
     },
     
-    // Create header item element
+    // Create header item element (using DOM creation to prevent XSS)
     createHeaderItem: function(name = '', value = '') {
         const headerItem = document.createElement('div');
         headerItem.className = 'header-item';
         
-        headerItem.innerHTML = `
-            <div class="header-inputs">
-                <input type="text" 
-                       class="modern-input name-input" 
-                       placeholder="Header name"
-                       value="${name}"
-                       list="settingsHeaderSuggestions">
-                <input type="text" 
-                       class="modern-input value-input" 
-                       placeholder="Header value"
-                       value="${value}">
-                <button class="remove-btn" 
-                        onclick="SettingsManager.removeHeaderField(this)"
-                        aria-label="Remove header">
-                    <span class="icon">✕</span>
-                </button>
-            </div>
-        `;
+        // Create header-inputs container
+        const headerInputs = document.createElement('div');
+        headerInputs.className = 'header-inputs';
+        
+        // Create name input
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'modern-input name-input';
+        nameInput.placeholder = 'Header name';
+        nameInput.setAttribute('list', 'settingsHeaderSuggestions');
+        nameInput.value = name;
+        
+        // Create value input
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.className = 'modern-input value-input';
+        valueInput.placeholder = 'Header value';
+        valueInput.value = value;
+        
+        // Create remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove header');
+        
+        // Create icon span
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'icon';
+        iconSpan.textContent = '✕';
+        
+        // Append icon to button
+        removeBtn.appendChild(iconSpan);
+        
+        // Attach click handler with addEventListener
+        removeBtn.addEventListener('click', () => {
+            SettingsManager.removeHeaderField(removeBtn);
+        });
+        
+        // Append inputs and button to header-inputs
+        headerInputs.appendChild(nameInput);
+        headerInputs.appendChild(valueInput);
+        headerInputs.appendChild(removeBtn);
+        
+        // Append header-inputs to header-item
+        headerItem.appendChild(headerInputs);
         
         return headerItem;
     },
@@ -248,12 +335,15 @@ const SettingsManager = {
                 });
             }
             
-            // Close modal on Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('show')) {
-                    this.closeSettingsModal();
-                }
-            });
+            // Close modal on Escape key (with stored handler to prevent duplicates)
+            if (!this._onKeydown) {
+                this._onKeydown = function(e) {
+                    if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
+                        SettingsManager.closeSettingsModal();
+                    }
+                }.bind(this);
+                document.addEventListener('keydown', this._onKeydown);
+            }
         }
     }
 };
