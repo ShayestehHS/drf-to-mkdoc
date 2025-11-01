@@ -5,6 +5,113 @@ const FormManager = {
         this.setupEventListeners();
         this.setupFormValidation();
         this.initializeRequestBody();
+        this.loadSettings();
+    },
+    
+    // Load settings and pre-fill form
+    loadSettings: function() {
+        // Get saved settings if available - try SettingsManager first, then storage as fallback
+        let settings = { host: null, headers: {} };
+        
+        if (window.SettingsManager) {
+            settings = window.SettingsManager.getSettings();
+        } else {
+            // Fallback: read from storage (host from localStorage, headers from sessionStorage)
+            try {
+                // Get host from localStorage
+                const savedHost = localStorage.getItem('drfToMkdocSettings');
+                if (savedHost) {
+                    const parsed = JSON.parse(savedHost);
+                    settings.host = parsed.host || null;
+                }
+                
+                // Get headers from sessionStorage (secure by default)
+                const savedHeaders = sessionStorage.getItem('drfToMkdocHeaders');
+                if (savedHeaders) {
+                    settings.headers = JSON.parse(savedHeaders);
+                } else {
+                    // Fallback: check localStorage if persistHeaders was enabled
+                    if (savedHost) {
+                        const parsed = JSON.parse(savedHost);
+                        if (parsed.persistHeaders === true && parsed.headers) {
+                            settings.headers = parsed.headers;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse settings from storage:', e);
+            }
+        }
+        
+        // Set host in baseUrl input
+        const baseUrlInput = document.getElementById('baseUrl');
+        if (baseUrlInput) {
+            // Priority: settings.host > browser origin > localhost:8000
+            if (settings.host && settings.host.trim()) {
+                let hostValue = settings.host.trim();
+                // Ensure host has protocol (add https:// if missing for secure default)
+                if (!hostValue.match(/^https?:\/\//)) {
+                    hostValue = 'https://' + hostValue;
+                }
+                baseUrlInput.value = hostValue;
+            } else {
+                const browserOrigin = window.location.origin;
+                if (browserOrigin) {
+                    baseUrlInput.value = browserOrigin;
+                } else {
+                    baseUrlInput.value = 'http://localhost:8000';
+                }
+            }
+        }
+        
+        // Add headers from settings - update existing ones or add new ones
+        if (settings.headers && Object.keys(settings.headers).length > 0) {
+            const headerList = document.querySelector('#requestHeaders .header-list');
+            if (headerList) {
+                // Create a map of existing headers by name (case-insensitive)
+                const existingHeadersMap = new Map();
+                headerList.querySelectorAll('.header-item').forEach(item => {
+                    const nameInput = item.querySelector('.name-input');
+                    const valueInput = item.querySelector('.value-input');
+                    if (nameInput && nameInput.value.trim()) {
+                        const headerName = nameInput.value.trim();
+                        existingHeadersMap.set(headerName.toLowerCase(), {
+                            item: item,
+                            nameInput: nameInput,
+                            valueInput: valueInput
+                        });
+                    }
+                });
+                
+                // Process headers from settings
+                Object.entries(settings.headers).forEach(([name, value]) => {
+                    if (!name.trim() || !value || !String(value).trim()) {
+                        return; // Skip empty names or values
+                    }
+                    
+                    const normalizedName = name.trim().toLowerCase();
+                    const headerValue = String(value).trim();
+                    
+                    // Check if header already exists (case-insensitive)
+                    const existing = existingHeadersMap.get(normalizedName);
+                    
+                    if (existing) {
+                        // Update existing header value
+                        if (existing.valueInput) {
+                            existing.valueInput.value = headerValue;
+                        }
+                    } else {
+                        // Add new header item
+                        const headerItem = this.createHeaderItem();
+                        const nameInput = headerItem.querySelector('.name-input');
+                        const valueInput = headerItem.querySelector('.value-input');
+                        if (nameInput) nameInput.value = name.trim();
+                        if (valueInput) valueInput.value = headerValue;
+                        headerList.appendChild(headerItem);
+                    }
+                });
+            }
+        }
     },
 
     initializeRequestBody: function() {
@@ -203,24 +310,36 @@ const FormManager = {
         const headerItem = document.createElement('div');
         headerItem.className = 'header-item';
         
-        headerItem.innerHTML = `
-            <div class="header-inputs">
-                <input type="text" 
-                       class="modern-input name-input" 
-                       placeholder="Header name"
-                       list="headerSuggestions">
-                <input type="text" 
-                       class="modern-input value-input" 
-                       placeholder="Header value">
-                <button class="remove-btn" 
-                        aria-label="Remove header">
-                    <span class="icon">✕</span>
-                </button>
-            </div>
-        `;
+        const headerInputs = document.createElement('div');
+        headerInputs.className = 'header-inputs';
         
-        // Attach the removal handler programmatically
-        const removeBtn = headerItem.querySelector('.remove-btn');
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'modern-input name-input';
+        nameInput.placeholder = 'Header name';
+        nameInput.setAttribute('list', 'headerSuggestions');
+        
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.className = 'modern-input value-input';
+        valueInput.placeholder = 'Header value';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove header');
+        
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'icon';
+        iconSpan.textContent = '✕';
+        
+        removeBtn.appendChild(iconSpan);
+        
+        headerInputs.appendChild(nameInput);
+        headerInputs.appendChild(valueInput);
+        headerInputs.appendChild(removeBtn);
+        
+        headerItem.appendChild(headerInputs);
+        
         removeBtn.addEventListener('click', (e) => FormManager.removeKvItem(e.currentTarget));
         
         return headerItem;
