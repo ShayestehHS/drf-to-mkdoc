@@ -65,20 +65,41 @@ class ViewMetadataExtractor:
             return str(perm)
         
         # Try isinstance check first if OperandHolder is available, otherwise use attribute-based detection
+        # Also verify that required attributes exist (defensive check for different DRF versions)
+        # Check for common attribute name variations across DRF versions
         if OperandHolder is not None:
-            is_operand_holder = isinstance(perm, OperandHolder)
+            is_operand_holder = isinstance(perm, OperandHolder) and (
+                (hasattr(perm, 'op1') and hasattr(perm, 'op2')) or
+                (hasattr(perm, 'left') and hasattr(perm, 'right')) or
+                (hasattr(perm, 'operand1') and hasattr(perm, 'operand2'))
+            )
         else:
             # OperandHolder from DRF has op1, op2, and operator_class attributes
+            # Check for common attribute name variations
             is_operand_holder = (
-                hasattr(perm, 'op1') 
-                and hasattr(perm, 'op2')
+                ((hasattr(perm, 'op1') and hasattr(perm, 'op2')) or
+                 (hasattr(perm, 'left') and hasattr(perm, 'right')) or
+                 (hasattr(perm, 'operand1') and hasattr(perm, 'operand2')))
                 and hasattr(perm, 'operator_class')
             )
         
         if is_operand_holder:
             # This is an OperandHolder - recursively extract left and right permissions
-            left_perms = self._extract_permission_recursive(perm.op1, depth + 1, max_depth)
-            right_perms = self._extract_permission_recursive(perm.op2, depth + 1, max_depth)
+            # Use getattr with safe defaults in case attributes are missing
+            # Try common attribute names used by OperandHolder in different DRF versions
+            op1 = getattr(perm, 'op1', None) or getattr(perm, 'left', None) or getattr(perm, 'operand1', None)
+            op2 = getattr(perm, 'op2', None) or getattr(perm, 'right', None) or getattr(perm, 'operand2', None)
+            
+            if op1 is None or op2 is None:
+                # OperandHolder detected but missing required attributes - fallback
+                logger.warning(
+                    f"OperandHolder detected but missing operand attributes (tried op1/op2, left/right, operand1/operand2). "
+                    f"Falling back to string representation. Object: {perm}"
+                )
+                return str(perm)
+            
+            left_perms = self._extract_permission_recursive(op1, depth + 1, max_depth)
+            right_perms = self._extract_permission_recursive(op2, depth + 1, max_depth)
             
             # Determine the operator symbol from operator_class or op attribute
             if hasattr(perm, 'operator_class'):
