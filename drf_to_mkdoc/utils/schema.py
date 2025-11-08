@@ -10,9 +10,13 @@ from rest_framework.serializers import BaseSerializer, ListSerializer
 from rest_framework.viewsets import ViewSetMixin
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from rest_framework.permissions import OperandHolder
 
 logger = logging.getLogger(__name__)
+
+try:
+    from rest_framework.permissions import OperandHolder
+except ImportError:
+    OperandHolder = None
 
 
 
@@ -92,9 +96,15 @@ class ViewMetadataExtractor:
             # Combine recursively extracted permissions
             return f"({left_perms}{op_symbol}{right_perms})"
         else:
-            # Regular permission class
+            # Regular permission class or instance
             try:
-                return f"{perm.__module__}.{perm.__name__}"
+                # Handle both permission classes and instances
+                if inspect.isclass(perm):
+                    return f"{perm.__module__}.{perm.__name__}"
+                else:
+                    # Permission instance
+                    perm_class = perm.__class__
+                    return f"{perm_class.__module__}.{perm_class.__name__}"
             except (AttributeError, TypeError):
                 # Fallback for unexpected types
                 return str(perm)
