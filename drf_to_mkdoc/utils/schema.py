@@ -10,8 +10,10 @@ from rest_framework.serializers import BaseSerializer, ListSerializer
 from rest_framework.viewsets import ViewSetMixin
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+from rest_framework.permissions import OperandHolder
 
 logger = logging.getLogger(__name__)
+
 
 
 class ViewMetadataExtractor:
@@ -35,32 +37,57 @@ class ViewMetadataExtractor:
         else:
             return True
 
-    def _extract_permission_recursive(self, perm):
+    def _extract_permission_recursive(self, perm, depth=0, max_depth=10):
         """
         Recursively extract permission class name, handling nested OperandHolders.
         
         OperandHolder objects are created by DRF when permissions are combined
         with operators (| for OR, & for AND).
+        
+        Args:
+            perm: Permission class or OperandHolder instance
+            depth: Current recursion depth
+            max_depth: Maximum allowed recursion depth to prevent infinite loops
+        
+        Returns:
+            String representation of the permission class or combined permissions
         """
-        # Check if this is an OperandHolder (combined permission)
-        # OperandHolder is identified by having op1 and op2 attributes
-        # and typically the class name contains 'OperandHolder'
-        is_operand_holder = (
-            hasattr(perm, 'op1') 
-            and hasattr(perm, 'op2')
-            and (
-                'OperandHolder' in str(type(perm))
-                or hasattr(perm, 'op')  # Additional check: OperandHolder has 'op' attribute
+        # Protection against infinite recursion
+        if depth > max_depth:
+            logger.warning(
+                f"Maximum recursion depth ({max_depth}) exceeded for permission extraction. "
+                f"Returning string representation of permission object."
             )
-        )
+            return str(perm)
+        
+        # Try isinstance check first if OperandHolder is available, otherwise use attribute-based detection
+        if OperandHolder is not None:
+            is_operand_holder = isinstance(perm, OperandHolder)
+        else:
+            # OperandHolder from DRF has op1, op2, and operator_class attributes
+            is_operand_holder = (
+                hasattr(perm, 'op1') 
+                and hasattr(perm, 'op2')
+                and hasattr(perm, 'operator_class')
+            )
         
         if is_operand_holder:
             # This is an OperandHolder - recursively extract left and right permissions
-            left_perms = self._extract_permission_recursive(perm.op1)
-            right_perms = self._extract_permission_recursive(perm.op2)
+            left_perms = self._extract_permission_recursive(perm.op1, depth + 1, max_depth)
+            right_perms = self._extract_permission_recursive(perm.op2, depth + 1, max_depth)
             
-            # Determine the operator symbol (default to '|' for OR)
-            op_symbol = ' & ' if (hasattr(perm, 'op') and getattr(perm, 'op', None) == '&') else ' | '
+            # Determine the operator symbol from operator_class or op attribute
+            if hasattr(perm, 'operator_class'):
+                # operator_class is typically a class with __name__ attribute (AND or OR)
+                try:
+                    op_symbol = ' & ' if perm.operator_class.__name__ == 'AND' else ' | '
+                except AttributeError:
+                    # Fallback if operator_class doesn't have __name__
+                    op_symbol = ' | '  # default to OR
+            elif hasattr(perm, 'op'):
+                op_symbol = ' & ' if perm.op == '&' else ' | '
+            else:
+                op_symbol = ' | '  # default to OR
             
             # Combine recursively extracted permissions
             return f"({left_perms}{op_symbol}{right_perms})"
