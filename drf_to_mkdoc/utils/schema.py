@@ -13,6 +13,12 @@ from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
 logger = logging.getLogger(__name__)
 
+try:
+    from rest_framework.permissions import OperandHolder
+except ImportError:
+    OperandHolder = None
+
+
 
 class ViewMetadataExtractor:
     """Extracts metadata from DRF views."""
@@ -35,12 +41,93 @@ class ViewMetadataExtractor:
         else:
             return True
 
+    def _extract_permission_recursive(self, perm, depth=0, max_depth=10):
+        """
+        Recursively extract permission class name, handling nested OperandHolders.
+        
+        OperandHolder objects are created by DRF when permissions are combined
+        with operators (| for OR, & for AND).
+        
+        Args:
+            perm: Permission class or OperandHolder instance
+            depth: Current recursion depth
+            max_depth: Maximum allowed recursion depth to prevent infinite loops
+        
+        Returns:
+            String representation of the permission class or combined permissions
+        """
+        # Protection against infinite recursion
+        if depth > max_depth:
+            logger.warning(
+                f"Maximum recursion depth ({max_depth}) exceeded for permission extraction. "
+                f"Returning string representation of permission object."
+            )
+            return str(perm)
+        
+        # Detect OperandHolder: use isinstance if available, otherwise check for operator_class, op1_class, op2_class
+        if OperandHolder is not None:
+            is_operand_holder = isinstance(perm, OperandHolder)
+        else:
+            # OperandHolder from DRF has operator_class, op1_class, and op2_class attributes
+            is_operand_holder = (
+                hasattr(perm, 'operator_class')
+                and hasattr(perm, 'op1_class')
+                and hasattr(perm, 'op2_class')
+            )
+        
+        if is_operand_holder:
+            # This is an OperandHolder - extract operand classes (op1_class, op2_class)
+            op1_class = getattr(perm, 'op1_class', None)
+            op2_class = getattr(perm, 'op2_class', None)
+            
+            if op1_class is None or op2_class is None:
+                # OperandHolder detected but missing required class attributes - fallback
+                logger.warning(
+                    f"OperandHolder detected but missing op1_class or op2_class attributes. "
+                    f"Falling back to string representation. Object: {perm}"
+                )
+                return str(perm)
+            
+            # Recursively process the permission classes
+            left_perms = self._extract_permission_recursive(op1_class, depth + 1, max_depth)
+            right_perms = self._extract_permission_recursive(op2_class, depth + 1, max_depth)
+            
+            # Determine the operator symbol from operator_class or op attribute
+            if hasattr(perm, 'operator_class'):
+                # operator_class is typically a class with __name__ attribute (AND or OR)
+                try:
+                    op_symbol = ' & ' if perm.operator_class.__name__ == 'AND' else ' | '
+                except AttributeError:
+                    # Fallback if operator_class doesn't have __name__
+                    op_symbol = ' | '  # default to OR
+            elif hasattr(perm, 'op'):
+                op_symbol = ' & ' if perm.op == '&' else ' | '
+            else:
+                op_symbol = ' | '  # default to OR
+            
+            # Combine recursively extracted permissions
+            return f"({left_perms}{op_symbol}{right_perms})"
+        else:
+            # Regular permission class or instance
+            try:
+                # Handle both permission classes and instances
+                if inspect.isclass(perm):
+                    return f"{perm.__module__}.{perm.__name__}"
+                else:
+                    # Permission instance
+                    perm_class = perm.__class__
+                    return f"{perm_class.__module__}.{perm_class.__name__}"
+            except (AttributeError, TypeError):
+                # Fallback for unexpected types
+                return str(perm)
+
     def _extract_permissions(self):
-        """Extract permission classes from view."""
+        """Extract permission classes from view, handling OperandHolder objects."""
         permission_classes = []
         if hasattr(self.view, "permission_classes"):
             for perm_class in self.view.permission_classes:
-                permission_classes.append(f"{perm_class.__module__}.{perm_class.__name__}")
+                permission_str = self._extract_permission_recursive(perm_class)
+                permission_classes.append(permission_str)
         return permission_classes
 
     def _extract_action(self):
@@ -62,6 +149,9 @@ class ViewMetadataExtractor:
             logger.debug(f"Failed to get serializer from view instance: {e}")
             return None
         else:
+            # Handle None serializer class (e.g., for file download views)
+            if serializer_cls is None:
+                return None
             return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
 
     def _extract_serializer_from_action(self):
@@ -75,9 +165,15 @@ class ViewMetadataExtractor:
 
         if hasattr(action_method, "serializer_class"):
             serializer_cls = action_method.serializer_class
+            # Handle None serializer class
+            if serializer_cls is None:
+                return None
             return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
         if hasattr(action_method, "kwargs") and "serializer_class" in action_method.kwargs:
             serializer_cls = action_method.kwargs["serializer_class"]
+            # Handle None serializer class
+            if serializer_cls is None:
+                return None
             return f"{serializer_cls.__module__}.{serializer_cls.__name__}"
 
         return None
