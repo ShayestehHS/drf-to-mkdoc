@@ -682,6 +682,9 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
         
         # Check if this is a 200 response with no meaningful data
         if status_code == "200" and _is_empty_response(schema, examples):
+            logger.debug(
+                f"Converting empty 200 response to 204 No Content for operation {operation_id}"
+            )
             # Convert to 204 No Content
             formatted_response = {
                 "status_code": "204",
