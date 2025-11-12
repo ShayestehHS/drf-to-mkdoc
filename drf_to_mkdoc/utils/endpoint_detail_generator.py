@@ -628,20 +628,74 @@ def _generate_examples(operation_id: str, schema: dict, components: dict) -> lis
     return examples
 
 
+def _is_empty_response(schema: dict, examples: list) -> bool:
+    """Check if response is empty or contains only 'Ok' message."""
+    # Check if schema is empty or has no properties
+    if not schema or schema.get("type") != "object":
+        # If no schema or not an object, check examples
+        if not examples or examples == [None] or examples == []:
+            return True
+    
+    # Check if schema has no properties (empty object)
+    if schema.get("type") == "object" and not schema.get("properties"):
+        return True
+    
+    # Check if examples contain only empty objects or "Ok" messages
+    for example in examples:
+        if example is None:
+            continue
+        if isinstance(example, dict):
+            # Check if it's an empty dict
+            if not example:
+                return True
+            # Check if it only contains "message": "Ok" or similar
+            if len(example) == 1 and "message" in example:
+                message_value = example.get("message", "").strip()
+                if message_value.lower() in ("ok", "success"):
+                    return True
+        elif isinstance(example, (list, str)) and not example:
+            return True
+    
+    return False
+
+
 def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
     """Prepare response data for template rendering."""
 
     formatted_responses = []
     for status_code, response_data in responses.items():
-        schema = response_data.get("content", {}).get("application/json", {}).get("schema", {})
-
+        # Check if response has no content section (already a 204-like response)
+        content = response_data.get("content", {})
+        if not content:
+            # No content means 204 No Content
+            formatted_response = {
+                "status_code": "204" if status_code == "200" else status_code,
+                "description": response_data.get("description", "") or 
+                              "The request was successful. No content is returned in the response body.",
+                "examples": [],
+            }
+            formatted_responses.append(formatted_response)
+            continue
+        
+        schema = content.get("application/json", {}).get("schema", {})
         examples = _generate_examples(operation_id, schema, components)
-
-        formatted_response = {
-            "status_code": status_code,
-            "description": response_data.get("description", ""),
-            "examples": examples,
-        }
+        
+        # Check if this is a 200 response with no meaningful data
+        if status_code == "200" and _is_empty_response(schema, examples):
+            # Convert to 204 No Content
+            formatted_response = {
+                "status_code": "204",
+                "description": response_data.get("description", "") or 
+                              "The request was successful. No content is returned in the response body.",
+                "examples": [],  # 204 responses have no body
+            }
+        else:
+            formatted_response = {
+                "status_code": status_code,
+                "description": response_data.get("description", ""),
+                "examples": examples,
+            }
+        
         formatted_responses.append(formatted_response)
     return formatted_responses
 
