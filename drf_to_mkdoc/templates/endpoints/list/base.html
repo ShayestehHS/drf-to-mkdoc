@@ -13,12 +13,19 @@
 <div class="main-content">
     {% include "endpoints/list/filter_section.html" %}
     {% include "endpoints/list/settings_modal.html" %}
+    <div class="empty-state" id="empty-state" style="display: none;" role="status" aria-live="polite">
+        <div class="empty-state-icon" aria-hidden="true">🔍</div>
+        <h3 class="empty-state-title">No endpoints found</h3>
+        <button class="empty-state-button" onclick="clearFilters()" aria-label="Clear all filters to show all endpoints">Clear all filters</button>
+    </div>
     {% for app_name, endpoints in endpoints_by_app.items %}
-        <h2>{{ app_name|title }}</h2>
-        <div class="endpoints-grid">
-            {% for endpoint in endpoints %}
-                {% include "endpoints/list/endpoint_card.html" %}
-            {% endfor %}
+        <div class="app-section">
+            <h2>{{ app_name|title }}</h2>
+            <div class="endpoints-grid">
+                {% for endpoint in endpoints %}
+                    {% include "endpoints/list/endpoint_card.html" %}
+                {% endfor %}
+            </div>
         </div>
     {% endfor %}
 </div>

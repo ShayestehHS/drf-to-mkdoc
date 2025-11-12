@@ -49,11 +49,17 @@ function applyFilters() {
         section.style.display = visibleCards.length === 0 ? 'none' : '';
     });
 
-    // Collapse app sections with no visible viewsets
+    // Collapse app sections with no visible cards
     document.querySelectorAll('.app-section').forEach(app => {
-        const visibleViewsets = app.querySelectorAll('.viewset-section:not([style*="display: none"])');
-        app.style.display = visibleViewsets.length === 0 ? 'none' : '';
+        const visibleCards = app.querySelectorAll('.endpoint-card:not(.hidden)');
+        app.style.display = visibleCards.length === 0 ? 'none' : '';
     });
+
+    // Show/hide empty state
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) {
+        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
 
     // Update filter result stats
     document.querySelector('.filter-results').textContent =
