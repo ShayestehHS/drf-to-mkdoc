@@ -146,3 +146,27 @@ def extract_json_from_markdown(value):
             return content
 
     return ""
+
+
+@register.filter
+def escape_json_for_attr(value):
+    """Escape JSON string for use in HTML data attributes"""
+    if not isinstance(value, str):
+        return ""
+    # Escape HTML entities and single quotes (since we use single quotes for attributes)
+    # JSON uses double quotes, so we mainly need to escape &, <, >, and single quotes
+    value = value.replace("&", "&amp;")
+    value = value.replace("<", "&lt;")
+    value = value.replace(">", "&gt;")
+    value = value.replace("'", "&#x27;")  # Escape single quotes
+    return value
+
+
+@register.filter
+def json_for_display(value):
+    """Prepare JSON string for display in markdown code blocks (unescape if needed)"""
+    if not isinstance(value, str):
+        return ""
+    # Unescape any HTML entities that might have been introduced
+    value = html.unescape(value)
+    return mark_safe(value)  # noqa: S308
