@@ -89,6 +89,11 @@ const ModalManager = {
             if (responseSection) {
                 responseSection.hidden = true;
             }
+            
+            // Reset auth prompt state when modal closes
+            if (window.FormManager && typeof window.FormManager.resetAuthPromptState === 'function') {
+                window.FormManager.resetAuthPromptState();
+            }
         }
     },
 
