@@ -57,6 +57,24 @@
                     <div class="field-help">Default will use current browser host</div>
                 </div>
 
+                <!-- Authentication Card (shown only when auto-auth is enabled) -->
+                <div class="form-section" id="authSection" style="display: none;">
+                    <div class="auth-card" id="authCard">
+                        <div class="auth-card-icon">
+                            <span class="auth-status-emoji" id="settingsAuthEmoji">🔒</span>
+                        </div>
+                        <div class="auth-card-content">
+                            <h4 class="auth-card-title">Get Authorization Header</h4>
+                            <p class="auth-card-description">Click to generate and add an authorization header using your <code>getAuthHeader</code> function</p>
+                        </div>
+                        <button type="button" class="auth-card-button" id="settingsAuthTestButton" onclick="SettingsManager.testAuth()">
+                            <span class="auth-card-button-icon">🔓</span>
+                            <span class="auth-card-button-text">Get Header</span>
+                            <span class="auth-prompt-button-loader" style="display: none;">⏳</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Default Headers Section -->
                 <div class="form-section">
                     <div class="section-header">

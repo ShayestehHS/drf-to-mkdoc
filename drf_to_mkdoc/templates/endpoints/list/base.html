@@ -10,6 +10,20 @@
 <script src="{{ script|safe }}" defer></script>
 {% endfor %}
 
+{% if enable_auto_auth %}
+<script>
+    // Auto-authentication configuration
+    window.DRF_TO_MKDOC_AUTH_CONFIG = {
+        enabled: {{ enable_auto_auth|yesno:"true,false" }},
+        defaultUsername: {% if auth_username %}"{{ auth_username }}"{% else %}null{% endif %},
+        defaultPassword: {% if auth_password %}"{{ auth_password }}"{% else %}null{% endif %},
+    };
+    {% if auth_function_js %}
+    {{ auth_function_js|safe }}
+    {% endif %}
+</script>
+{% endif %}
+
 <div class="main-content">
     {% include "endpoints/list/filter_section.html" %}
     {% include "endpoints/list/settings_modal.html" %}
