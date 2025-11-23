@@ -15,4 +15,9 @@ DEFAULTS = {
     "AI_OPERATION_MAP_FILE": "docs/configs/operation_map.json",  # Path to operation map file
     "SERIALIZERS_INHERITANCE_DEPTH": 1,  # Maximum depth for class inheritance analysis
     "DJANGO_APPS": [],  # If it is empty list, there is no any exclusion
+    # Auto-authentication settings
+    "ENABLE_AUTO_AUTH": False,  # Enable/disable auto-authentication feature
+    "AUTH_FUNCTION_JS": None,  # JavaScript code or path to JS file containing getAuthHeader function
+    "AUTH_USERNAME": None,  # Default username for authentication
+    "AUTH_PASSWORD": None,  # Default password for authentication
 }
