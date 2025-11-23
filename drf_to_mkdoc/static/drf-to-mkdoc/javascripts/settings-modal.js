@@ -9,6 +9,9 @@ const SettingsManager = {
         const modal = document.getElementById('settingsModal');
         if (!modal) return;
         
+        // Show/hide auth section based on auto-auth status
+        this.toggleAuthSection();
+        
         // Load and populate current settings
         this.loadSettings();
         
@@ -22,6 +25,22 @@ const SettingsManager = {
             // Wait for CSS transition to complete before focusing
             modal.addEventListener('transitionend', () => firstInput.focus(), { once: true });
         }
+    },
+    
+    // Toggle auth section visibility - show only when auto-auth is enabled
+    toggleAuthSection: function() {
+        const authSection = document.getElementById('authSection');
+        if (!authSection) return;
+        
+        const authConfig = window.DRF_TO_MKDOC_AUTH_CONFIG;
+        // Show auth section only when auto-auth is enabled
+        if (authConfig && authConfig.enabled) {
+            authSection.style.display = 'block';
+        } else {
+            authSection.style.display = 'none';
+        }
+        
+        this.updateAuthEmoji(); // Update emoji based on stored header
     },
     
     // Close settings modal
@@ -102,6 +121,23 @@ const SettingsManager = {
         const persistCheckbox = document.getElementById('persistHeaders');
         if (persistCheckbox) {
             persistCheckbox.checked = settings.usePersistentHeaders;
+        }
+        
+        // Update auth emoji (always show locked initially)
+        const authEmoji = document.getElementById('settingsAuthEmoji');
+        if (authEmoji) {
+            authEmoji.textContent = '🔒';
+            authEmoji.classList.remove('success', 'unlocking');
+        }
+        
+        // Check if Authorization header exists in saved headers and update emoji
+        const authHeaderName = settings.headers?.Authorization ? 'Authorization' : 
+                              (settings.headers ? Object.keys(settings.headers).find(k => k.toLowerCase() === 'authorization') : null);
+        
+        if (authHeaderName && settings.headers[authHeaderName]) {
+            this.updateAuthEmoji();
+        } else {
+            this.updateAuthEmoji();
         }
         
         // Clear all header items
@@ -211,6 +247,179 @@ const SettingsManager = {
             host: settings.host,
             headers: settings.headers
         };
+    },
+    
+    // Test authentication
+    testAuth: function() {
+        const authButton = document.getElementById('settingsAuthTestButton');
+        const authEmoji = document.getElementById('settingsAuthEmoji');
+        
+        if (!authButton || !authEmoji) {
+            return;
+        }
+        
+        // Check if getAuthHeader function exists
+        if (typeof window.getAuthHeader !== 'function') {
+            this.showToast('getAuthHeader function not found. Please configure it in your JavaScript.', 'error');
+            return;
+        }
+        
+        // Set loading state
+        const buttonText = authButton.querySelector('.auth-card-button-text');
+        const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+        authButton.disabled = true;
+        authButton.classList.add('loading');
+        if (buttonText) buttonText.textContent = 'Generating...';
+        if (buttonLoader) buttonLoader.style.display = 'inline-block';
+        authEmoji.textContent = '🔓';
+        authEmoji.classList.add('unlocking');
+        
+        try {
+            // Call auth function directly (credentials should be handled in the function)
+            let authResult = window.getAuthHeader();
+            
+            // Check if result is null or undefined
+            if (!authResult) {
+                throw new Error('getAuthHeader function returned null or undefined.');
+            }
+            
+            // Handle async functions
+            if (authResult && typeof authResult.then === 'function') {
+                authResult.then(result => {
+                    // Validate async result
+                    if (!result) {
+                        this._handleAuthTestError(new Error('getAuthHeader function returned null or undefined.'), authButton, authEmoji);
+                        return;
+                    }
+                    this._handleAuthTestResult(result, authButton, authEmoji);
+                }).catch(error => {
+                    this._handleAuthTestError(error, authButton, authEmoji);
+                });
+            } else {
+                // Handle synchronous result
+                this._handleAuthTestResult(authResult, authButton, authEmoji);
+            }
+        } catch (error) {
+            this._handleAuthTestError(error, authButton, authEmoji);
+        }
+    },
+    
+    // Handle auth test result
+    _handleAuthTestResult: function(result, authButton, authEmoji) {
+        const buttonText = authButton.querySelector('.auth-card-button-text');
+        const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+        
+        // Strict validation: result must be an object with both headerName and headerValue as non-empty strings
+        if (result && 
+            typeof result === 'object' && 
+            result.headerName && 
+            typeof result.headerName === 'string' && 
+            result.headerName.trim() &&
+            result.headerValue && 
+            typeof result.headerValue === 'string' && 
+            result.headerValue.trim()) {
+            
+            // Check if header already exists in headers section
+            const headerItems = document.querySelectorAll('#settingsHeaders .header-item');
+            let existingHeaderItem = null;
+            
+            headerItems.forEach(item => {
+                const nameInput = item.querySelector('.name-input');
+                if (nameInput && nameInput.value.toLowerCase() === result.headerName.trim().toLowerCase()) {
+                    existingHeaderItem = item;
+                }
+            });
+            
+            if (existingHeaderItem) {
+                // Update existing header
+                const valueInput = existingHeaderItem.querySelector('.value-input');
+                if (valueInput) {
+                    valueInput.value = result.headerValue.trim();
+                }
+            } else {
+                // Add new header to headers section
+                this.addHeaderField(result.headerName.trim(), result.headerValue.trim());
+            }
+            
+            // Update emoji state
+            this.updateAuthEmoji();
+            
+            authEmoji.textContent = '✅';
+            authEmoji.classList.remove('unlocking');
+            authEmoji.classList.add('success');
+            authButton.disabled = false;
+            authButton.classList.remove('loading');
+            if (buttonText) buttonText.textContent = 'Header Added';
+            if (buttonLoader) buttonLoader.style.display = 'none';
+            this.showToast('Authorization header added successfully!', 'success');
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                authEmoji.textContent = '🔓';
+                authEmoji.classList.remove('success');
+                if (buttonText) buttonText.textContent = 'Get Header';
+                this.updateAuthEmoji(); // Update emoji based on current headers
+            }, 3000);
+        } else {
+            // Invalid result - show error
+            this._handleAuthTestError(
+                new Error('Invalid auth result format. Expected: { headerName: string, headerValue: string }'),
+                authButton, 
+                authEmoji
+            );
+        }
+    },
+    
+    // Handle auth test error
+    _handleAuthTestError: function(error, authButton, authEmoji) {
+        const buttonText = authButton.querySelector('.auth-card-button-text');
+        const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+        
+        console.error('Auth test failed:', error);
+        authEmoji.textContent = '🔒';
+        authEmoji.classList.remove('unlocking', 'success');
+        authButton.disabled = false;
+        authButton.classList.remove('loading');
+        if (buttonText) buttonText.textContent = 'Try Again';
+        if (buttonLoader) buttonLoader.style.display = 'none';
+        this.showToast('Authentication test failed: ' + (error.message || 'Unknown error'), 'error');
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            if (buttonText) buttonText.textContent = 'Get Header';
+            this.updateAuthEmoji();
+        }, 3000);
+    },
+    
+    // Update auth emoji based on stored header or function availability
+    updateAuthEmoji: function() {
+        const authEmoji = document.getElementById('settingsAuthEmoji');
+        if (!authEmoji) return;
+        
+        // Check if there's an authorization header in the headers section
+        const headerItems = document.querySelectorAll('#settingsHeaders .header-item');
+        let hasAuthHeader = false;
+        
+        headerItems.forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const valueInput = item.querySelector('.value-input');
+            if (nameInput && nameInput.value.toLowerCase() === 'authorization' && 
+                valueInput && valueInput.value.trim()) {
+                hasAuthHeader = true;
+            }
+        });
+        
+        // Update emoji based on whether header exists
+        if (hasAuthHeader) {
+            authEmoji.textContent = '🔓'; // Unlocked if header exists
+            authEmoji.classList.remove('success', 'unlocking');
+        } else if (typeof window.getAuthHeader === 'function') {
+            authEmoji.textContent = '🔒'; // Locked if function exists but no header yet
+            authEmoji.classList.remove('success', 'unlocking');
+        } else {
+            authEmoji.textContent = '🔒'; // Locked if no function
+            authEmoji.classList.remove('success', 'unlocking');
+        }
     },
     
     // Add header field

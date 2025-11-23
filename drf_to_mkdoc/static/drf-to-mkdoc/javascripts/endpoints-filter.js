@@ -159,6 +159,11 @@ function debounce(func, delay) {
 document.addEventListener('DOMContentLoaded', function() {
     // Example filter implementation
     const container = document.getElementById('fullscreen-container');
+    
+    // Check if container exists before proceeding
+    if (!container) {
+        return;
+    }
 
     // Add filter controls
     const filterControls = document.createElement('div');
