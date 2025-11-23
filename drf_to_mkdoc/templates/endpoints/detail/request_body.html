@@ -3,7 +3,53 @@
 {% if request_body %}
 ## Request Body
 
-{% if request_example %}
+{% if request_examples|length > 1 %}
+<!-- Multiple examples with tabs -->
+<div class="example-tabs-container">
+    <div class="example-tabs" role="tablist">
+        {% for example in request_examples %}
+        <button 
+            class="example-tab {% if forloop.first %}active{% endif %}" 
+            role="tab" 
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-controls="example-{{ forloop.counter0 }}"
+            data-example-index="{{ forloop.counter0 }}"
+            data-example='{{ example.value|escape_json_for_attr }}'>
+            {% if example.summary %}{{ example.summary }}{% else %}Example {{ forloop.counter }}{% endif %}
+        </button>
+        {% endfor %}
+    </div>
+    
+    {% for example in request_examples %}
+    <div 
+        id="example-{{ forloop.counter0 }}" 
+        class="example-tab-content {% if forloop.first %}active{% endif %}" 
+        role="tabpanel"
+        aria-labelledby="example-tab-{{ forloop.counter0 }}">
+        {% if example.description %}
+        <p class="example-description">{{ example.description }}</p>
+        {% endif %}
+        <div class="request-example" data-example='{{ example.value|escape_json_for_attr }}' data-example-index="{{ forloop.counter0 }}">
+```json
+{{ example.value|json_for_display }}
+```
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif request_examples|length == 1 %}
+<!-- Single example, no tabs needed -->
+{% with example=request_examples.0 %}
+{% if example.description %}
+<p class="example-description">{{ example.description }}</p>
+{% endif %}
+<div class="request-example" data-example='{{ example.value|escape_json_for_attr }}' data-example-index="0">
+```json
+{{ example.value|json_for_display }}
+```
+</div>
+{% endwith %}
+{% elif request_example %}
 <div class="request-example" data-example='{{ request_example|format_json }}'>
 {{ request_example|format_json }}
 </div>

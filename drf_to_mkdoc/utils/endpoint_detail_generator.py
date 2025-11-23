@@ -2,6 +2,7 @@ import ast
 import inspect
 import json
 import logging
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -703,17 +704,120 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
     return formatted_responses
 
 
+def _extract_request_examples(
+    operation_id: str, request_body: dict, components: dict
+) -> list[dict[str, Any]]:
+    """
+    Extract all examples from requestBody.content[mediaType].examples.
+    
+    Returns a list of example dictionaries with keys:
+    - summary: The example summary (or example key as fallback)
+    - value: The example value (formatted JSON)
+    - description: Optional description
+    
+    Falls back to generating a single example from schema if no examples field exists.
+    """
+    if not request_body:
+        return []
+    
+    content = request_body.get("content", {})
+    if not content:
+        return []
+    
+    # Check for examples in application/json (most common)
+    json_content = content.get("application/json", {})
+    examples_field = json_content.get("examples", {})
+    
+    # If examples field exists and is not empty, extract all examples
+    if examples_field and isinstance(examples_field, dict) and examples_field:
+        extracted_examples = []
+        for example_key, example_obj in examples_field.items():
+            if not isinstance(example_obj, dict):
+                continue
+            
+            # Extract value from example object
+            example_value = example_obj.get("value")
+            if example_value is None:
+                continue
+            
+            # Format the value as JSON string
+            try:
+                formatted_value = json.dumps(example_value, indent=2)
+            except (TypeError, ValueError):
+                # If value can't be serialized, skip this example
+                logger.warning(
+                    f"Failed to serialize example '{example_key}' for operation {operation_id}"
+                )
+                continue
+            
+            extracted_examples.append({
+                "summary": example_obj.get("summary", example_key),
+                "value": formatted_value,
+                "description": example_obj.get("description", ""),
+                "key": example_key,
+            })
+        
+        if extracted_examples:
+            return extracted_examples
+    
+    # Fallback: Generate example from schema if no examples field exists
+    schema = json_content.get("schema")
+    if schema:
+        example_value = _format_schema_for_display(operation_id, schema, components, False)
+        if example_value:
+            # If example_value is already a string (JSON), use it directly
+            if isinstance(example_value, str):
+                try:
+                    # Try to parse and reformat to ensure it's valid JSON
+                    parsed = json.loads(example_value) if not example_value.startswith("```") else None
+                    if parsed is not None:
+                        formatted_value = json.dumps(parsed, indent=2)
+                    else:
+                        # Extract JSON from markdown code block if present
+                        json_match = re.search(r"```json\s*\n(.*?)\n```", example_value, re.DOTALL)
+                        if json_match:
+                            formatted_value = json_match.group(1).strip()
+                        else:
+                            formatted_value = example_value
+                except (json.JSONDecodeError, TypeError):
+                    formatted_value = example_value
+            else:
+                formatted_value = json.dumps(example_value, indent=2)
+            
+            return [{
+                "summary": "Example",
+                "value": formatted_value,
+                "description": "",
+                "key": "default",
+            }]
+    
+    return []
+
+
 def create_endpoint_page(
     path: str, method: str, endpoint_data: dict[str, Any], components: dict[str, Any]
 ) -> str:
     """Create a documentation page for a single API endpoint."""
     operation_id = endpoint_data.get("operationId", "")
+    request_body = endpoint_data.get("requestBody", {})
+    
+    # Extract all request examples (from examples field or generate from schema)
+    request_examples = _extract_request_examples(operation_id, request_body, components)
+    
+    # For backward compatibility, provide request_example only when request_examples is empty
+    # This ensures the fallback template path works correctly
     request_schema = (
-        endpoint_data.get("requestBody", {})
-        .get("content", {})
-        .get("application/json", {})
-        .get("schema")
+        request_body.get("content", {}).get("application/json", {}).get("schema")
     )
+    if not request_examples and request_schema:
+        # No examples found, use original format for backward compatibility
+        request_example = _format_schema_for_display(
+            operation_id, request_schema, components, False
+        )
+    else:
+        # Either we have examples (which will be used by template) or no schema
+        # Set to empty string to avoid confusion
+        request_example = ""
 
     # Prepare template context
     context = {
@@ -726,12 +830,9 @@ def create_endpoint_page(
         "path_params": [
             p for p in endpoint_data.get("parameters", []) if p.get("in") == "path"
         ],
-        "request_body": endpoint_data.get("requestBody", {}),
-        "request_example": _format_schema_for_display(
-            operation_id, request_schema, components, False
-        )
-        if request_schema
-        else "",
+        "request_body": request_body,
+        "request_examples": request_examples,
+        "request_example": request_example,  # Keep for backward compatibility
         "responses": _prepare_response_data(
             operation_id, endpoint_data.get("responses", {}), components
         ),
