@@ -5,6 +5,7 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
 from drf_to_mkdoc.utils.commons.operation_utils import extract_viewset_from_operation_id
 
 
@@ -77,6 +78,7 @@ class EndpointsIndexGenerator:
             "scripts": scripts,
             "endpoints_by_app": processed_endpoints,
             "active_filters": self.active_filters,
+            **get_auth_config(),
         }
 
         content = render_to_string("endpoints/list/base.html", context)

@@ -17,7 +17,8 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_viewset_name_from_operation_id,
 )
 from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
-from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
+from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
+from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema, is_endpoint_secure
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )
@@ -859,6 +860,8 @@ def create_endpoint_page(
             "javascripts/try-out/main.js",
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
+        "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+        **get_auth_config(),
     }
 
     # Add query parameters if it's a list endpoint
@@ -917,6 +920,7 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
                 "operation_id": operation_id,
                 "filename": filename,
                 "data": endpoint_data,
+                "auth_required": is_endpoint_secure(operation_id, endpoint_data),
             }
 
             endpoints_by_app[app_name].append(endpoint_info)
