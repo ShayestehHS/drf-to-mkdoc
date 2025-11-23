@@ -115,14 +115,19 @@ const FormManager = {
     },
 
     initializeRequestBody: function() {
-        const requestExample = document.querySelector('.request-example');
+        // Get all request examples (support multiple examples)
+        const requestExamples = document.querySelectorAll('.request-example');
         const requestBody = document.getElementById('requestBody');
-        let example = null;
+        
+        // Use the first example (index 0) if multiple exist
+        const requestExample = requestExamples.length > 0 ? requestExamples[0] : null;
+        
         if (requestExample && requestBody) {
+            let example = null;
             try {
                 example = requestExample.getAttribute('data-example');
                 if (example) {
-                    // Remove markdown code block syntax if present
+                    // Remove markdown code block syntax if present (for backward compatibility)
                     example = example.replace(/^```json\n/, '').replace(/```$/, '');
                     // Remove any leading/trailing whitespace
                     example = example.trim();
