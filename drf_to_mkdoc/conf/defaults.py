@@ -18,5 +18,4 @@ DEFAULTS = {
     # Auto-authentication settings
     "ENABLE_AUTO_AUTH": False,  # Enable/disable auto-authentication feature
     "AUTH_FUNCTION_JS": None,  # JavaScript code or path to JS file containing getAuthHeader function
-    "AUTH_USERNAME": None,  # Default username for authentication
 }

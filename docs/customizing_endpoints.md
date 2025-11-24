@@ -212,10 +212,9 @@ DRF_TO_MKDOC = {
     'ENABLE_AUTO_AUTH': True,  # Enable auto-authentication (default: False)
     'AUTH_FUNCTION_JS': '''
         function getAuthHeader() {
-            // Read from global config or try-it-out settings
-            const config = window.DRF_TO_MKDOC_AUTH_CONFIG || {};
-            const username = config.defaultUsername || 'admin';
-            const password = 'password'; // Replace with your own secret handling
+            // Fetch or derive credentials however your docs app requires
+            const username = 'docs-user'; // Replace with secure retrieval
+            const password = 'password';  // Never store real secrets in source control
             
             // Generate auth header (e.g., Basic Auth, Bearer token, etc.)
             const credentials = btoa(username + ':' + password);
@@ -225,7 +224,6 @@ DRF_TO_MKDOC = {
             };
         }
     ''',  # JavaScript code or path to JS file
-    'AUTH_USERNAME': 'admin',  # Default username (optional)
 }
 ```
 
@@ -234,8 +232,8 @@ DRF_TO_MKDOC = {
 The `getAuthHeader` function must:
 - Be named exactly `getAuthHeader`
 - Accept no parameters
-- Return an object with `headerName` and `headerValue` properties
-- Read credentials from `window.DRF_TO_MKDOC_AUTH_CONFIG` or try-it-out settings
+- Return an object with `headerName` and `headerValue` properties (or a Promise that resolves to that object)
+- Handle any credential lookup or authentication flow internally (e.g., call your auth API, read from secure storage, etc.)
 
 #### Security Override in Custom Schema
 
@@ -255,7 +253,7 @@ You can override security requirements for specific endpoints in `custom_schema.
 
 #### Behavior
 
-- **When enabled**: Authentication headers are automatically added to requests for secured endpoints. The function reads from try-it-out settings if available, otherwise uses default settings.
+- **When enabled**: Authentication headers are automatically added to requests for secured endpoints. Your `getAuthHeader` implementation is responsible for returning the correct header for the current user/context.
 - **When disabled**: Users can manually set authentication credentials in the try-it-out settings modal (username/password fields are shown).
 
 #### Example: Bearer Token Authentication
@@ -281,7 +279,6 @@ DRF_TO_MKDOC = {
 DRF_TO_MKDOC = {
     'ENABLE_AUTO_AUTH': True,
     'AUTH_FUNCTION_JS': 'path/to/auth.js',  # Path to JavaScript file
-    'AUTH_USERNAME': 'user@example.com',
 }
 ```
 
@@ -289,16 +286,21 @@ Where `auth.js` contains:
 
 ```javascript
 async function getAuthHeader() {
-    const config = window.DRF_TO_MKDOC_AUTH_CONFIG || {};
-    const username = config.defaultUsername;
-    
+    // Fetch credentials from whatever secure source you prefer
+    const username = 'user@example.com';
+    const password = 'password-from-secure-source';
+
     // Call your authentication service
     const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password: 'password-from-secure-source' })
+        body: JSON.stringify({ username, password })
     });
-    
+
+    if (!response.ok) {
+        throw new Error('Authentication failed');
+    }
+
     const data = await response.json();
     return {
         headerName: 'Authorization',

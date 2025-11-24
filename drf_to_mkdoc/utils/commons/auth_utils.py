@@ -67,7 +67,6 @@ def get_auth_config() -> dict:
         Dictionary with auth configuration including:
         - enable_auto_auth: bool
         - auth_function_js: str or None
-        - auth_username: str or None
     """
     enable_auto_auth = drf_to_mkdoc_settings.ENABLE_AUTO_AUTH
     auth_function_js = None
@@ -78,6 +77,5 @@ def get_auth_config() -> dict:
     return {
         "enable_auto_auth": enable_auto_auth,
         "auth_function_js": auth_function_js,
-        "auth_username": drf_to_mkdoc_settings.AUTH_USERNAME,
     }
 
