@@ -1,7 +1,6 @@
 """Utilities for handling authentication in auto-auth feature."""
-import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 
@@ -21,38 +20,42 @@ def load_auth_function_js() -> Optional[str]:
     if not auth_function_js:
         return None
     
-    # Check if it's JavaScript code (contains function definition)
-    if "function" in auth_function_js or "=>" in auth_function_js:
-        return auth_function_js
-    
-    # Otherwise, treat as file path
-    auth_path = Path(auth_function_js)
-    
-    # If relative path, try relative to project root
-    if not auth_path.is_absolute():
-        # Try to find the project root (where manage.py or pyproject.toml is)
+    auth_path_value = Path(auth_function_js)
+    candidate_paths: List[Path] = []
+
+    if auth_path_value.is_absolute():
+        candidate_paths.append(auth_path_value)
+    else:
         current_dir = Path.cwd()
         project_root = None
-        
-        # Look for common project root indicators
-        for parent in [current_dir] + list(current_dir.parents):
+
+        for parent in [current_dir, *current_dir.parents]:
             if (parent / "manage.py").exists() or (parent / "pyproject.toml").exists():
                 project_root = parent
                 break
-        
+
         if project_root:
-            auth_path = project_root / auth_function_js
-        else:
-            auth_path = current_dir / auth_function_js
-    
-    # Read the file
-    if auth_path.exists() and auth_path.is_file():
-        try:
-            with auth_path.open("r", encoding="utf-8") as f:
-                return f.read()
-        except Exception:
-            return None
-    
+            candidate_paths.append(project_root / auth_function_js)
+        candidate_paths.append(current_dir / auth_function_js)
+
+    seen_paths = set()
+    for candidate in candidate_paths:
+        resolved_candidate = candidate.resolve()
+        if resolved_candidate in seen_paths:
+            continue
+        seen_paths.add(resolved_candidate)
+
+        if resolved_candidate.exists() and resolved_candidate.is_file():
+            try:
+                with resolved_candidate.open("r", encoding="utf-8") as file_obj:
+                    return file_obj.read()
+            except (OSError, UnicodeDecodeError):
+                return None
+
+    # Fall back to treating the value as inline JS only if no file was found/read
+    if "function" in auth_function_js or "=>" in auth_function_js:
+        return auth_function_js
+
     return None
 
 

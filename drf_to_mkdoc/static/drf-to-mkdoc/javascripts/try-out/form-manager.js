@@ -207,7 +207,11 @@ const FormManager = {
             
             existingHeaders.forEach(item => {
                 const nameInput = item.querySelector('.name-input');
-                if (nameInput && nameInput.value.toLowerCase() === 'authorization') {
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
                     const valueInput = item.querySelector('.value-input');
                     if (valueInput && valueInput.value.trim()) {
                         hasAuthHeader = true;
@@ -416,7 +420,11 @@ const FormManager = {
             
             existingHeaders.forEach(item => {
                 const nameInput = item.querySelector('.name-input');
-                if (nameInput && nameInput.value.toLowerCase() === 'authorization') {
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
                     hasAuthHeader = true;
                 }
             });
@@ -452,9 +460,18 @@ const FormManager = {
         const existingHeaders = headerList.querySelectorAll('.header-item');
         let headerExists = false;
         
+        const normalizedTargetName =
+            typeof headerName === 'string' ? headerName.trim().toLowerCase() : '';
+        const sanitizedHeaderName =
+            typeof headerName === 'string' ? headerName.trim() : headerName;
+
         existingHeaders.forEach(item => {
             const nameInput = item.querySelector('.name-input');
-            if (nameInput && nameInput.value.toLowerCase() === headerName.toLowerCase()) {
+            const normalizedExisting =
+                nameInput && typeof nameInput.value === 'string'
+                    ? nameInput.value.trim().toLowerCase()
+                    : null;
+            if (normalizedExisting === normalizedTargetName) {
                 // Update existing header
                 const valueInput = item.querySelector('.value-input');
                 if (valueInput) {
@@ -469,7 +486,9 @@ const FormManager = {
             const headerItem = this.createHeaderItem();
             const nameInput = headerItem.querySelector('.name-input');
             const valueInput = headerItem.querySelector('.value-input');
-            if (nameInput) nameInput.value = headerName;
+            if (nameInput && sanitizedHeaderName) {
+                nameInput.value = sanitizedHeaderName;
+            }
             if (valueInput) valueInput.value = headerValue;
             headerList.appendChild(headerItem);
         }
@@ -746,7 +765,11 @@ const FormManager = {
             let wasAuthHeader = false;
             if (isHeaderItem) {
                 const nameInput = item.querySelector('.name-input');
-                if (nameInput && nameInput.value.toLowerCase() === 'authorization') {
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
                     wasAuthHeader = true;
                 }
             }
