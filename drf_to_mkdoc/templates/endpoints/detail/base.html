@@ -39,7 +39,6 @@
         enabled: {{ enable_auto_auth|yesno:"true,false" }},
         authRequired: {{ auth_required|yesno:"true,false" }},
         defaultUsername: {% if auth_username %}"{{ auth_username }}"{% else %}null{% endif %},
-        defaultPassword: {% if auth_password %}"{{ auth_password }}"{% else %}null{% endif %},
     };
     {% if auth_function_js %}
     {{ auth_function_js|safe }}

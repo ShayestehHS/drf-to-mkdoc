@@ -215,7 +215,7 @@ DRF_TO_MKDOC = {
             // Read from global config or try-it-out settings
             const config = window.DRF_TO_MKDOC_AUTH_CONFIG || {};
             const username = config.defaultUsername || 'admin';
-            const password = config.defaultPassword || 'password';
+            const password = 'password'; // Replace with your own secret handling
             
             // Generate auth header (e.g., Basic Auth, Bearer token, etc.)
             const credentials = btoa(username + ':' + password);
@@ -226,7 +226,6 @@ DRF_TO_MKDOC = {
         }
     ''',  # JavaScript code or path to JS file
     'AUTH_USERNAME': 'admin',  # Default username (optional)
-    'AUTH_PASSWORD': 'password',  # Default password (optional)
 }
 ```
 
@@ -267,15 +266,12 @@ DRF_TO_MKDOC = {
     'AUTH_FUNCTION_JS': '''
         function getAuthHeader() {
             // Get token from settings or make API call
-            const config = window.DRF_TO_MKDOC_AUTH_CONFIG || {};
-            const token = config.defaultPassword || 'your-token-here';
             return {
                 headerName: 'Authorization',
-                headerValue: 'Bearer ' + token
+                headerValue: 'Bearer ' + 'your-token-here'
             };
         }
     ''',
-    'AUTH_PASSWORD': 'your-default-token',
 }
 ```
 
@@ -286,7 +282,6 @@ DRF_TO_MKDOC = {
     'ENABLE_AUTO_AUTH': True,
     'AUTH_FUNCTION_JS': 'path/to/auth.js',  # Path to JavaScript file
     'AUTH_USERNAME': 'user@example.com',
-    'AUTH_PASSWORD': 'secret',
 }
 ```
 
@@ -296,13 +291,12 @@ Where `auth.js` contains:
 async function getAuthHeader() {
     const config = window.DRF_TO_MKDOC_AUTH_CONFIG || {};
     const username = config.defaultUsername;
-    const password = config.defaultPassword;
     
     // Call your authentication service
     const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password: 'password-from-secure-source' })
     });
     
     const data = await response.json();

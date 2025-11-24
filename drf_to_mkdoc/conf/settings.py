@@ -18,7 +18,6 @@ class DRFToMkDocSettings:
         "ENABLE_AUTO_AUTH": bool,
         "AUTH_FUNCTION_JS": (str, type(None)),
         "AUTH_USERNAME": (str, type(None)),
-        "AUTH_PASSWORD": (str, type(None)),
     }
 
     settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {

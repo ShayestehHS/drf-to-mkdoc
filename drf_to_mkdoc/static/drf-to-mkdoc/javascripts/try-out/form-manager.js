@@ -842,16 +842,19 @@ const FormManager = {
 
     getRequestHeaders: function() {
         const headers = {};
-        const headerInputs = document.querySelectorAll('#requestHeaders .kv-item');
+        const headerItems = document.querySelectorAll('#requestHeaders .header-item');
         
-        headerInputs.forEach(item => {
-            const inputs = item.querySelectorAll('input');
-            if (inputs.length === 2) {
-                const name = inputs[0].value.trim();
-                const value = inputs[1].value.trim();
-                if (name && value) {
-                    headers[name] = value;
-                }
+        headerItems.forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const valueInput = item.querySelector('.value-input');
+            if (!nameInput || !valueInput) {
+                return;
+            }
+            
+            const name = nameInput.value.trim();
+            const value = valueInput.value.trim();
+            if (name && value) {
+                headers[name] = value;
             }
         });
         
