@@ -205,6 +205,8 @@ DRF_TO_MKDOC = {
 
 The auto-authentication feature automatically generates authentication headers for endpoints that require authentication. This feature can be enabled/disabled and uses a configurable JavaScript function to generate header name and value.
 
+> ⚠️ **Security note:** Auto-auth is intended for local or staging documentation environments only. Never rely on it for production portals that expose real credentials or tokens—ship a production-ready auth experience instead.
+
 #### Configuration
 
 ```python
