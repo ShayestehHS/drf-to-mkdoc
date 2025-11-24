@@ -72,9 +72,7 @@ def is_endpoint_secure(operation_id: str, endpoint_data: dict[str, Any]) -> bool
     custom_schema_data = get_custom_schema()
     if operation_id in custom_schema_data:
         custom_data = custom_schema_data[operation_id]
-        # Check for explicit security flags
-        if "is_secure" in custom_data:
-            return bool(custom_data["is_secure"])
+        # Check for explicit security flag
         if "need_authentication" in custom_data:
             return bool(custom_data["need_authentication"])
     
@@ -157,14 +155,14 @@ def _apply_custom_overrides(
         path, method = op_map[operation_id]
         target_schema = base_schema["paths"][path][method]
 
-        # Handle security overrides (is_secure or need_authentication)
-        if "is_secure" in overrides or "need_authentication" in overrides:
-            is_secure = overrides.get("is_secure") or overrides.get("need_authentication")
-            if is_secure is True:
+        # Handle security override (need_authentication)
+        if "need_authentication" in overrides:
+            needs_auth = overrides.get("need_authentication")
+            if needs_auth is True:
                 # Force security requirement
                 if "security" not in target_schema or not target_schema["security"]:
                     target_schema["security"] = [{}]  # Empty dict means auth required
-            elif is_secure is False:
+            elif needs_auth is False:
                 # Remove security requirement
                 target_schema["security"] = []
 

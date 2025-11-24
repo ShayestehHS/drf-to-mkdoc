@@ -17,5 +17,5 @@ DEFAULTS = {
     "DJANGO_APPS": [],  # If it is empty list, there is no any exclusion
     # Auto-authentication settings
     "ENABLE_AUTO_AUTH": False,  # Enable/disable auto-authentication feature
-    "AUTH_FUNCTION_JS": None,  # JavaScript code or path to JS file containing getAuthHeader function
+    "AUTH_FUNCTION_JS": "",  # JavaScript code or path to JS file containing getAuthHeader function
 }

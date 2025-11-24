@@ -244,18 +244,17 @@ You can override security requirements for specific endpoints in `custom_schema.
 ```json
 {
   "your_operation_id": {
-    "is_secure": true,  // Force authentication requirement
-    "need_authentication": false  // Alternative flag name
+    "need_authentication": true  // Force authentication requirement
   }
 }
 ```
 
-- `is_secure: true` or `need_authentication: true` - Endpoint requires authentication
-- `is_secure: false` or `need_authentication: false` - Endpoint does not require authentication (overrides OpenAPI security)
+- `need_authentication: true` - Endpoint requires authentication
+- `need_authentication: false` - Endpoint does not require authentication (overrides OpenAPI security)
 
 #### Behavior
 
-- **When enabled**: Authentication headers are automatically added to requests for secured endpoints. Your `getAuthHeader` implementation is responsible for returning the correct header for the current user/context.
+- **When enabled**: Secured endpoints show an auto-auth prompt that calls your `getAuthHeader` helper and injects the returned header into the current try-it-out form. Right before submission we run a last-minute `getAuthHeader` call (if needed) to ensure the header field is populated, but the header ultimately lives in the form inputs—not in some hidden transport layer.
 - **When disabled**: Users can manually set authentication credentials in the try-it-out settings modal (username/password fields are shown).
 
 #### Example: Bearer Token Authentication

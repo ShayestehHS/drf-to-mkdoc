@@ -16,7 +16,7 @@ class DRFToMkDocSettings:
         "SERIALIZERS_INHERITANCE_DEPTH": int,
         "DJANGO_APPS": list,
         "ENABLE_AUTO_AUTH": bool,
-        "AUTH_FUNCTION_JS": (str, type(None)),
+        "AUTH_FUNCTION_JS": str,
     }
 
     settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {
@@ -39,21 +39,16 @@ class DRFToMkDocSettings:
 
     def _validate_type(self, key: str, value: Any) -> None:
         """Validate the type of setting value."""
-        if key in self.settings_types:
-            expected_type = self.settings_types[key]
-            # Handle tuple of types (e.g., (str, type(None)) for optional values)
-            if isinstance(expected_type, tuple):
-                if not any(isinstance(value, t) for t in expected_type):
-                    type_names = ', '.join(t.__name__ for t in expected_type)
-                    raise TypeError(
-                        f"DRF_TO_MKDOC setting '{key}' must be one of types ({type_names}), "
-                        f"got {type(value).__name__} instead."
-                    )
-            elif not isinstance(value, expected_type):
-                raise TypeError(
-                    f"DRF_TO_MKDOC setting '{key}' must be of type {expected_type.__name__}, "
-                    f"got {type(value).__name__} instead."
-                )
+        if key not in self.settings_types:
+            return
+
+        expected_type = self.settings_types[key]
+
+        if not isinstance(value, expected_type):
+            raise TypeError(
+                f"DRF_TO_MKDOC setting '{key}' must be of type {expected_type.__name__}, "
+                f"got {type(value).__name__} instead."
+            )
 
     def _validate_range(self, key: str, value: Any) -> None:
         """Validate the range of a setting value."""
