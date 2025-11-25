@@ -17,7 +17,8 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_viewset_name_from_operation_id,
 )
 from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
-from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema
+from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
+from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema, is_endpoint_secure
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )
@@ -629,37 +630,6 @@ def _generate_examples(operation_id: str, schema: dict, components: dict) -> lis
     return examples
 
 
-def _is_empty_response(schema: dict, examples: list) -> bool:
-    """Check if response is empty or contains only 'Ok' message."""
-    # Check if schema is empty or has no properties
-    if not schema or schema.get("type") != "object":
-        # If no schema or not an object, check examples
-        if not examples or examples == [None] or examples == []:
-            return True
-    
-    # Check if schema has no properties (empty object)
-    if schema.get("type") == "object" and not schema.get("properties"):
-        return True
-    
-    # Check if examples contain only empty objects or "Ok" messages
-    for example in examples:
-        if example is None:
-            continue
-        if isinstance(example, dict):
-            # Check if it's an empty dict
-            if not example:
-                return True
-            # Check if it only contains "message": "Ok" or similar
-            if len(example) == 1 and "message" in example:
-                message_value = example.get("message", "").strip()
-                if message_value.lower() in ("ok", "success"):
-                    return True
-        elif isinstance(example, (list, str)) and not example:
-            return True
-    
-    return False
-
-
 def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
     """Prepare response data for template rendering."""
 
@@ -681,24 +651,11 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
         schema = content.get("application/json", {}).get("schema", {})
         examples = _generate_examples(operation_id, schema, components)
         
-        # Check if this is a 200 response with no meaningful data
-        if status_code == "200" and _is_empty_response(schema, examples):
-            logger.debug(
-                f"Converting empty 200 response to 204 No Content for operation {operation_id}"
-            )
-            # Convert to 204 No Content
-            formatted_response = {
-                "status_code": "204",
-                "description": response_data.get("description", "") or 
-                              "The request was successful. No content is returned in the response body.",
-                "examples": [],  # 204 responses have no body
-            }
-        else:
-            formatted_response = {
-                "status_code": status_code,
-                "description": response_data.get("description", ""),
-                "examples": examples,
-            }
+        formatted_response = {
+            "status_code": status_code,
+            "description": response_data.get("description", ""),
+            "examples": examples,
+        }
         
         formatted_responses.append(formatted_response)
     return formatted_responses
@@ -850,6 +807,7 @@ def create_endpoint_page(
             "stylesheets/try-out/main.css",
         ],
         "scripts": [
+            "javascripts/try-out/auth-handler.js",  # Load before form-manager (dependency)
             "javascripts/try-out/modal.js",
             "javascripts/try-out/response-modal.js",
             "javascripts/try-out/tabs.js",
@@ -859,6 +817,8 @@ def create_endpoint_page(
             "javascripts/try-out/main.js",
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
+        "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+        **get_auth_config(),
     }
 
     # Add query parameters if it's a list endpoint
@@ -917,6 +877,7 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
                 "operation_id": operation_id,
                 "filename": filename,
                 "data": endpoint_data,
+                "auth_required": is_endpoint_secure(operation_id, endpoint_data),
             }
 
             endpoints_by_app[app_name].append(endpoint_info)

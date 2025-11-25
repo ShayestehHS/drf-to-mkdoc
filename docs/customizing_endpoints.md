@@ -200,3 +200,186 @@ DRF_TO_MKDOC = {
     },
 }
 ```
+
+### Auto-Authentication
+
+The auto-authentication feature automatically generates authentication headers for endpoints that require authentication. This feature can be enabled/disabled and uses a configurable JavaScript function to generate header name and value.
+
+> ⚠️ **Security note:** Auto-auth is intended for local or staging documentation environments only. Never rely on it for production portals that expose real credentials or tokens—ship a production-ready auth experience instead.
+
+#### Configuration
+
+```python
+DRF_TO_MKDOC = {
+    'ENABLE_AUTO_AUTH': True,  # Enable auto-authentication (default: False)
+    'AUTH_FUNCTION_JS': '''
+        function getAuthHeader() {
+            // Fetch or derive credentials however your docs app requires
+            const username = 'docs-user'; // Replace with secure retrieval
+            const password = 'password';  // Never store real secrets in source control
+            
+            // Generate auth header (e.g., Basic Auth, Bearer token, etc.)
+            const credentials = btoa(username + ':' + password);
+            return {
+                headerName: 'Authorization',
+                headerValue: 'Basic ' + credentials
+            };
+        }
+    ''',  # JavaScript code or path to JS file
+}
+```
+
+#### JavaScript Function Requirements
+
+The `getAuthHeader` function must:
+- Be named exactly `getAuthHeader`
+- Accept no parameters
+- Return an object with `headerName` and `headerValue` properties (or a Promise that resolves to that object)
+- Handle any credential lookup or authentication flow internally (e.g., call your auth API, read from secure storage, etc.)
+
+#### Security Override in Custom Schema
+
+You can override security requirements for specific endpoints in `custom_schema.json`:
+
+```json
+{
+  "your_operation_id": {
+    "need_authentication": true  // Force authentication requirement
+  }
+}
+```
+
+- `need_authentication: true` - Endpoint requires authentication
+- `need_authentication: false` - Endpoint does not require authentication (overrides OpenAPI security)
+
+#### Behavior
+
+- **When enabled**: Secured endpoints show an auto-auth prompt that calls your `getAuthHeader` helper and injects the returned header into the current try-it-out form. Right before submission we run a last-minute `getAuthHeader` call (if needed) to ensure the header field is populated, but the header ultimately lives in the form inputs—not in some hidden transport layer.
+- **When disabled**: Users can manually set authentication credentials in the try-it-out settings modal (username/password fields are shown).
+
+#### Example: Bearer Token Authentication
+
+```python
+DRF_TO_MKDOC = {
+    'ENABLE_AUTO_AUTH': True,
+    'AUTH_FUNCTION_JS': '''
+        function getAuthHeader() {
+            // Get token from settings or make API call
+            return {
+                headerName: 'Authorization',
+                headerValue: 'Bearer ' + 'your-token-here'
+            };
+        }
+    ''',
+}
+```
+
+#### Example: Custom Authentication Service
+
+```python
+DRF_TO_MKDOC = {
+    'ENABLE_AUTO_AUTH': True,
+    'AUTH_FUNCTION_JS': 'static/js/auth.js',  # Path to JavaScript file (relative to project root)
+}
+```
+
+> ⚠️ **Security Note:** File paths must be within your project's trusted directories (e.g., `static/`). Avoid loading auth functions from user-controlled or external paths.
+
+Where `auth.js` contains:
+
+```javascript
+async function getAuthHeader() {
+    // Fetch credentials from whatever secure source you prefer
+    const username = 'user@example.com';
+    const password = 'password-from-secure-source';
+
+    // Call your authentication service
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+
+    if (!response.ok) {
+        throw new Error('Authentication failed');
+    }
+
+    const data = await response.json();
+    return {
+        headerName: 'Authorization',
+        headerValue: 'Bearer ' + data.token
+    };
+}
+```
+
+#### Content Security Policy (CSP)
+
+If your site uses Content Security Policy headers, you'll need to configure CSP to allow the auto-authentication feature to work. The feature injects inline JavaScript from the `AUTH_FUNCTION_JS` setting.
+
+### Option 1: Allow inline scripts (less secure)
+
+If you're using `django-csp` or similar middleware, you can allow inline scripts:
+
+```python
+# settings.py
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'"]
+```
+
+> ⚠️ **Security Warning:** Allowing `'unsafe-inline'` reduces CSP protection. Only use this in development or internal documentation environments.
+
+### Option 2: Use nonces (recommended)
+
+For better security, use CSP nonces. The templates automatically support nonces if available:
+
+1. Configure your CSP middleware to generate nonces:
+
+```python
+# If using django-csp
+CSP_SCRIPT_SRC = ["'self'"]
+CSP_INCLUDE_NONCE_IN = ['script-src']
+```
+
+2. Make the nonce available in request context:
+
+```python
+# middleware.py or view context processor
+def csp_nonce(request):
+    if hasattr(request, 'csp_nonce'):
+        return {'csp_nonce': request.csp_nonce}
+    return {}
+```
+
+3. The templates will automatically use the nonce:
+
+```html
+<script nonce="{{ request.csp_nonce }}">
+    // Auth function code
+</script>
+```
+
+### Option 3: External script file (most secure)
+
+For maximum security, store your auth function in an external JavaScript file and reference it:
+
+> **Why this is more secure:** External files work natively with strict CSP policies (e.g., `CSP_SCRIPT_SRC = ["'self'"]`) without requiring `'unsafe-inline'` or nonces. This prevents inline script injection attacks and is the recommended approach for production or security-sensitive environments.
+
+```python
+DRF_TO_MKDOC = {
+    'ENABLE_AUTO_AUTH': True,
+    'AUTH_FUNCTION_JS': 'static/js/auth-config.js',  # External file
+}
+```
+
+Then load it as a regular script tag (no inline-script CSP exceptions needed):
+
+```html
+<script src="{% static 'js/auth-config.js' %}" defer></script>
+```
+
+### Security Best Practices
+
+- Never store production credentials in JavaScript code
+- Use external files or secure credential storage for production
+- Implement rate limiting on authentication endpoints
+- Use HTTPS in production
+- Consider using environment-specific configurations

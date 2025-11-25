@@ -55,6 +55,37 @@ def get_custom_schema():
     return custom_schema_data
 
 
+def is_endpoint_secure(operation_id: str, endpoint_data: dict[str, Any]) -> bool:
+    """
+    Check if an endpoint requires authentication.
+    
+    Checks both OpenAPI security field and custom schema overrides.
+    
+    Args:
+        operation_id: The operation ID of the endpoint
+        endpoint_data: The endpoint data from OpenAPI schema
+        
+    Returns:
+        True if endpoint requires authentication, False otherwise
+    """
+    # Check custom schema first (has higher priority)
+    custom_schema_data = get_custom_schema()
+    if operation_id in custom_schema_data:
+        custom_data = custom_schema_data[operation_id]
+        # Check for explicit security flag
+        if "need_authentication" in custom_data:
+            return bool(custom_data["need_authentication"])
+    
+    # Check OpenAPI security field
+    security = endpoint_data.get("security")
+    if security is not None:
+        # Empty list means no auth required
+        # Non-empty list (even with empty dicts) means auth required
+        return len(security) > 0
+    
+    return False
+
+
 def _merge_parameters(
     base_parameters: list[dict[str, Any]], custom_parameters: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -123,6 +154,17 @@ def _apply_custom_overrides(
         append_fields = set(overrides.get("append_fields", []))
         path, method = op_map[operation_id]
         target_schema = base_schema["paths"][path][method]
+
+        # Handle security override (need_authentication)
+        if "need_authentication" in overrides:
+            needs_auth = overrides.get("need_authentication")
+            if needs_auth is True:
+                # Force security requirement
+                if "security" not in target_schema or not target_schema["security"]:
+                    target_schema["security"] = [{}]  # Empty dict means auth required
+            elif needs_auth is False:
+                # Remove security requirement
+                target_schema["security"] = []
 
         for key in allowed_keys:
             if key not in overrides:

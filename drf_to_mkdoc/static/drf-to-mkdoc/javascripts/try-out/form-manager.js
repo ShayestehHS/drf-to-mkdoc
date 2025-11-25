@@ -1,11 +1,25 @@
 // Form management functionality
 const FormManager = {
+    _authButtonHandler: null, // Store handler reference for cleanup
+    
     // Initialize form functionality
     init: function() {
         this.setupEventListeners();
         this.setupFormValidation();
         this.initializeRequestBody();
         this.loadSettings();
+    },
+    
+    // Cleanup method to remove event listeners
+    cleanup: function() {
+        if (this._authButtonHandler) {
+            const authButton = document.getElementById('authPromptButton');
+            if (authButton) {
+                authButton.removeEventListener('click', this._authButtonHandler);
+                delete authButton.dataset.handlerAttached;
+            }
+            this._authButtonHandler = null;
+        }
     },
     
     // Load settings and pre-fill form
@@ -111,6 +125,472 @@ const FormManager = {
                     }
                 });
             }
+        }
+        
+        // Show auth prompt if enabled and endpoint requires auth
+        this.showAuthPrompt();
+    },
+    
+    // Reset auth prompt to initial state
+    resetAuthPromptState: function() {
+        const authPromptContainer = document.getElementById('authPromptContainer');
+        if (!authPromptContainer) {
+            return;
+        }
+        
+        const authPrompt = authPromptContainer.querySelector('.auth-prompt');
+        const authButton = document.getElementById('authPromptButton');
+        const authEmoji = document.getElementById('authPromptEmoji');
+        
+        // Reset all visual states
+        if (authPrompt) {
+            authPrompt.classList.remove('success', 'error', 'fade-out');
+        }
+        
+        if (authButton) {
+            authButton.disabled = false;
+            authButton.classList.remove('loading');
+            const buttonText = authButton.querySelector('.auth-prompt-button-text');
+            if (buttonText) {
+                buttonText.textContent = 'Get Authorization Header';
+            }
+            const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+            if (buttonLoader) {
+                buttonLoader.style.display = 'none';
+            }
+        }
+        
+        if (authEmoji) {
+            authEmoji.textContent = '🔒';
+            authEmoji.classList.remove('unlocking', 'success');
+            authEmoji.setAttribute('aria-label', 'Locked');
+        }
+        
+        // Reset title and description
+        const titleElement = authPrompt?.querySelector('.auth-prompt-title');
+        const descriptionText = authPrompt?.querySelector('.auth-prompt-description');
+        if (titleElement) {
+            titleElement.textContent = 'Authentication Required';
+        }
+        if (descriptionText) {
+            descriptionText.textContent = 'This endpoint requires authentication. Click the button below to automatically generate and add the authorization header.';
+        }
+    },
+    
+    // Show authentication prompt if needed
+    showAuthPrompt: function() {
+        // Always reset state first to ensure clean display
+        this.resetAuthPromptState();
+        
+        const authConfig = window.DRF_TO_MKDOC_AUTH_CONFIG;
+        if (!authConfig || !authConfig.enabled) {
+            const authPromptContainer = document.getElementById('authPromptContainer');
+            if (authPromptContainer) {
+                authPromptContainer.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Check if endpoint requires authentication
+        const tryOutForm = document.querySelector('.try-out-form');
+        const authRequired = authConfig.authRequired || 
+            (tryOutForm && tryOutForm.dataset.auth === 'true');
+        
+        if (!authRequired) {
+            const authPromptContainer = document.getElementById('authPromptContainer');
+            if (authPromptContainer) {
+                authPromptContainer.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Check if getAuthHeader function exists
+        if (typeof window.getAuthHeader !== 'function') {
+            console.warn('Auto-auth enabled but getAuthHeader function not found');
+            const authPromptContainer = document.getElementById('authPromptContainer');
+            if (authPromptContainer) {
+                authPromptContainer.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Check if auth header already exists
+        const headerList = document.querySelector('#requestHeaders .header-list');
+        if (headerList) {
+            const existingHeaders = headerList.querySelectorAll('.header-item');
+            let hasAuthHeader = false;
+            
+            existingHeaders.forEach(item => {
+                const nameInput = item.querySelector('.name-input');
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
+                    const valueInput = item.querySelector('.value-input');
+                    if (valueInput && valueInput.value.trim()) {
+                        hasAuthHeader = true;
+                    }
+                }
+            });
+            
+            // If header already exists with a value, don't show prompt
+            if (hasAuthHeader) {
+                const authPromptContainer = document.getElementById('authPromptContainer');
+                if (authPromptContainer) {
+                    authPromptContainer.style.display = 'none';
+                }
+                return;
+            }
+        }
+        
+        // Show the auth prompt
+        const authPromptContainer = document.getElementById('authPromptContainer');
+        if (authPromptContainer) {
+            authPromptContainer.style.display = 'block';
+            
+            // Set up button click handler (store reference for cleanup)
+            const authButton = document.getElementById('authPromptButton');
+            if (authButton && !authButton.dataset.handlerAttached) {
+                this._authButtonHandler = () => this.handleAuthButtonClick();
+                authButton.addEventListener('click', this._authButtonHandler);
+                authButton.dataset.handlerAttached = 'true';
+            }
+        }
+    },
+    
+    // Handle auth button click
+    handleAuthButtonClick: function() {
+        const authButton = document.getElementById('authPromptButton');
+        const authPrompt = document.querySelector('.auth-prompt');
+        const authEmoji = document.getElementById('authPromptEmoji');
+        
+        if (!authButton || !authPrompt) {
+            return;
+        }
+        
+        // Use shared AuthHandler if available, otherwise fall back to old implementation
+        if (window.AuthHandler && typeof window.AuthHandler.handleAuth === 'function') {
+            // Set loading state and change emoji to unlocking
+            authButton.disabled = true;
+            authButton.classList.add('loading');
+            authPrompt.classList.remove('success', 'error');
+            
+            if (authEmoji) {
+                authEmoji.textContent = '🔓';
+                authEmoji.classList.add('unlocking');
+                authEmoji.setAttribute('aria-label', 'Unlocking');
+            }
+            
+            const buttonText = authButton.querySelector('.auth-prompt-button-text');
+            const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+            if (buttonText) buttonText.textContent = 'Generating...';
+            if (buttonLoader) buttonLoader.style.display = 'inline-block';
+            
+            try {
+                window.AuthHandler.handleAuth({
+                    onStart: () => {
+                        // Already set loading state above
+                    },
+                    onSuccess: (result) => {
+                        this._handleAuthResult(result, authButton, authPrompt);
+                    },
+                    onError: (error) => {
+                        this._handleAuthError(error, authButton, authPrompt);
+                    }
+                });
+            } catch (error) {
+                // Ensure UI state is reset on sync failures
+                this._handleAuthError(error, authButton, authPrompt);
+            }
+        } else {
+            // Fallback to old implementation if AuthHandler not available
+            this._handleAuthButtonClickLegacy(authButton, authPrompt, authEmoji);
+        }
+    },
+    
+    // Legacy implementation (kept for backward compatibility)
+    _handleAuthButtonClickLegacy: function(authButton, authPrompt, authEmoji) {
+        // Set loading state and change emoji to unlocking
+        authButton.disabled = true;
+        authButton.classList.add('loading');
+        authPrompt.classList.remove('success', 'error');
+        
+        if (authEmoji) {
+            authEmoji.textContent = '🔓';
+            authEmoji.classList.add('unlocking');
+        }
+        
+        // Set up timeout to prevent hanging
+        const TIMEOUT_MS = 30000; // 30 seconds
+        let timeoutId = null;
+        let completed = false;
+        
+        const clearTimeoutAndComplete = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            completed = true;
+        };
+        
+        const handleTimeout = () => {
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthError(new Error('Authentication timed out'), authButton, authPrompt);
+            }
+        };
+        
+        timeoutId = setTimeout(handleTimeout, TIMEOUT_MS);
+        
+        try {
+            // Check if getAuthHeader function exists
+            if (typeof window.getAuthHeader !== 'function') {
+                clearTimeoutAndComplete();
+                throw new Error('getAuthHeader function is not defined. Please configure it in your JavaScript settings.');
+            }
+            
+            // Call the auth function directly (credentials should be handled in the function)
+            let authResult = window.getAuthHeader();
+            
+            // Check if result is null or undefined
+            if (!authResult) {
+                clearTimeoutAndComplete();
+                throw new Error('getAuthHeader function returned null or undefined.');
+            }
+            
+            // Handle async functions (if result is a Promise)
+            if (authResult && typeof authResult.then === 'function') {
+                // It's a Promise, wait for it
+                authResult.then(result => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
+                    
+                    // Validate async result
+                    if (!result) {
+                        this._handleAuthError(new Error('getAuthHeader function returned null or undefined.'), authButton, authPrompt);
+                        return;
+                    }
+                    this._handleAuthResult(result, authButton, authPrompt);
+                }).catch(error => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
+                    this._handleAuthError(error, authButton, authPrompt);
+                });
+                return; // Exit early, result will be handled asynchronously
+            }
+            
+            // Handle synchronous result
+            clearTimeoutAndComplete();
+            this._handleAuthResult(authResult, authButton, authPrompt);
+        } catch (error) {
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthError(error, authButton, authPrompt);
+            }
+        }
+    },
+    
+    // Handle auth result
+    _handleAuthResult: function(result, authButton, authPrompt) {
+        const authEmoji = document.getElementById('authPromptEmoji');
+        const buttonText = authButton.querySelector('.auth-prompt-button-text');
+        const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+        
+        // Strict validation: result must be an object with both headerName and headerValue as non-empty strings
+        if (result && 
+            typeof result === 'object' && 
+            result.headerName && 
+            typeof result.headerName === 'string' && 
+            result.headerName.trim() &&
+            result.headerValue && 
+            typeof result.headerValue === 'string' && 
+            result.headerValue.trim()) {
+            // Add header to form
+            this._addAuthHeaderToForm(result.headerName, result.headerValue);
+            
+            // Change emoji to success
+            if (authEmoji) {
+                authEmoji.textContent = '✅';
+                authEmoji.classList.remove('unlocking');
+                authEmoji.classList.add('success');
+                authEmoji.setAttribute('aria-label', 'Authenticated');
+            }
+            
+            // Show success state
+            authPrompt.classList.add('success');
+            
+            // Reset button state after a delay
+            if (buttonText) buttonText.textContent = 'Header Added';
+            if (buttonLoader) buttonLoader.style.display = 'none';
+            
+            setTimeout(() => {
+                authButton.disabled = false;
+                authButton.classList.remove('loading');
+                
+                // Fade out the prompt after success
+                setTimeout(() => {
+                    const authPromptContainer = document.getElementById('authPromptContainer');
+                    if (authPromptContainer) {
+                        authPromptContainer.classList.add('fade-out');
+                        setTimeout(() => {
+                            authPromptContainer.style.display = 'none';
+                            authPromptContainer.classList.remove('fade-out');
+                            // Reset emoji for next time
+                            if (authEmoji) {
+                                authEmoji.textContent = '🔒';
+                                authEmoji.classList.remove('success', 'unlocking');
+                                authEmoji.setAttribute('aria-label', 'Locked');
+                            }
+                        }, 300);
+                    }
+                }, 1500);
+            }, 500);
+        } else {
+            // Invalid result - show error
+            this._handleAuthError(
+                new Error('Invalid auth result format. Expected: { headerName: string, headerValue: string }'),
+                authButton, 
+                authPrompt
+            );
+        }
+    },
+    
+    // Handle auth error
+    _handleAuthError: function(error, authButton, authPrompt) {
+        const authEmoji = document.getElementById('authPromptEmoji');
+        const buttonText = authButton.querySelector('.auth-prompt-button-text');
+        const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+        
+        // Sanitize error before logging
+        const sanitizedError = window.AuthHandler 
+            ? window.AuthHandler.sanitizeError(error)
+            : (error?.message || String(error));
+        console.error('Failed to get auth header:', sanitizedError);
+        
+        // Reset emoji back to locked
+        if (authEmoji) {
+            authEmoji.textContent = '🔒';
+            authEmoji.classList.remove('unlocking', 'success');
+            authEmoji.setAttribute('aria-label', 'Locked');
+        }
+        
+        // Update button text and hide loader
+        if (buttonText) buttonText.textContent = 'Try Again';
+        if (buttonLoader) buttonLoader.style.display = 'none';
+        
+        // Show error state
+        authPrompt.classList.add('error');
+        authPrompt.classList.remove('success');
+        
+        // Reset button state
+        setTimeout(() => {
+            authButton.disabled = false;
+            authButton.classList.remove('loading');
+            authPrompt.classList.remove('error');
+        }, 2000);
+    },
+    
+    // Legacy method for backward compatibility (called from request-executor)
+    // Now async to properly handle Promise-based auth functions
+    addAutoAuthHeader: async function() {
+        // This is now handled by the prompt, but we keep it for compatibility
+        // It will be called before request execution to ensure header is present
+        const authConfig = window.DRF_TO_MKDOC_AUTH_CONFIG;
+        if (!authConfig || !authConfig.enabled) {
+            return;
+        }
+        
+        const tryOutForm = document.querySelector('.try-out-form');
+        const authRequired = authConfig.authRequired || 
+            (tryOutForm && tryOutForm.dataset.auth === 'true');
+        
+        if (!authRequired) {
+            return;
+        }
+        
+        // Check if header already exists
+        const headerList = document.querySelector('#requestHeaders .header-list');
+        if (headerList) {
+            const existingHeaders = headerList.querySelectorAll('.header-item');
+            let hasAuthHeader = false;
+            
+            existingHeaders.forEach(item => {
+                const nameInput = item.querySelector('.name-input');
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
+                    hasAuthHeader = true;
+                }
+            });
+            
+            // If header doesn't exist, try to add it (user might have clicked the prompt)
+            if (!hasAuthHeader && typeof window.getAuthHeader === 'function') {
+                try {
+                    let authResult = window.getAuthHeader();
+                    if (authResult && typeof authResult.then === 'function') {
+                        // Wait for Promise to resolve
+                        authResult = await authResult;
+                    }
+                    
+                    if (authResult && authResult.headerName && authResult.headerValue) {
+                        this._addAuthHeaderToForm(authResult.headerName, authResult.headerValue);
+                    }
+                } catch (error) {
+                    // Sanitize error before logging
+                    const sanitizedError = window.AuthHandler 
+                        ? window.AuthHandler.sanitizeError(error)
+                        : (error?.message || 'Unknown error');
+                    console.error('Failed to add auth header:', sanitizedError);
+                }
+            }
+        }
+    },
+    
+    // Helper function to add auth header to form
+    _addAuthHeaderToForm: function(headerName, headerValue) {
+        const headerList = document.querySelector('#requestHeaders .header-list');
+        if (!headerList) {
+            return;
+        }
+        
+        // Check if header already exists (case-insensitive)
+        const existingHeaders = headerList.querySelectorAll('.header-item');
+        let headerExists = false;
+        
+        const normalizedTargetName =
+            typeof headerName === 'string' ? headerName.trim().toLowerCase() : '';
+        const sanitizedHeaderName =
+            typeof headerName === 'string' ? headerName.trim() : headerName;
+
+        existingHeaders.forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const normalizedExisting =
+                nameInput && typeof nameInput.value === 'string'
+                    ? nameInput.value.trim().toLowerCase()
+                    : null;
+            if (normalizedExisting === normalizedTargetName) {
+                // Update existing header
+                const valueInput = item.querySelector('.value-input');
+                if (valueInput) {
+                    valueInput.value = headerValue;
+                }
+                headerExists = true;
+            }
+        });
+        
+        if (!headerExists) {
+            // Add new header
+            const headerItem = this.createHeaderItem();
+            const nameInput = headerItem.querySelector('.name-input');
+            const valueInput = headerItem.querySelector('.value-input');
+            if (nameInput && sanitizedHeaderName) {
+                nameInput.value = sanitizedHeaderName;
+            }
+            if (valueInput) valueInput.value = headerValue;
+            headerList.appendChild(headerItem);
         }
     },
 
@@ -378,7 +858,31 @@ const FormManager = {
 
     removeKvItem: function(button) {
         if (button && button.closest('.parameter-item, .header-item')) {
-            button.closest('.parameter-item, .header-item').remove();
+            const item = button.closest('.parameter-item, .header-item');
+            const isHeaderItem = item.classList.contains('header-item');
+            
+            // Check if we're removing an authorization header
+            let wasAuthHeader = false;
+            if (isHeaderItem) {
+                const nameInput = item.querySelector('.name-input');
+                const normalizedHeader =
+                    nameInput && typeof nameInput.value === 'string'
+                        ? nameInput.value.trim().toLowerCase()
+                        : null;
+                if (normalizedHeader === 'authorization') {
+                    wasAuthHeader = true;
+                }
+            }
+            
+            // Remove the item
+            item.remove();
+            
+            // If auth header was removed, show the prompt again
+            if (wasAuthHeader) {
+                setTimeout(() => {
+                    this.showAuthPrompt();
+                }, 100);
+            }
         }
     },
 
@@ -461,16 +965,19 @@ const FormManager = {
 
     getRequestHeaders: function() {
         const headers = {};
-        const headerInputs = document.querySelectorAll('#requestHeaders .kv-item');
+        const headerItems = document.querySelectorAll('#requestHeaders .header-item');
         
-        headerInputs.forEach(item => {
-            const inputs = item.querySelectorAll('input');
-            if (inputs.length === 2) {
-                const name = inputs[0].value.trim();
-                const value = inputs[1].value.trim();
-                if (name && value) {
-                    headers[name] = value;
-                }
+        headerItems.forEach(item => {
+            const nameInput = item.querySelector('.name-input');
+            const valueInput = item.querySelector('.value-input');
+            if (!nameInput || !valueInput) {
+                return;
+            }
+            
+            const name = nameInput.value.trim();
+            const value = valueInput.value.trim();
+            if (name && value) {
+                headers[name] = value;
             }
         });
         
@@ -522,6 +1029,14 @@ const FormManager = {
                 status.textContent = '';
                 status.className = 'validation-status';
             }
+
+            // Reset auth prompt state
+            this.resetAuthPromptState();
+            
+            // Show auth prompt again if needed (after reset, headers are cleared)
+            setTimeout(() => {
+                this.showAuthPrompt();
+            }, 100);
 
             // Reset to first tab
             const firstTab = document.querySelector('.tab');

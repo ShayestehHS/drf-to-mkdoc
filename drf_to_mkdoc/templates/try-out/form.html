@@ -1,6 +1,6 @@
 {% load custom_filters %}
 
-<div class="try-out-form" data-method="{{ method }}">
+<div class="try-out-form" data-method="{{ method }}" data-auth="{{ auth_required|yesno:'true,false' }}">
     <!-- Method Badge and Base URL Section -->
     <div class="request-header">
         <div class="method-badge method-{{ method|lower }}" data-method="{{ method|upper }}">{{ method|upper }}</div>
@@ -156,6 +156,23 @@
             <div class="section-header">
                 <h4>Request Headers</h4>
                 <div class="tooltip" data-tooltip="HTTP headers sent with the request">ℹ️</div>
+            </div>
+            <!-- Auth Prompt (shown when auth is required and auto-auth is enabled) -->
+            <div class="auth-prompt-container" id="authPromptContainer" style="display: none;">
+                <div class="auth-prompt">
+                    <div class="auth-prompt-icon">
+                        <span class="auth-emoji" id="authPromptEmoji" role="img" aria-label="Locked">🔒</span>
+                    </div>
+                    <div class="auth-prompt-content">
+                        <h4 class="auth-prompt-title">Authentication Required</h4>
+                        <p class="auth-prompt-description">This endpoint requires authentication. Click the button below to automatically generate and add the authorization header.</p>
+                    </div>
+                    <button class="auth-prompt-button" id="authPromptButton" type="button">
+                        <span class="auth-prompt-button-icon">🔓</span>
+                        <span class="auth-prompt-button-text">Get Authorization Header</span>
+                        <span class="auth-prompt-button-loader" style="display: none;">⏳</span>
+                    </button>
+                </div>
             </div>
             <div class="header-container" id="requestHeaders">
                 <div class="header-toolbar">

@@ -63,6 +63,19 @@ const TabManager = {
             }
         }
         
+        // If headers tab is opened, ensure auth prompt is visible if needed
+        if (contentId === 'headersTab' || contentId === 'headers') {
+            if (window.FormManager && typeof window.FormManager.showAuthPrompt === 'function') {
+                // Reset state first, then show prompt
+                if (typeof window.FormManager.resetAuthPromptState === 'function') {
+                    window.FormManager.resetAuthPromptState();
+                }
+                setTimeout(() => {
+                    window.FormManager.showAuthPrompt();
+                }, 100);
+            }
+        }
+        
         // Debug logging
         console.log('Tab switched to:', contentId, 'Content element:', content);
     },

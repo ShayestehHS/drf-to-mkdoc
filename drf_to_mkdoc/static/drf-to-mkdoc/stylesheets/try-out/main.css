@@ -7,6 +7,7 @@
 @import 'key-value.css';
 @import 'buttons.css';
 @import 'response.css';
+@import 'auth-prompt.css';
 
 /* Global try-out styles */
 .try-out-modal *,

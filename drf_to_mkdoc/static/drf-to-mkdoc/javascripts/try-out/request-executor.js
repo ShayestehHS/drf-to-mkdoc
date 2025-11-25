@@ -196,6 +196,11 @@ const RequestExecutor = {
             return;
         }
 
+        // Ensure auto-auth header is added if needed (await to prevent race condition)
+        if (window.FormManager && typeof window.FormManager.addAutoAuthHeader === 'function') {
+            await window.FormManager.addAutoAuthHeader();
+        }
+
         // Validate required fields
         const requiredInputs = document.querySelectorAll('#pathParams input[required]');
         let emptyFields = [];

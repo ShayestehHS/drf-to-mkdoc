@@ -10,6 +10,18 @@
 <script src="{{ script|safe }}" defer></script>
 {% endfor %}
 
+{% if enable_auto_auth %}
+<script{% if request.csp_nonce %} nonce="{{ request.csp_nonce }}"{% endif %}>
+    // Auto-authentication configuration
+    window.DRF_TO_MKDOC_AUTH_CONFIG = {
+        enabled: {{ enable_auto_auth|yesno:"true,false" }},
+    };
+    {% if auth_function_js %}
+    {{ auth_function_js|safe }}
+    {% endif %}
+</script>
+{% endif %}
+
 <div class="main-content">
     {% include "endpoints/list/filter_section.html" %}
     {% include "endpoints/list/settings_modal.html" %}
