@@ -258,6 +258,38 @@ const SettingsManager = {
             return;
         }
         
+        // Use shared AuthHandler if available
+        if (window.AuthHandler) {
+            // Set loading state
+            const buttonText = authButton.querySelector('.auth-card-button-text');
+            const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+            authButton.disabled = true;
+            authButton.classList.add('loading');
+            if (buttonText) buttonText.textContent = 'Generating...';
+            if (buttonLoader) buttonLoader.style.display = 'inline-block';
+            authEmoji.textContent = '🔓';
+            authEmoji.classList.add('unlocking');
+            authEmoji.setAttribute('aria-label', 'Unlocking');
+            
+            window.AuthHandler.handleAuth({
+                onStart: () => {
+                    // Loading state already set above
+                },
+                onSuccess: (result) => {
+                    this._handleAuthTestResult(result, authButton, authEmoji);
+                },
+                onError: (error) => {
+                    this._handleAuthTestError(error, authButton, authEmoji);
+                }
+            });
+        } else {
+            // Fallback to legacy implementation
+            this._testAuthLegacy(authButton, authEmoji);
+        }
+    },
+    
+    // Legacy test auth implementation
+    _testAuthLegacy: function(authButton, authEmoji) {
         // Check if getAuthHeader function exists
         if (typeof window.getAuthHeader !== 'function') {
             this.showToast('getAuthHeader function not found. Please configure it in your JavaScript.', 'error');
@@ -347,6 +379,7 @@ const SettingsManager = {
             authEmoji.textContent = '✅';
             authEmoji.classList.remove('unlocking');
             authEmoji.classList.add('success');
+            authEmoji.setAttribute('aria-label', 'Authenticated');
             authButton.disabled = false;
             authButton.classList.remove('loading');
             if (buttonText) buttonText.textContent = 'Header Added';
@@ -357,6 +390,7 @@ const SettingsManager = {
             setTimeout(() => {
                 authEmoji.textContent = '🔓';
                 authEmoji.classList.remove('success');
+                authEmoji.setAttribute('aria-label', 'Unlocked');
                 if (buttonText) buttonText.textContent = 'Get Header';
                 this.updateAuthEmoji(); // Update emoji based on current headers
             }, 3000);
@@ -375,14 +409,20 @@ const SettingsManager = {
         const buttonText = authButton.querySelector('.auth-card-button-text');
         const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
         
-        console.error('Auth test failed:', error);
+        // Sanitize error before logging
+        const sanitizedError = window.AuthHandler 
+            ? window.AuthHandler.sanitizeError(error)
+            : (error?.message || 'Unknown error');
+        console.error('Auth test failed:', sanitizedError);
+        
         authEmoji.textContent = '🔒';
         authEmoji.classList.remove('unlocking', 'success');
+        authEmoji.setAttribute('aria-label', 'Locked');
         authButton.disabled = false;
         authButton.classList.remove('loading');
         if (buttonText) buttonText.textContent = 'Try Again';
         if (buttonLoader) buttonLoader.style.display = 'none';
-        this.showToast('Authentication test failed: ' + (error.message || 'Unknown error'), 'error');
+        this.showToast('Authentication test failed: ' + sanitizedError, 'error');
         
         // Reset after 3 seconds
         setTimeout(() => {
@@ -413,12 +453,15 @@ const SettingsManager = {
         if (hasAuthHeader) {
             authEmoji.textContent = '🔓'; // Unlocked if header exists
             authEmoji.classList.remove('success', 'unlocking');
+            authEmoji.setAttribute('aria-label', 'Unlocked');
         } else if (typeof window.getAuthHeader === 'function') {
             authEmoji.textContent = '🔒'; // Locked if function exists but no header yet
             authEmoji.classList.remove('success', 'unlocking');
+            authEmoji.setAttribute('aria-label', 'Locked');
         } else {
             authEmoji.textContent = '🔒'; // Locked if no function
             authEmoji.classList.remove('success', 'unlocking');
+            authEmoji.setAttribute('aria-label', 'Locked');
         }
     },
     

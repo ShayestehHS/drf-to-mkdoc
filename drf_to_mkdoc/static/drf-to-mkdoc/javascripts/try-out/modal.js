@@ -94,6 +94,16 @@ const ModalManager = {
             if (window.FormManager && typeof window.FormManager.resetAuthPromptState === 'function') {
                 window.FormManager.resetAuthPromptState();
             }
+            
+            // Cleanup event listeners to prevent memory leaks
+            if (window.FormManager && typeof window.FormManager.cleanup === 'function') {
+                window.FormManager.cleanup();
+            }
+            
+            // Reset auth handler state
+            if (window.AuthHandler && typeof window.AuthHandler.reset === 'function') {
+                window.AuthHandler.reset();
+            }
         }
     },
 

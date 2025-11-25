@@ -807,6 +807,7 @@ def create_endpoint_page(
             "stylesheets/try-out/main.css",
         ],
         "scripts": [
+            "javascripts/try-out/auth-handler.js",  # Load before form-manager (dependency)
             "javascripts/try-out/modal.js",
             "javascripts/try-out/response-modal.js",
             "javascripts/try-out/tabs.js",

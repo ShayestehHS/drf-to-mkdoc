@@ -309,3 +309,73 @@ async function getAuthHeader() {
     };
 }
 ```
+
+#### Content Security Policy (CSP)
+
+If your site uses Content Security Policy headers, you'll need to configure CSP to allow the auto-authentication feature to work. The feature injects inline JavaScript from the `AUTH_FUNCTION_JS` setting.
+
+**Option 1: Allow inline scripts (less secure)**
+
+If you're using `django-csp` or similar middleware, you can allow inline scripts:
+
+```python
+# settings.py
+CSP_SCRIPT_SRC = ["'self'", "'unsafe-inline'"]
+```
+
+> ⚠️ **Security Warning:** Allowing `'unsafe-inline'` reduces CSP protection. Only use this in development or internal documentation environments.
+
+**Option 2: Use nonces (recommended)**
+
+For better security, use CSP nonces. The templates automatically support nonces if available:
+
+1. Configure your CSP middleware to generate nonces:
+
+```python
+# If using django-csp
+CSP_SCRIPT_SRC = ["'self'"]
+CSP_INCLUDE_NONCE_IN = ['script-src']
+```
+
+2. Make the nonce available in request context:
+
+```python
+# middleware.py or view context processor
+def csp_nonce(request):
+    if hasattr(request, 'csp_nonce'):
+        return {'csp_nonce': request.csp_nonce}
+    return {}
+```
+
+3. The templates will automatically use the nonce:
+
+```html
+<script nonce="{{ request.csp_nonce }}">
+    // Auth function code
+</script>
+```
+
+**Option 3: External script file (most secure)**
+
+For maximum security, store your auth function in an external JavaScript file and reference it:
+
+```python
+DRF_TO_MKDOC = {
+    'ENABLE_AUTO_AUTH': True,
+    'AUTH_FUNCTION_JS': 'static/js/auth-config.js',  # External file
+}
+```
+
+Then load it as a regular script tag (no CSP restrictions):
+
+```html
+<script src="{% static 'js/auth-config.js' %}" defer></script>
+```
+
+**Security Best Practices**
+
+- Never store production credentials in JavaScript code
+- Use external files or secure credential storage for production
+- Implement rate limiting on authentication endpoints
+- Use HTTPS in production
+- Consider using environment-specific configurations

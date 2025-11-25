@@ -11,7 +11,7 @@
 {% endfor %}
 
 {% if enable_auto_auth %}
-<script>
+<script{% if request.csp_nonce %} nonce="{{ request.csp_nonce }}"{% endif %}>
     // Auto-authentication configuration
     window.DRF_TO_MKDOC_AUTH_CONFIG = {
         enabled: {{ enable_auto_auth|yesno:"true,false" }},

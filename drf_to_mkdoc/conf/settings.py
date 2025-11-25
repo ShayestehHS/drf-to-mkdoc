@@ -10,13 +10,13 @@ class DRFToMkDocSettings:
     required_settings: ClassVar[list[str]] = []
     project_settings: ClassVar[dict[str, Any]] = {"PROJECT_NAME": "drf-to-mkdoc"}
 
-    settings_types: ClassVar[dict[str, type]] = {
+    settings_types: ClassVar[dict[str, type | tuple[type, ...]]] = {
         "ENABLE_AI_DOCS": bool,
         "AI_CONFIG_DIR_NAME": str,
         "SERIALIZERS_INHERITANCE_DEPTH": int,
         "DJANGO_APPS": list,
         "ENABLE_AUTO_AUTH": bool,
-        "AUTH_FUNCTION_JS": str,
+        "AUTH_FUNCTION_JS": (str, type(None)),
     }
 
     settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {
@@ -43,12 +43,21 @@ class DRFToMkDocSettings:
             return
 
         expected_type = self.settings_types[key]
-
-        if not isinstance(value, expected_type):
-            raise TypeError(
-                f"DRF_TO_MKDOC setting '{key}' must be of type {expected_type.__name__}, "
-                f"got {type(value).__name__} instead."
-            )
+        
+        # Handle tuple of types (union types)
+        if isinstance(expected_type, tuple):
+            if not isinstance(value, expected_type):
+                type_names = " | ".join(t.__name__ for t in expected_type)
+                raise TypeError(
+                    f"DRF_TO_MKDOC setting '{key}' must be of type {type_names}, "
+                    f"got {type(value).__name__} instead."
+                )
+        else:
+            if not isinstance(value, expected_type):
+                raise TypeError(
+                    f"DRF_TO_MKDOC setting '{key}' must be of type {expected_type.__name__}, "
+                    f"got {type(value).__name__} instead."
+                )
 
     def _validate_range(self, key: str, value: Any) -> None:
         """Validate the range of a setting value."""

@@ -1,11 +1,25 @@
 // Form management functionality
 const FormManager = {
+    _authButtonHandler: null, // Store handler reference for cleanup
+    
     // Initialize form functionality
     init: function() {
         this.setupEventListeners();
         this.setupFormValidation();
         this.initializeRequestBody();
         this.loadSettings();
+    },
+    
+    // Cleanup method to remove event listeners
+    cleanup: function() {
+        if (this._authButtonHandler) {
+            const authButton = document.getElementById('authPromptButton');
+            if (authButton) {
+                authButton.removeEventListener('click', this._authButtonHandler);
+                delete authButton.dataset.handlerAttached;
+            }
+            this._authButtonHandler = null;
+        }
     },
     
     // Load settings and pre-fill form
@@ -149,6 +163,7 @@ const FormManager = {
         if (authEmoji) {
             authEmoji.textContent = '🔒';
             authEmoji.classList.remove('unlocking', 'success');
+            authEmoji.setAttribute('aria-label', 'Locked');
         }
         
         // Reset title and description
@@ -234,13 +249,12 @@ const FormManager = {
         if (authPromptContainer) {
             authPromptContainer.style.display = 'block';
             
-            // Set up button click handler
+            // Set up button click handler (store reference for cleanup)
             const authButton = document.getElementById('authPromptButton');
             if (authButton && !authButton.dataset.handlerAttached) {
+                this._authButtonHandler = () => this.handleAuthButtonClick();
+                authButton.addEventListener('click', this._authButtonHandler);
                 authButton.dataset.handlerAttached = 'true';
-                authButton.addEventListener('click', () => {
-                    this.handleAuthButtonClick();
-                });
             }
         }
     },
@@ -255,6 +269,43 @@ const FormManager = {
             return;
         }
         
+        // Use shared AuthHandler if available, otherwise fall back to old implementation
+        if (window.AuthHandler) {
+            // Set loading state and change emoji to unlocking
+            authButton.disabled = true;
+            authButton.classList.add('loading');
+            authPrompt.classList.remove('success', 'error');
+            
+            if (authEmoji) {
+                authEmoji.textContent = '🔓';
+                authEmoji.classList.add('unlocking');
+                authEmoji.setAttribute('aria-label', 'Unlocking');
+            }
+            
+            const buttonText = authButton.querySelector('.auth-prompt-button-text');
+            const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
+            if (buttonText) buttonText.textContent = 'Generating...';
+            if (buttonLoader) buttonLoader.style.display = 'inline-block';
+            
+            window.AuthHandler.handleAuth({
+                onStart: () => {
+                    // Already set loading state above
+                },
+                onSuccess: (result) => {
+                    this._handleAuthResult(result, authButton, authPrompt);
+                },
+                onError: (error) => {
+                    this._handleAuthError(error, authButton, authPrompt);
+                }
+            });
+        } else {
+            // Fallback to old implementation if AuthHandler not available
+            this._handleAuthButtonClickLegacy(authButton, authPrompt, authEmoji);
+        }
+    },
+    
+    // Legacy implementation (kept for backward compatibility)
+    _handleAuthButtonClickLegacy: function(authButton, authPrompt, authEmoji) {
         // Set loading state and change emoji to unlocking
         authButton.disabled = true;
         authButton.classList.add('loading');
@@ -325,6 +376,7 @@ const FormManager = {
                 authEmoji.textContent = '✅';
                 authEmoji.classList.remove('unlocking');
                 authEmoji.classList.add('success');
+                authEmoji.setAttribute('aria-label', 'Authenticated');
             }
             
             // Show success state
@@ -350,6 +402,7 @@ const FormManager = {
                             if (authEmoji) {
                                 authEmoji.textContent = '🔒';
                                 authEmoji.classList.remove('success', 'unlocking');
+                                authEmoji.setAttribute('aria-label', 'Locked');
                             }
                         }, 300);
                     }
@@ -371,12 +424,17 @@ const FormManager = {
         const buttonText = authButton.querySelector('.auth-prompt-button-text');
         const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
         
-        console.error('Failed to get auth header:', error);
+        // Sanitize error before logging
+        const sanitizedError = window.AuthHandler 
+            ? window.AuthHandler.sanitizeError(error)
+            : (error?.message || String(error));
+        console.error('Failed to get auth header:', sanitizedError);
         
         // Reset emoji back to locked
         if (authEmoji) {
             authEmoji.textContent = '🔒';
             authEmoji.classList.remove('unlocking', 'success');
+            authEmoji.setAttribute('aria-label', 'Locked');
         }
         
         // Update button text and hide loader
