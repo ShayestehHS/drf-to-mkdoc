@@ -279,9 +279,11 @@ DRF_TO_MKDOC = {
 ```python
 DRF_TO_MKDOC = {
     'ENABLE_AUTO_AUTH': True,
-    'AUTH_FUNCTION_JS': 'path/to/auth.js',  # Path to JavaScript file
+    'AUTH_FUNCTION_JS': 'static/js/auth.js',  # Path to JavaScript file (relative to project root)
 }
 ```
+
+> ⚠️ **Security Note:** File paths must be within your project's trusted directories (e.g., `static/`). Avoid loading auth functions from user-controlled or external paths.
 
 Where `auth.js` contains:
 
@@ -358,6 +360,8 @@ def csp_nonce(request):
 ### Option 3: External script file (most secure)
 
 For maximum security, store your auth function in an external JavaScript file and reference it:
+
+> **Why this is more secure:** External files work natively with strict CSP policies (e.g., `CSP_SCRIPT_SRC = ["'self'"]`) without requiring `'unsafe-inline'` or nonces. This prevents inline script injection attacks and is the recommended approach for production or security-sensitive environments.
 
 ```python
 DRF_TO_MKDOC = {

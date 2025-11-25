@@ -383,7 +383,13 @@ const SettingsManager = {
             
             headerItems.forEach(item => {
                 const nameInput = item.querySelector('.name-input');
-                if (nameInput && nameInput.value.toLowerCase() === result.headerName.trim().toLowerCase()) {
+                const existingName = nameInput && typeof nameInput.value === 'string'
+                    ? nameInput.value.trim().toLowerCase()
+                    : '';
+                const targetName = typeof result.headerName === 'string'
+                    ? result.headerName.trim().toLowerCase()
+                    : '';
+                if (existingName && existingName === targetName) {
                     existingHeaderItem = item;
                 }
             });
@@ -435,10 +441,19 @@ const SettingsManager = {
         const buttonText = authButton.querySelector('.auth-card-button-text');
         const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
         
-        // Sanitize error before logging
-        const sanitizedError = window.AuthHandler 
-            ? window.AuthHandler.sanitizeError(error)
-            : (error?.message || 'Unknown error');
+        // Sanitize error before logging (always sanitize, even if AuthHandler is absent)
+        let sanitizedError;
+        if (window.AuthHandler && typeof window.AuthHandler.sanitizeError === 'function') {
+            sanitizedError = window.AuthHandler.sanitizeError(error);
+        } else {
+            // Inline sanitization when AuthHandler is not available
+            const message = error?.message || String(error || 'Unknown error');
+            sanitizedError = message
+                .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]')
+                .replace(/token[=:]\s*[\w-]+/gi, 'token=[REDACTED]')
+                .replace(/password[=:]\s*[^\s]+/gi, 'password=[REDACTED]')
+                .replace(/api[_-]?key[=:]\s*[\w-]+/gi, 'api_key=[REDACTED]');
+        }
         console.error('Auth test failed:', sanitizedError);
         
         authEmoji.textContent = '🔒';
@@ -469,7 +484,10 @@ const SettingsManager = {
         headerItems.forEach(item => {
             const nameInput = item.querySelector('.name-input');
             const valueInput = item.querySelector('.value-input');
-            if (nameInput && nameInput.value.toLowerCase() === 'authorization' && 
+            const normalizedHeader = nameInput && typeof nameInput.value === 'string'
+                ? nameInput.value.trim().toLowerCase()
+                : null;
+            if (normalizedHeader === 'authorization' && 
                 valueInput && valueInput.value.trim()) {
                 hasAuthHeader = true;
             }
