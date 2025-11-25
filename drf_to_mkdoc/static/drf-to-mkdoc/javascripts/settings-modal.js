@@ -262,7 +262,7 @@ const SettingsManager = {
         this._authInProgress = true;
         
         // Use shared AuthHandler if available
-        if (window.AuthHandler) {
+        if (window.AuthHandler && typeof window.AuthHandler.handleAuth === 'function') {
             // Set loading state
             const buttonText = authButton.querySelector('.auth-card-button-text');
             const buttonLoader = authButton.querySelector('.auth-prompt-button-loader');
@@ -274,17 +274,22 @@ const SettingsManager = {
             authEmoji.classList.add('unlocking');
             authEmoji.setAttribute('aria-label', 'Unlocking');
             
-            window.AuthHandler.handleAuth({
-                onStart: () => {
-                    // Loading state already set above
-                },
-                onSuccess: (result) => {
-                    this._handleAuthTestResult(result, authButton, authEmoji);
-                },
-                onError: (error) => {
-                    this._handleAuthTestError(error, authButton, authEmoji);
-                }
-            });
+            try {
+                window.AuthHandler.handleAuth({
+                    onStart: () => {
+                        // Loading state already set above
+                    },
+                    onSuccess: (result) => {
+                        this._handleAuthTestResult(result, authButton, authEmoji);
+                    },
+                    onError: (error) => {
+                        this._handleAuthTestError(error, authButton, authEmoji);
+                    }
+                });
+            } catch (error) {
+                // Ensure UI state and guard flag are reset on sync failures
+                this._handleAuthTestError(error, authButton, authEmoji);
+            }
         } else {
             // Fallback to legacy implementation
             this._testAuthLegacy(authButton, authEmoji);
@@ -557,6 +562,12 @@ const SettingsManager = {
         nameInput.placeholder = 'Header name';
         nameInput.setAttribute('list', 'settingsHeaderSuggestions');
         nameInput.value = name;
+        nameInput.addEventListener('input', () => {
+            // Keep auth indicator in sync with header name edits
+            if (window.SettingsManager && typeof window.SettingsManager.updateAuthEmoji === 'function') {
+                window.SettingsManager.updateAuthEmoji();
+            }
+        });
         
         // Create value input
         const valueInput = document.createElement('input');
@@ -564,6 +575,12 @@ const SettingsManager = {
         valueInput.className = 'modern-input value-input';
         valueInput.placeholder = 'Header value';
         valueInput.value = value;
+        valueInput.addEventListener('input', () => {
+            // Keep auth indicator in sync with header value edits
+            if (window.SettingsManager && typeof window.SettingsManager.updateAuthEmoji === 'function') {
+                window.SettingsManager.updateAuthEmoji();
+            }
+        });
         
         // Create remove button
         const removeBtn = document.createElement('button');
@@ -611,6 +628,9 @@ const SettingsManager = {
                 if (nameInput) nameInput.value = '';
                 if (valueInput) valueInput.value = '';
             }
+            
+            // After any removal/clear, recompute auth emoji state
+            this.updateAuthEmoji();
         }
     },
     

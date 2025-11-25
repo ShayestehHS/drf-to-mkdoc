@@ -270,7 +270,7 @@ const FormManager = {
         }
         
         // Use shared AuthHandler if available, otherwise fall back to old implementation
-        if (window.AuthHandler) {
+        if (window.AuthHandler && typeof window.AuthHandler.handleAuth === 'function') {
             // Set loading state and change emoji to unlocking
             authButton.disabled = true;
             authButton.classList.add('loading');
@@ -287,17 +287,22 @@ const FormManager = {
             if (buttonText) buttonText.textContent = 'Generating...';
             if (buttonLoader) buttonLoader.style.display = 'inline-block';
             
-            window.AuthHandler.handleAuth({
-                onStart: () => {
-                    // Already set loading state above
-                },
-                onSuccess: (result) => {
-                    this._handleAuthResult(result, authButton, authPrompt);
-                },
-                onError: (error) => {
-                    this._handleAuthError(error, authButton, authPrompt);
-                }
-            });
+            try {
+                window.AuthHandler.handleAuth({
+                    onStart: () => {
+                        // Already set loading state above
+                    },
+                    onSuccess: (result) => {
+                        this._handleAuthResult(result, authButton, authPrompt);
+                    },
+                    onError: (error) => {
+                        this._handleAuthError(error, authButton, authPrompt);
+                    }
+                });
+            } catch (error) {
+                // Ensure UI state is reset on sync failures
+                this._handleAuthError(error, authButton, authPrompt);
+            }
         } else {
             // Fallback to old implementation if AuthHandler not available
             this._handleAuthButtonClickLegacy(authButton, authPrompt, authEmoji);
