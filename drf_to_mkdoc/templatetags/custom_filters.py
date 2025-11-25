@@ -170,3 +170,28 @@ def json_for_display(value):
     # Unescape any HTML entities that might have been introduced
     value = html.unescape(value)
     return mark_safe(value)  # noqa: S308
+
+
+@register.filter
+def format_example(value):
+    """Format example value for display in query parameter tables."""
+    if value is None:
+        return "—"
+    if isinstance(value, bool):
+        # Format boolean as lowercase string
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        # Format numbers as-is
+        return str(value)
+    if isinstance(value, (dict, list)):
+        # Format complex types as compact JSON
+        try:
+            formatted = json.dumps(value, separators=(",", ":"))
+            # Truncate if too long (max 50 chars for table display)
+            if len(formatted) > 50:
+                return formatted[:47] + "..."
+            return formatted
+        except (TypeError, ValueError):
+            return str(value)
+    # For strings and other types, return as string
+    return str(value)

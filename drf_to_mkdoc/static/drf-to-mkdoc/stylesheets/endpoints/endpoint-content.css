@@ -231,3 +231,67 @@ table tr:hover {
         transform: translateY(0);
     }
 }
+
+/* Hint Icon Tooltip */
+.hint-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    cursor: help;
+    font-size: 14px;
+    vertical-align: middle;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.hint-icon:hover {
+    opacity: 1;
+}
+
+.hint-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 14px;
+    background: var(--md-default-fg-color);
+    color: var(--md-default-bg-color);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: normal;
+    max-width: 350px;
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    line-height: 1.5;
+    text-align: left;
+    word-wrap: break-word;
+}
+
+.hint-icon::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--md-default-fg-color);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1001;
+}
+
+.hint-icon:hover::after,
+.hint-icon:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
