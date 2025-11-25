@@ -266,6 +266,7 @@ table tr:hover {
     white-space: normal;
     max-width: 350px;
     min-width: 200px;
+    width: max-content;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -274,6 +275,16 @@ table tr:hover {
     line-height: 1.5;
     text-align: left;
     word-wrap: break-word;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .hint-icon::after {
+        max-width: calc(100vw - 40px);
+        min-width: 200px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
 }
 
 .hint-icon::before {
