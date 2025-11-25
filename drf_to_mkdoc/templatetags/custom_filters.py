@@ -187,11 +187,12 @@ def format_example(value):
         # Format complex types as compact JSON
         try:
             formatted = json.dumps(value, separators=(",", ":"))
-            # Truncate if too long (max 50 chars for table display)
-            if len(formatted) > 50:
-                return formatted[:47] + "..."
-            return formatted
         except (TypeError, ValueError):
             return str(value)
+        
+        # Truncate if too long (max 50 chars for table display)
+        if len(formatted) > 50:
+            return formatted[:47] + "..."
+        return formatted
     # For strings and other types, return as string
     return str(value)

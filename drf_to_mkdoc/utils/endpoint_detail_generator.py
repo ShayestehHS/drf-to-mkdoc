@@ -965,8 +965,8 @@ def _add_query_params_from_schema(
         
         if existing_param is None:
             query_params[queryparam_type].append(param_obj)
-        else:
-            # Update existing parameter with schema info if it was just a string
+        elif existing_param is not param_obj:
+            # Update existing parameter with schema info (only if it's a pre-existing dict, not the one we just created)
             if isinstance(existing_param, dict):
                 existing_param.update(param_obj)
 
@@ -983,8 +983,9 @@ def _generate_query_param_example(schema: dict, components: dict[str, Any]) -> A
     param_type = schema.get("type")
     
     # Handle explicit values first
-    if "enum" in schema and schema["enum"]:
-        return schema["enum"][0]
+    enum_values = schema.get("enum")
+    if enum_values:
+        return enum_values[0]
     
     if "example" in schema:
         return schema["example"]

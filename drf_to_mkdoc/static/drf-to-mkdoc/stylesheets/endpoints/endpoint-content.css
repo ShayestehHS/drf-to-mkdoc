@@ -249,8 +249,12 @@ table tr:hover {
     transition: opacity 0.2s ease;
 }
 
-.hint-icon:hover {
+.hint-icon:hover,
+.hint-icon:focus-visible {
     opacity: 1;
+    outline: 2px solid var(--md-accent-fg-color);
+    outline-offset: 2px;
+    border-radius: 50%;
 }
 
 .hint-icon::after {
@@ -303,7 +307,9 @@ table tr:hover {
 }
 
 .hint-icon:hover::after,
-.hint-icon:hover::before {
+.hint-icon:hover::before,
+.hint-icon:focus-visible::after,
+.hint-icon:focus-visible::before {
     opacity: 1;
     visibility: visible;
 }
