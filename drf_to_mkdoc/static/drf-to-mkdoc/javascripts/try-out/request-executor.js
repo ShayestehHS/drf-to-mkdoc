@@ -196,9 +196,9 @@ const RequestExecutor = {
             return;
         }
 
-        // Ensure auto-auth header is added if needed
+        // Ensure auto-auth header is added if needed (await to prevent race condition)
         if (window.FormManager && typeof window.FormManager.addAutoAuthHeader === 'function') {
-            window.FormManager.addAutoAuthHeader();
+            await window.FormManager.addAutoAuthHeader();
         }
 
         // Validate required fields

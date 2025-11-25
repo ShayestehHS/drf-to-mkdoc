@@ -123,21 +123,12 @@ const SettingsManager = {
             persistCheckbox.checked = settings.usePersistentHeaders;
         }
         
-        // Update auth emoji (always show locked initially)
+        // Reset emoji; final state will be derived from current header inputs
         const authEmoji = document.getElementById('settingsAuthEmoji');
         if (authEmoji) {
             authEmoji.textContent = '🔒';
             authEmoji.classList.remove('success', 'unlocking');
-        }
-        
-        // Check if Authorization header exists in saved headers and update emoji
-        const authHeaderName = settings.headers?.Authorization ? 'Authorization' : 
-                              (settings.headers ? Object.keys(settings.headers).find(k => k.toLowerCase() === 'authorization') : null);
-        
-        if (authHeaderName && settings.headers[authHeaderName]) {
-            this.updateAuthEmoji();
-        } else {
-            this.updateAuthEmoji();
+            authEmoji.setAttribute('aria-label', 'Locked');
         }
         
         // Clear all header items
@@ -157,6 +148,9 @@ const SettingsManager = {
                 headerList.appendChild(this.createHeaderItem('', ''));
             }
         }
+        
+        // Now that header inputs reflect saved headers, sync the emoji state
+        this.updateAuthEmoji();
         
         return settings;
     },
@@ -306,18 +300,44 @@ const SettingsManager = {
         authEmoji.textContent = '🔓';
         authEmoji.classList.add('unlocking');
         
+        // Set up timeout to prevent hanging
+        const TIMEOUT_MS = 30000; // 30 seconds
+        let timeoutId = null;
+        let completed = false;
+        
+        const clearTimeoutAndComplete = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            completed = true;
+        };
+        
+        const handleTimeout = () => {
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthTestError(new Error('Authentication timed out'), authButton, authEmoji);
+            }
+        };
+        
+        timeoutId = setTimeout(handleTimeout, TIMEOUT_MS);
+        
         try {
             // Call auth function directly (credentials should be handled in the function)
             let authResult = window.getAuthHeader();
             
             // Check if result is null or undefined
             if (!authResult) {
+                clearTimeoutAndComplete();
                 throw new Error('getAuthHeader function returned null or undefined.');
             }
             
             // Handle async functions
             if (authResult && typeof authResult.then === 'function') {
                 authResult.then(result => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
+                    
                     // Validate async result
                     if (!result) {
                         this._handleAuthTestError(new Error('getAuthHeader function returned null or undefined.'), authButton, authEmoji);
@@ -325,14 +345,20 @@ const SettingsManager = {
                     }
                     this._handleAuthTestResult(result, authButton, authEmoji);
                 }).catch(error => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
                     this._handleAuthTestError(error, authButton, authEmoji);
                 });
             } else {
                 // Handle synchronous result
+                clearTimeoutAndComplete();
                 this._handleAuthTestResult(authResult, authButton, authEmoji);
             }
         } catch (error) {
-            this._handleAuthTestError(error, authButton, authEmoji);
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthTestError(error, authButton, authEmoji);
+            }
         }
     },
     

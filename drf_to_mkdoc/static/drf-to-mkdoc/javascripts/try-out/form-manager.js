@@ -316,9 +316,32 @@ const FormManager = {
             authEmoji.classList.add('unlocking');
         }
         
+        // Set up timeout to prevent hanging
+        const TIMEOUT_MS = 30000; // 30 seconds
+        let timeoutId = null;
+        let completed = false;
+        
+        const clearTimeoutAndComplete = () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            completed = true;
+        };
+        
+        const handleTimeout = () => {
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthError(new Error('Authentication timed out'), authButton, authPrompt);
+            }
+        };
+        
+        timeoutId = setTimeout(handleTimeout, TIMEOUT_MS);
+        
         try {
             // Check if getAuthHeader function exists
             if (typeof window.getAuthHeader !== 'function') {
+                clearTimeoutAndComplete();
                 throw new Error('getAuthHeader function is not defined. Please configure it in your JavaScript settings.');
             }
             
@@ -327,6 +350,7 @@ const FormManager = {
             
             // Check if result is null or undefined
             if (!authResult) {
+                clearTimeoutAndComplete();
                 throw new Error('getAuthHeader function returned null or undefined.');
             }
             
@@ -334,6 +358,9 @@ const FormManager = {
             if (authResult && typeof authResult.then === 'function') {
                 // It's a Promise, wait for it
                 authResult.then(result => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
+                    
                     // Validate async result
                     if (!result) {
                         this._handleAuthError(new Error('getAuthHeader function returned null or undefined.'), authButton, authPrompt);
@@ -341,15 +368,21 @@ const FormManager = {
                     }
                     this._handleAuthResult(result, authButton, authPrompt);
                 }).catch(error => {
+                    if (completed) return; // Timeout already handled
+                    clearTimeoutAndComplete();
                     this._handleAuthError(error, authButton, authPrompt);
                 });
                 return; // Exit early, result will be handled asynchronously
             }
             
             // Handle synchronous result
+            clearTimeoutAndComplete();
             this._handleAuthResult(authResult, authButton, authPrompt);
         } catch (error) {
-            this._handleAuthError(error, authButton, authPrompt);
+            if (!completed) {
+                clearTimeoutAndComplete();
+                this._handleAuthError(error, authButton, authPrompt);
+            }
         }
     },
     
@@ -454,7 +487,8 @@ const FormManager = {
     },
     
     // Legacy method for backward compatibility (called from request-executor)
-    addAutoAuthHeader: function() {
+    // Now async to properly handle Promise-based auth functions
+    addAutoAuthHeader: async function() {
         // This is now handled by the prompt, but we keep it for compatibility
         // It will be called before request execution to ensure header is present
         const authConfig = window.DRF_TO_MKDOC_AUTH_CONFIG;
@@ -492,16 +526,19 @@ const FormManager = {
                 try {
                     let authResult = window.getAuthHeader();
                     if (authResult && typeof authResult.then === 'function') {
-                        authResult.then(result => {
-                            if (result && result.headerName && result.headerValue) {
-                                this._addAuthHeaderToForm(result.headerName, result.headerValue);
-                            }
-                        });
-                    } else if (authResult && authResult.headerName && authResult.headerValue) {
+                        // Wait for Promise to resolve
+                        authResult = await authResult;
+                    }
+                    
+                    if (authResult && authResult.headerName && authResult.headerValue) {
                         this._addAuthHeaderToForm(authResult.headerName, authResult.headerValue);
                     }
                 } catch (error) {
-                    console.error('Failed to add auth header:', error);
+                    // Sanitize error before logging
+                    const sanitizedError = window.AuthHandler 
+                        ? window.AuthHandler.sanitizeError(error)
+                        : (error?.message || 'Unknown error');
+                    console.error('Failed to add auth header:', sanitizedError);
                 }
             }
         }

@@ -90,6 +90,12 @@ const AuthHandler = {
             throw new Error('Invalid header name format');
         }
         
+        // Validate header value format (RFC 7230: visible ASCII + tab, no bare CR/LF)
+        const headerValueRegex = /^[\t\x20-\x7E]*$/;
+        if (!headerValueRegex.test(result.headerValue)) {
+            throw new Error('Invalid header value: contains non-printable characters');
+        }
+        
         // Validate input lengths
         this._validateHeaderInput(result.headerName, result.headerValue);
     },

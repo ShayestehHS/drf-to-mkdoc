@@ -2,3 +2,10 @@
 .idea
 dist
 drf_to_mkdoc.egg-info
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
