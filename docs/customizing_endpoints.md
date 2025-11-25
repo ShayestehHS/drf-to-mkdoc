@@ -370,7 +370,7 @@ DRF_TO_MKDOC = {
 }
 ```
 
-Then load it as a regular script tag (no CSP restrictions):
+Then load it as a regular script tag (no inline-script CSP exceptions needed):
 
 ```html
 <script src="{% static 'js/auth-config.js' %}" defer></script>

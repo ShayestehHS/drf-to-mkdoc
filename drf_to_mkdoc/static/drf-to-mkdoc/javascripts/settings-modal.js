@@ -3,6 +3,7 @@ const SettingsManager = {
     storageKey: 'drfToMkdocSettings',
     headersStorageKey: 'drfToMkdocHeaders', // Separate key for headers
     usePersistentHeaders: false, // Track whether user opted in to persistent storage
+    _authInProgress: false, // Guard flag to prevent concurrent auth runs
     
     // Open settings modal
     openSettingsModal: function() {
@@ -252,6 +253,14 @@ const SettingsManager = {
             return;
         }
         
+        // Guard against concurrent auth runs
+        if (this._authInProgress) {
+            this.showToast('Authentication already in progress', 'info');
+            return;
+        }
+        
+        this._authInProgress = true;
+        
         // Use shared AuthHandler if available
         if (window.AuthHandler) {
             // Set loading state
@@ -286,6 +295,7 @@ const SettingsManager = {
     _testAuthLegacy: function(authButton, authEmoji) {
         // Check if getAuthHeader function exists
         if (typeof window.getAuthHeader !== 'function') {
+            this._authInProgress = false; // Clear flag on early return
             this.showToast('getAuthHeader function not found. Please configure it in your JavaScript.', 'error');
             return;
         }
@@ -299,6 +309,7 @@ const SettingsManager = {
         if (buttonLoader) buttonLoader.style.display = 'inline-block';
         authEmoji.textContent = '🔓';
         authEmoji.classList.add('unlocking');
+        authEmoji.setAttribute('aria-label', 'Unlocking');
         
         // Set up timeout to prevent hanging
         const TIMEOUT_MS = 30000; // 30 seconds
@@ -426,6 +437,9 @@ const SettingsManager = {
                 if (buttonText) buttonText.textContent = 'Get Header';
                 this.updateAuthEmoji(); // Update emoji based on current headers
             }, 3000);
+            
+            // Clear auth in progress flag
+            this._authInProgress = false;
         } else {
             // Invalid result - show error
             this._handleAuthTestError(
@@ -470,6 +484,9 @@ const SettingsManager = {
             if (buttonText) buttonText.textContent = 'Get Header';
             this.updateAuthEmoji();
         }, 3000);
+        
+        // Clear auth in progress flag
+        this._authInProgress = false;
     },
     
     // Update auth emoji based on stored header or function availability
