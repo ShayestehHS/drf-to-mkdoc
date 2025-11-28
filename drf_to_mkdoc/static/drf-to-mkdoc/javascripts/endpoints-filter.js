@@ -94,13 +94,88 @@ function getPermissionsCheckboxValue() {
 }
 
 function camelCaseToReadable(str) {
-    // Convert camelCase to readable format
+    // Convert camelCase or all-lowercase to readable format
     // e.g., "IsAuthenticated" -> "Is Authenticated"
     // e.g., "IsAdminUser" -> "Is Admin User"
-    return str
-        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-        .replace(/^ /, '') // Remove leading space
-        .trim();
+    // e.g., "deleteserverpermission" -> "Delete Server Permission"
+    // e.g., "deleteteampermission" -> "Delete Team Permission"
+    
+    if (!str) return str;
+    
+    // First, handle camelCase by adding spaces before capital letters
+    let result = str.replace(/([A-Z])/g, ' $1');
+    
+    // If the string is all lowercase (no spaces added), try to split intelligently
+    if (result === str && str === str.toLowerCase()) {
+        // Common permission word patterns (sorted by length, longest first for greedy matching)
+        const commonWords = [
+            'authenticated', 'permission', 'anonymous', 'instance', 'resource',
+            'delete', 'create', 'update', 'server', 'team', 'user', 'admin', 'staff',
+            'object', 'model', 'action', 'access', 'manage', 'remove', 'change',
+            'read', 'view', 'list', 'edit', 'grant', 'revoke',
+            'get', 'post', 'put', 'has', 'can', 'is', 'add', 'deny', 'allow'
+        ];
+        
+        // Try to find and split by these words
+        let remaining = str.toLowerCase();
+        const foundWords = [];
+        
+        while (remaining.length > 0) {
+            let matched = false;
+            // Try to match from longest to shortest words
+            for (const word of commonWords) {
+                if (remaining.startsWith(word)) {
+                    foundWords.push(word);
+                    remaining = remaining.substring(word.length);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                // If no word matches, try to find the next word boundary
+                // Look for common suffixes or try to split at reasonable points
+                let nextMatch = null;
+                let nextMatchIndex = remaining.length;
+                
+                for (const word of commonWords) {
+                    const index = remaining.indexOf(word);
+                    if (index > 0 && index < nextMatchIndex) {
+                        nextMatch = word;
+                        nextMatchIndex = index;
+                    }
+                }
+                
+                if (nextMatch && nextMatchIndex > 0) {
+                    // Found a word later in the string, take everything before it as a word
+                    const beforeWord = remaining.substring(0, nextMatchIndex);
+                    if (beforeWord.length > 0) {
+                        foundWords.push(beforeWord);
+                    }
+                    remaining = remaining.substring(nextMatchIndex);
+                } else {
+                    // No more matches, take the rest as one word
+                    if (remaining.length > 0) {
+                        foundWords.push(remaining);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Capitalize first letter of each word
+        result = foundWords
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    } else {
+        // Handle camelCase: capitalize first letter and clean up
+        result = result
+            .split(' ')
+            .filter(word => word.length > 0)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+    
+    return result.trim();
 }
 
 function populateAppFilterOptions() {
