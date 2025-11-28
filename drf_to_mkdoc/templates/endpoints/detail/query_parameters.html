@@ -18,20 +18,6 @@ Query parameters with tabbed interface for different parameter types
         <div class="query-params-content" id="query-params-content">
             <!-- Tabs Navigation -->
             <div class="query-params-tabs" role="tablist">
-                {% if query_parameters.search_fields %}
-                <button 
-                    id="search-fields-tab-button"
-                    class="query-params-tab" 
-                    role="tab" 
-                    aria-selected="false"
-                    aria-controls="search-fields-panel"
-                    data-tab="search-fields">
-                    <span class="tab-icon">🔍</span>
-                    Search Fields
-                    <span class="hint-icon" tabindex="0" data-tooltip="Database columns that are searched when using the search query parameter (e.g., ?search=value)." aria-label="Information about search fields">ℹ️</span>
-                </button>
-                {% endif %}
-                
                 {% if query_parameters.filter_fields %}
                 <button 
                     id="filter-fields-tab-button"
@@ -73,25 +59,23 @@ Query parameters with tabbed interface for different parameter types
                     <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used for pagination to navigate through result pages (e.g., ?page=1&amp;page_size=10)." aria-label="Information about pagination fields">ℹ️</span>
                 </button>
                 {% endif %}
+                
+                {% if query_parameters.search_fields %}
+                <button 
+                    id="search-fields-tab-button"
+                    class="query-params-tab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="search-fields-panel"
+                    data-tab="search-fields">
+                    <span class="tab-icon">🔍</span>
+                    Search Fields
+                    <span class="hint-icon" tabindex="0" data-tooltip="Database columns that are searched when using the search query parameter (e.g., ?search=value)." aria-label="Information about search fields">ℹ️</span>
+                </button>
+                {% endif %}
             </div>
 
             <!-- Tab Contents -->
-            {% if query_parameters.search_fields %}
-            <div 
-                class="query-params-tab-content" 
-                id="search-fields-panel" 
-                role="tabpanel"
-                aria-labelledby="search-fields-tab-button">
-                <div class="query-params-list">
-                    {% for field in query_parameters.search_fields %}
-                    <div class="query-param-item">
-                        <code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
             {% if query_parameters.filter_fields %}
             <div 
                 class="query-params-tab-content" 
@@ -181,6 +165,22 @@ Query parameters with tabbed interface for different parameter types
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if query_parameters.search_fields %}
+            <div 
+                class="query-params-tab-content" 
+                id="search-fields-panel" 
+                role="tabpanel"
+                aria-labelledby="search-fields-tab-button">
+                <div class="query-params-list">
+                    {% for field in query_parameters.search_fields %}
+                    <div class="query-param-item">
+                        <code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
             {% endif %}
