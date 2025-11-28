@@ -13,8 +13,6 @@
 
 **View class:** {{ viewset_name }}
 
-{% include "endpoints/detail/permissions.html" %}
-
 {% if summary %}
 ## Overview
 
@@ -24,6 +22,8 @@
 {% if operation_id %}
 **Operation ID:** `{{ operation_id }}`
 {% endif %}
+
+{% include "endpoints/detail/permissions.html" %}
 
 {% if description %}
 {{ description|safe }}
