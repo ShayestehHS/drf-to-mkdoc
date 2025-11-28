@@ -76,3 +76,18 @@ def create_safe_filename(path: str, method: str) -> str:
     """Create a safe filename from path and method"""
     safe_path = re.sub(r"[^a-zA-Z0-9_-]", "_", path.strip("/"))
     return f"{method.lower()}_{safe_path}.md"
+
+
+def get_permission_url(permission_class_path: str) -> str:
+    """
+    Generate URL path for permission detail page.
+    
+    Args:
+        permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
+    
+    Returns:
+        URL path (e.g., "permissions/rest_framework.permissions.IsAuthenticated/")
+    """
+    # Replace dots with slashes for URL path, but keep the full path structure
+    # This ensures unique URLs for each permission class
+    return f"permissions/{permission_class_path}/"

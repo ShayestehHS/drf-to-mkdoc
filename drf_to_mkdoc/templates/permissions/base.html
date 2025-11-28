@@ -1,0 +1,13 @@
+# {{ display_name }}
+
+<!-- inject CSS directly -->
+{% for stylesheet in stylesheets %}
+<link rel="stylesheet" href="{{ stylesheet }}">
+{% endfor %}
+
+**Permission Class:** `{{ permission_class_path }}`
+
+## Description
+
+{{ description }}
+
