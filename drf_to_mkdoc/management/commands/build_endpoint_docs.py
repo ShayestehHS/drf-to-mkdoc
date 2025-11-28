@@ -9,6 +9,7 @@ from drf_to_mkdoc.utils.endpoint_detail_generator import (
     parse_endpoints_from_schema,
 )
 from drf_to_mkdoc.utils.endpoint_list_generator import create_endpoints_index
+from drf_to_mkdoc.utils.permission_detail_generator import generate_permission_docs
 
 
 class Command(BaseCommand):
@@ -67,3 +68,36 @@ class Command(BaseCommand):
                 f"✅ Generated {total_endpoints} endpoint files with Django view introspection"
             )
         )
+        
+        self._generate_permission_pages(paths)
+
+    def _generate_permission_pages(self, paths):
+        """Collect all unique permissions and generate detail pages."""
+        self.stdout.write("🔐 Collecting permissions...")
+        
+        permissions = {}
+        for path_data in paths.values():
+            for method_data in path_data.values():
+                if not isinstance(method_data, dict):
+                    continue
+                metadata = method_data.get("x-metadata", {})
+                permission_classes = metadata.get("permission_classes", [])
+                
+                for perm in permission_classes:
+                    if isinstance(perm, dict):
+                        class_path = perm.get("class_path")
+                        if class_path:
+                            permissions[class_path] = perm
+                    elif isinstance(perm, str):
+                        # Backward compatibility with string format
+                        permissions[perm] = {"class_path": perm}
+        
+        if permissions:
+            generate_permission_docs(permissions)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"✅ Generated {len(permissions)} permission detail pages"
+                )
+            )
+        else:
+            self.stdout.write("ℹ️  No permissions found to document")

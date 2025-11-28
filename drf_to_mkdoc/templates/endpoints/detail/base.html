@@ -23,6 +23,8 @@
 **Operation ID:** `{{ operation_id }}`
 {% endif %}
 
+{% include "endpoints/detail/permissions.html" %}
+
 {% if description %}
 {{ description|safe }}
 {% endif %}

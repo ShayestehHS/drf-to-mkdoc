@@ -173,6 +173,12 @@ def json_for_display(value):
 
 
 @register.filter
+def to_json(value):
+    """Convert Python object to JSON string for JavaScript"""
+    return mark_safe(json.dumps(value))  # noqa: S308
+
+
+@register.filter
 def format_example(value):
     """Format example value for display in query parameter tables."""
     if value is None:
@@ -189,7 +195,7 @@ def format_example(value):
             formatted = json.dumps(value, separators=(",", ":"))
         except (TypeError, ValueError):
             return str(value)
-        
+
         # Truncate if too long (max 50 chars for table display)
         if len(formatted) > 50:
             return formatted[:47] + "..."

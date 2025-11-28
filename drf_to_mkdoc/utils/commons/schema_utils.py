@@ -1,6 +1,9 @@
+import inspect
 import json
+import logging
 from copy import deepcopy
 from functools import lru_cache
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +11,8 @@ from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.commons.file_utils import load_json_data
+
+logger = logging.getLogger(__name__)
 
 
 class SchemaValidationError(Exception):
@@ -261,3 +266,145 @@ class OperationExtractor:
                 mapping[operation_id] = {"path": path, **metadata}
 
         return mapping
+
+
+@lru_cache(maxsize=1)
+def get_references() -> dict[str, Any]:
+    """
+    Load references from separate JSON file.
+    
+    References file contains reusable descriptions for permissions, serializers,
+    responses, and other components to avoid redundancy in schema files.
+    
+    Structure:
+    {
+        "rest_framework.permissions.IsAuthenticated": {
+            "description": "User must be authenticated to access this endpoint."
+        },
+        ...
+    }
+    
+    Returns:
+        Dictionary of references, or empty dict if file doesn't exist
+    """
+    references_data = load_json_data(
+        drf_to_mkdoc_settings.REFERENCES_FILE, raise_not_found=False
+    )
+    if not references_data:
+        return {}
+    
+    # Validate structure - should be a dict
+    if not isinstance(references_data, dict):
+        raise SchemaValidationError(
+            f"References file must contain a JSON object (dict), got {type(references_data).__name__}"
+        )
+    
+    return references_data
+
+
+def get_permission_description(permission_class_path: str) -> dict[str, str | None]:
+    """
+    Get permission descriptions (short and long) with priority: schema JSON > docstring > None.
+    
+    Args:
+        permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
+    
+    Returns:
+        Dictionary with 'short' and 'long' keys, each containing description string or None
+    """
+    result = {"short": None, "long": None}
+    
+    # Priority 1: Check references file
+    references = get_references()
+    if permission_class_path in references:
+        permission_data = references[permission_class_path]
+        if isinstance(permission_data, dict):
+            # Get long description
+            long_desc = permission_data.get("description")
+            if long_desc:
+                result["long"] = long_desc
+            
+            # Get short description (custom or auto-truncated)
+            short_desc = permission_data.get("short_description")
+            if short_desc:
+                result["short"] = short_desc
+            elif long_desc:
+                # Auto-truncate long description if short not provided
+                result["short"] = _truncate_description(long_desc)
+    
+    # Priority 2: Extract docstring from permission class
+    if not result["long"]:
+        try:
+            # Parse module and class name
+            module_path, class_name = permission_class_path.rsplit(".", 1)
+            module = import_module(module_path)
+            permission_class = getattr(module, class_name)
+            
+            # Get docstring directly from the class (not from parent classes)
+            # Check if the class itself has a docstring in its __dict__
+            docstring = None
+            
+            # First, check if __doc__ is defined in the class's own __dict__
+            if "__doc__" in permission_class.__dict__:
+                docstring = permission_class.__dict__["__doc__"]
+            else:
+                # If not in __dict__, check if __doc__ exists and is not from a parent
+                class_doc = getattr(permission_class, "__doc__", None)
+                if class_doc:
+                    # Verify this docstring is not inherited from a parent class
+                    # by checking all parent classes in the MRO
+                    is_inherited = False
+                    for base in inspect.getmro(permission_class)[1:]:  # Skip the class itself
+                        if hasattr(base, "__doc__") and base.__doc__ == class_doc:
+                            # This docstring comes from a parent class, skip it
+                            is_inherited = True
+                            break
+                    
+                    if not is_inherited:
+                        docstring = class_doc
+            
+            if docstring:
+                docstring = docstring.strip()
+                # Only use if it's not empty and has meaningful content
+                if docstring and len(docstring) > 10:  # Minimum meaningful length
+                    result["long"] = docstring
+                    # Auto-truncate for short version
+                    result["short"] = _truncate_description(docstring)
+        except (ImportError, AttributeError, ValueError) as e:
+            # Gracefully handle import errors
+            logger.debug(f"Could not extract docstring for {permission_class_path}: {e}")
+    
+    return result
+
+
+def _truncate_description(description: str, max_length: int = 100) -> str:
+    """
+    Truncate description to short version.
+    
+    Args:
+        description: Full description text
+        max_length: Maximum length for truncated version
+    
+    Returns:
+        Truncated description with ellipsis if needed
+    """
+    if len(description) <= max_length:
+        return description
+    
+    # Try to truncate at sentence boundary
+    truncated = description[:max_length]
+    last_period = truncated.rfind('.')
+    last_newline = truncated.rfind('\n')
+    
+    # Use the last sentence boundary if found within reasonable distance
+    if last_period > max_length * 0.7:
+        return truncated[:last_period + 1]
+    elif last_newline > max_length * 0.7:
+        return truncated[:last_newline].strip()
+    else:
+        # Truncate at word boundary
+        last_space = truncated.rfind(' ')
+        if last_space > max_length * 0.7:
+            return truncated[:last_space] + '...'
+        else:
+            return truncated + '...'

@@ -76,3 +76,65 @@ def create_safe_filename(path: str, method: str) -> str:
     """Create a safe filename from path and method"""
     safe_path = re.sub(r"[^a-zA-Z0-9_-]", "_", path.strip("/"))
     return f"{method.lower()}_{safe_path}.md"
+
+
+def camel_case_to_readable(name: str) -> str:
+    """
+    Convert camelCase or all-lowercase class name to readable format.
+
+    Args:
+        name: Class name (e.g., "IsAuthenticated", "deleteserverpermission")
+
+    Returns:
+        Readable format (e.g., "Is Authenticated", "Delete Server Permission")
+    """
+    if not name:
+        return name
+
+    # Handle camelCase: insert space before uppercase letters
+    # This catches transitions from lowercase to uppercase
+    result = re.sub(r'([a-z])([A-Z])', r'\1 \2', name)
+
+    # Handle sequences of capitals followed by lowercase (e.g., "XMLParser" -> "XML Parser")
+    result = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', result)
+
+    # If still no spaces (all lowercase), insert spaces before common suffixes/patterns
+    if ' ' not in result:
+        # Insert space before common word boundaries using lookahead
+        # This handles patterns like: "deleteserver" -> "delete server"
+        result = re.sub(r'([a-z])([A-Z]|permission|server|user|admin|team)', r'\1 \2', result, flags=re.IGNORECASE)
+
+    # Title case each word
+    result = ' '.join(word.capitalize() for word in result.split())
+
+    return result.strip()
+
+def get_permission_url(permission_class_path: str, relative_from_endpoint: bool = True) -> str:
+    """
+    Generate URL path for permission detail page.
+    
+    Args:
+        permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
+        relative_from_endpoint: If True, returns relative path from endpoint pages (with ../../../ prefix).
+                                If False, returns base path without prefix (for file paths).
+    
+    Returns:
+        URL path (e.g., "../../../permissions/rest_framework/permissions/IsAuthenticated/" or
+                 "permissions/rest_framework/permissions/IsAuthenticated/")
+    """
+    # Replace dots with slashes for URL path, but keep the full path structure
+    # This ensures unique URLs for each permission class and creates a directory structure
+    safe_path = permission_class_path.replace(".", "/")
+    base_path = f"permissions/{safe_path}/"
+    
+    # Endpoint pages are at endpoints/{app}/{viewset}/{file}.md (3 directory levels deep)
+    # Permission pages are at permissions/{path}/index.md (at docs root level)
+    # To go from endpoints/{app}/{viewset}/file.md to permissions/{path}/index.md:
+    #   ../ goes up to {viewset}/
+    #   ../../ goes up to {app}/
+    #   ../../../ goes up to endpoints/
+    #   ../../../permissions/ reaches the permissions directory at docs root
+    # This hardcoded depth assumes the fixed structure: endpoints/{app}/{viewset}/{file}.md
+    if relative_from_endpoint:
+        return f"../../../{base_path}"
+    return base_path

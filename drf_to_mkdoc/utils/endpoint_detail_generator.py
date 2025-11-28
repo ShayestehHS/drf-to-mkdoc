@@ -16,9 +16,16 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
 )
-from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
+from drf_to_mkdoc.utils.commons.path_utils import (
+    create_safe_filename,
+    get_permission_url,
+)
 from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
-from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema, is_endpoint_secure
+from drf_to_mkdoc.utils.commons.schema_utils import (
+    get_custom_schema,
+    get_permission_description,
+    is_endpoint_secure,
+)
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )
@@ -751,6 +758,57 @@ def _extract_request_examples(
     return []
 
 
+def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Extract permissions data from endpoint for display in template.
+
+    Args:
+        operation_id: Operation ID of the endpoint
+        endpoint_data: Endpoint data from OpenAPI schema
+
+    Returns:
+        List of permission dictionaries with class_path, display_name, description, url
+    """
+    permissions = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+
+    if not permission_classes:
+        return permissions
+
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            class_path = perm
+            display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
+        elif isinstance(perm, dict):
+            # Structured format - display_name should already be calculated in _flatten_permissions
+            class_path = perm.get("class_path", "")
+            display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
+        else:
+            continue
+
+        if not class_path:
+            continue
+
+        # Get descriptions (short and long)
+        descriptions = get_permission_description(class_path)
+        short_description = descriptions.get("short") or descriptions.get("long") or ""
+
+        # Generate URL
+        url = get_permission_url(class_path)
+
+        permissions.append({
+            "class_path": class_path,
+            "display_name": display_name,
+            "description": short_description,  # Use short description for endpoint detail page (empty if none)
+            "url": url,
+        })
+
+    return permissions
+
+
 def create_endpoint_page(
     path: str, method: str, endpoint_data: dict[str, Any], components: dict[str, Any]
 ) -> str:
@@ -818,6 +876,7 @@ def create_endpoint_page(
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
         "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+        "permissions": _extract_permissions_data(operation_id, endpoint_data),
         **get_auth_config(),
     }
 
@@ -846,13 +905,13 @@ def _is_list_endpoint(method: str, path: str, operation_id: str) -> bool:
 
 def _deduplicate_query_params(params: list) -> list:
     """Deduplicate query parameters while preserving order.
-    
+
     Handles both string format (legacy) and dict format (with schema info).
     Deduplicates based on parameter name.
     """
     seen_names = set()
     result = []
-    
+
     for param in params:
         if isinstance(param, dict):
             param_name = param.get("name")
@@ -861,11 +920,11 @@ def _deduplicate_query_params(params: list) -> list:
         else:
             # Skip invalid entries
             continue
-        
+
         if param_name and param_name not in seen_names:
             seen_names.add(param_name)
             result.append(param)
-    
+
     return result
 
 
@@ -883,7 +942,7 @@ def _add_query_params_from_schema(
     endpoint_data: dict[str, Any], query_params: dict, components: dict[str, Any]
 ) -> None:
     """Extract query parameters from OpenAPI schema and merge with view-based extraction.
-    
+
     This function extracts query parameters from the OpenAPI schema with full schema
     information (type, example, description) and merges them with the view-based
     extraction. Parameters are categorized by their queryparam_type if available,
@@ -892,16 +951,16 @@ def _add_query_params_from_schema(
     schema_query_params = [
         p for p in endpoint_data.get("parameters", []) if p.get("in") == "query"
     ]
-    
+
     if not schema_query_params:
         return
-    
+
     # Resolve schema references and extract type/example info
     for param in schema_query_params:
         param_name = param.get("name")
         if not param_name:
             continue
-        
+
         # Resolve schema reference if needed
         schema = param.get("schema", {})
         if "$ref" in schema:
@@ -911,17 +970,17 @@ def _add_query_params_from_schema(
             items_ref = schema.get("items", {}).get("$ref")
             if items_ref:
                 schema["items"] = _resolve_schema_reference({"$ref": items_ref}, components)
-        
+
         # Extract type, example, and description
         param_type = schema.get("type", "string")
         param_example = schema.get("example") or schema.get("default")
         param_description = param.get("description", "")
         param_required = param.get("required", False)
-        
+
         # Generate example if not provided
         if param_example is None:
             param_example = _generate_query_param_example(schema, components)
-        
+
         # Create parameter object with schema info
         param_obj = {
             "name": param_name,
@@ -931,7 +990,7 @@ def _add_query_params_from_schema(
             "required": param_required,
             "schema": schema,
         }
-        
+
         # Determine queryparam_type from custom schema or infer from name
         queryparam_type = param.get("queryparam_type")
         if not queryparam_type:
@@ -945,11 +1004,11 @@ def _add_query_params_from_schema(
                 queryparam_type = "pagination_fields"
             else:
                 queryparam_type = "filter_fields"
-        
+
         # Add to appropriate category
         if queryparam_type not in query_params:
             query_params[queryparam_type] = []
-        
+
         # Check if parameter already exists (by name) and update it, or add new
         existing_param = None
         for existing in query_params[queryparam_type]:
@@ -962,7 +1021,7 @@ def _add_query_params_from_schema(
                 query_params[queryparam_type][idx] = param_obj
                 existing_param = param_obj
                 break
-        
+
         if existing_param is None:
             query_params[queryparam_type].append(param_obj)
         elif existing_param is not param_obj:
@@ -975,24 +1034,24 @@ def _generate_query_param_example(schema: dict, components: dict[str, Any]) -> A
     """Generate an example value for a query parameter based on its schema."""
     if not isinstance(schema, dict):
         return None
-    
+
     # Resolve schema reference if needed
     if "$ref" in schema:
         schema = _resolve_schema_reference(schema, components)
-    
+
     param_type = schema.get("type")
-    
+
     # Handle explicit values first
     enum_values = schema.get("enum")
     if enum_values:
         return enum_values[0]
-    
+
     if "example" in schema:
         return schema["example"]
-    
+
     if "default" in schema:
         return schema["default"]
-    
+
     # Generate based on type
     if param_type == "integer":
         return 1
@@ -1012,9 +1071,83 @@ def _generate_query_param_example(schema: dict, components: dict[str, Any]) -> A
         return []
     elif param_type == "object":
         return {}
-    
+
     # Default to string example
     return "example"
+
+
+def _extract_all_permission_class_paths(endpoint_data: dict[str, Any]) -> list[str]:
+    """
+    Extract ALL permission class paths from endpoint data for filtering.
+    This includes all permissions, even those without descriptions.
+
+    Args:
+        endpoint_data: Endpoint data from OpenAPI schema
+
+    Returns:
+        List of permission class paths
+    """
+    permission_class_paths = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+
+    if not permission_classes:
+        return permission_class_paths
+
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            permission_class_paths.append(perm)
+        elif isinstance(perm, dict):
+            # Structured format
+            class_path = perm.get("class_path", "")
+            if class_path:
+                permission_class_paths.append(class_path)
+
+    return permission_class_paths
+
+
+def _extract_permissions_with_display_names(endpoint_data: dict[str, Any]) -> list[dict[str, str]]:
+    """
+    Extract permission class paths with their display names for filtering.
+    Display names should already be calculated in _flatten_permissions.
+
+    Args:
+        endpoint_data: Endpoint data from OpenAPI schema
+
+    Returns:
+        List of dictionaries with 'class_path' and 'display_name' keys
+    """
+    permissions = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+
+    if not permission_classes:
+        return permissions
+
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            class_path = perm
+            display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
+        elif isinstance(perm, dict):
+            # Structured format - display_name should already be calculated in _flatten_permissions
+            class_path = perm.get("class_path", "")
+            display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
+        else:
+            continue
+
+        if not class_path:
+            continue
+
+        permissions.append({
+            "class_path": class_path,
+            "display_name": display_name,
+        })
+
+    return permissions
 
 
 def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -1035,6 +1168,11 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
             operation_id = endpoint_data.get("operationId", "")
             filename = create_safe_filename(path, method)
 
+            # Extract ALL permissions for filtering (including those without descriptions)
+            permission_class_paths = _extract_all_permission_class_paths(endpoint_data)
+            # Also extract permissions with display names for JavaScript
+            permissions_with_names = _extract_permissions_with_display_names(endpoint_data)
+
             endpoint_info = {
                 "path": path,
                 "method": method.upper(),
@@ -1043,6 +1181,8 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
                 "filename": filename,
                 "data": endpoint_data,
                 "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+                "permissions": permission_class_paths,
+                "permissions_data": permissions_with_names,  # Include display names for JS
             }
 
             endpoints_by_app[app_name].append(endpoint_info)

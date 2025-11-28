@@ -25,6 +25,7 @@ class EndpointsIndexGenerator:
             "ordering",
             "search",
             "tags",
+            "permissions",
         ]
 
     def create_endpoints_index(
@@ -61,6 +62,7 @@ class EndpointsIndexGenerator:
 
         # Process endpoints to add view_class
         processed_endpoints = {}
+        
         for app_name, app_endpoints in endpoints_by_app.items():
             processed_endpoints[app_name] = []
             for endpoint in app_endpoints:
@@ -71,6 +73,7 @@ class EndpointsIndexGenerator:
                 processed_endpoint["link_url"] = (
                     f"{app_name}/{processed_endpoint['viewset'].lower()}/{processed_endpoint['filename'].replace('.md', '/index.html')}"
                 )
+                
                 processed_endpoints[app_name].append(processed_endpoint)
 
         context = {
@@ -98,6 +101,7 @@ def create_endpoints_index(
             "path",
             "app",
             "search",
+            "permissions",
         ]
     )
     generator.create_endpoints_index(endpoints_by_app, docs_dir)
