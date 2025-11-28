@@ -20,10 +20,11 @@ Query parameters with tabbed interface for different parameter types
             <div class="query-params-tabs" role="tablist">
                 {% if query_parameters.search_fields %}
                 <button 
-                    class="query-params-tab {% if not query_parameters.filter_fields and not query_parameters.ordering_fields and not query_parameters.pagination_fields %}active{% endif %}" 
+                    id="search-fields-tab-button"
+                    class="query-params-tab" 
                     role="tab" 
-                    aria-selected="{% if not query_parameters.filter_fields and not query_parameters.ordering_fields and not query_parameters.pagination_fields %}true{% else %}false{% endif %}"
-                    aria-controls="search-fields-tab"
+                    aria-selected="false"
+                    aria-controls="search-fields-panel"
                     data-tab="search-fields">
                     <span class="tab-icon">🔍</span>
                     Search Fields
@@ -33,10 +34,11 @@ Query parameters with tabbed interface for different parameter types
                 
                 {% if query_parameters.filter_fields %}
                 <button 
-                    class="query-params-tab {% if query_parameters.filter_fields and not query_parameters.search_fields %}active{% endif %}" 
+                    id="filter-fields-tab-button"
+                    class="query-params-tab" 
                     role="tab" 
-                    aria-selected="{% if query_parameters.filter_fields and not query_parameters.search_fields %}true{% else %}false{% endif %}"
-                    aria-controls="filter-fields-tab"
+                    aria-selected="false"
+                    aria-controls="filter-fields-panel"
                     data-tab="filter-fields">
                     <span class="tab-icon">🔽</span>
                     Filter Fields
@@ -46,10 +48,11 @@ Query parameters with tabbed interface for different parameter types
                 
                 {% if query_parameters.ordering_fields %}
                 <button 
+                    id="ordering-fields-tab-button"
                     class="query-params-tab" 
                     role="tab" 
                     aria-selected="false"
-                    aria-controls="ordering-fields-tab"
+                    aria-controls="ordering-fields-panel"
                     data-tab="ordering-fields">
                     <span class="tab-icon">↕️</span>
                     Ordering Fields
@@ -59,10 +62,11 @@ Query parameters with tabbed interface for different parameter types
                 
                 {% if query_parameters.pagination_fields %}
                 <button 
+                    id="pagination-fields-tab-button"
                     class="query-params-tab" 
                     role="tab" 
                     aria-selected="false"
-                    aria-controls="pagination-fields-tab"
+                    aria-controls="pagination-fields-panel"
                     data-tab="pagination-fields">
                     <span class="tab-icon">📄</span>
                     Pagination Fields
@@ -74,10 +78,10 @@ Query parameters with tabbed interface for different parameter types
             <!-- Tab Contents -->
             {% if query_parameters.search_fields %}
             <div 
-                class="query-params-tab-content {% if not query_parameters.filter_fields and not query_parameters.ordering_fields and not query_parameters.pagination_fields %}active{% endif %}" 
-                id="search-fields-tab" 
+                class="query-params-tab-content" 
+                id="search-fields-panel" 
                 role="tabpanel"
-                aria-labelledby="search-fields-tab">
+                aria-labelledby="search-fields-tab-button">
                 <div class="query-params-list">
                     {% for field in query_parameters.search_fields %}
                     <div class="query-param-item">
@@ -90,10 +94,10 @@ Query parameters with tabbed interface for different parameter types
 
             {% if query_parameters.filter_fields %}
             <div 
-                class="query-params-tab-content {% if query_parameters.filter_fields and not query_parameters.search_fields %}active{% endif %}" 
-                id="filter-fields-tab" 
+                class="query-params-tab-content" 
+                id="filter-fields-panel" 
                 role="tabpanel"
-                aria-labelledby="filter-fields-tab">
+                aria-labelledby="filter-fields-tab-button">
                 <div class="query-params-table-wrapper">
                     <table class="query-params-table">
                         <thead>
@@ -110,7 +114,7 @@ Query parameters with tabbed interface for different parameter types
                                 <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
                                 <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
                                 <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
-                                <td>{% if field.example %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -122,9 +126,9 @@ Query parameters with tabbed interface for different parameter types
             {% if query_parameters.ordering_fields %}
             <div 
                 class="query-params-tab-content" 
-                id="ordering-fields-tab" 
+                id="ordering-fields-panel" 
                 role="tabpanel"
-                aria-labelledby="ordering-fields-tab">
+                aria-labelledby="ordering-fields-tab-button">
                 <div class="query-params-table-wrapper">
                     <table class="query-params-table">
                         <thead>
@@ -141,7 +145,7 @@ Query parameters with tabbed interface for different parameter types
                                 <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
                                 <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
                                 <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
-                                <td>{% if field.example %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -153,9 +157,9 @@ Query parameters with tabbed interface for different parameter types
             {% if query_parameters.pagination_fields %}
             <div 
                 class="query-params-tab-content" 
-                id="pagination-fields-tab" 
+                id="pagination-fields-panel" 
                 role="tabpanel"
-                aria-labelledby="pagination-fields-tab">
+                aria-labelledby="pagination-fields-tab-button">
                 <div class="query-params-table-wrapper">
                     <table class="query-params-table">
                         <thead>
@@ -172,7 +176,7 @@ Query parameters with tabbed interface for different parameter types
                                 <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
                                 <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
                                 <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
-                                <td>{% if field.example %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

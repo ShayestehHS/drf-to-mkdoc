@@ -40,6 +40,9 @@
             });
         });
 
+        // Initialize tabs - ensure first tab is active
+        initializeTabs();
+
         // Handle tab switching
         const tabs = document.querySelectorAll('.query-params-tab');
         tabs.forEach(tab => {
@@ -59,6 +62,22 @@
             });
         });
 
+    }
+
+    /**
+     * Initialize tabs - activate first tab if none is active
+     */
+    function initializeTabs() {
+        const tabContainers = document.querySelectorAll('.query-params-content');
+        tabContainers.forEach(container => {
+            const tabs = container.querySelectorAll('.query-params-tab');
+            const activeTab = container.querySelector('.query-params-tab.active');
+            
+            // If no tab is active, activate the first one
+            if (!activeTab && tabs.length > 0) {
+                switchQueryParamsTab(tabs[0]);
+            }
+        });
     }
 
     /**
