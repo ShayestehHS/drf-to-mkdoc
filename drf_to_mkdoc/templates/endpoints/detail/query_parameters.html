@@ -18,45 +18,33 @@ Check if any query parameter fields have content
 {% if query_parameters.filter_fields %}
 ### Filter Fields <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used to filter the results (e.g., ?field=value)." aria-label="Information about filter fields" title="Query parameters used to filter the results (e.g., ?field=value).">ℹ️</span>
 
-| Name | Type | Required | Description | Example |
-|------|------|----------|-------------|---------|
-{% for field in query_parameters.filter_fields %}
-{% if field.name %}
-| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.required|yesno:"Yes,No" }} | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
-{% else %}
-| `{{ field }}` | `string` | No | — | — |
-{% endif %}
-{% endfor %}
+| Name | Type | Description | Example |
+|------|------|-------------|---------|
+{% for field in query_parameters.filter_fields %}{% if field.name %}| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
+{% else %}| `{{ field }}` | `string` | — | — |
+{% endif %}{% endfor %}
 
 {% endif %}
 
 {% if query_parameters.ordering_fields %}
 ### Ordering Fields <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used to sort/order the results (e.g., ?ordering=field_name or ?ordering=-field_name for descending)." aria-label="Information about ordering fields" title="Query parameters used to sort/order the results (e.g., ?ordering=field_name or ?ordering=-field_name for descending).">ℹ️</span>
 
-| Name | Type | Required | Description | Example |
-|------|------|----------|-------------|---------|
-{% for field in query_parameters.ordering_fields %}
-{% if field.name %}
-| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.required|yesno:"Yes,No" }} | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
-{% else %}
-| `{{ field }}` | `string` | No | — | — |
-{% endif %}
-{% endfor %}
+| Name | Type | Description | Example |
+|------|------|-------------|---------|
+{% for field in query_parameters.ordering_fields %}{% if field.name %}| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
+{% else %}| `{{ field }}` | `string` | — | — |
+{% endif %}{% endfor %}
 
 {% endif %}
 
 {% if query_parameters.pagination_fields %}
 ### Pagination Fields <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used for pagination to navigate through result pages (e.g., ?page=1&amp;page_size=10)." aria-label="Information about pagination fields" title="Query parameters used for pagination to navigate through result pages (e.g., ?page=1&page_size=10).">ℹ️</span>
 
-| Name | Type | Required | Description | Example |
-|------|------|----------|-------------|---------|
-{% for field in query_parameters.pagination_fields %}
-{% if field.name %}
-| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.required|yesno:"Yes,No" }} | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
-{% else %}
-| `{{ field }}` | `string` | No | — | — |
-{% endif %}
-{% endfor %}
+| Name | Type | Description | Example |
+|------|------|-------------|---------|
+{% for field in query_parameters.pagination_fields %}{% if field.name %}| `{{ field.name }}` | `{{ field.type|default:"string" }}` | {{ field.description|default:"—" }} | {% if field.example %}`{{ field.example|format_example }}`{% else %}—{% endif %} |
+{% else %}| `{{ field }}` | `string` | — | — |
+{% endif %}{% endfor %}
 
 {% endif %}
 
