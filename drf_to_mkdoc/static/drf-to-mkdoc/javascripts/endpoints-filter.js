@@ -149,6 +149,24 @@ function populatePermissionsFilterOptions() {
     // Clear existing checkboxes
     checkboxList.innerHTML = '';
 
+    // Add "No Permissions" option first
+    const noPermsLabel = document.createElement('label');
+    noPermsLabel.className = 'permissions-checkbox-item';
+    
+    const noPermsCheckbox = document.createElement('input');
+    noPermsCheckbox.type = 'checkbox';
+    noPermsCheckbox.value = '__no_permissions__';
+    noPermsCheckbox.dataset.fullPath = '__no_permissions__';
+    noPermsCheckbox.dataset.displayName = 'No Permissions';
+    
+    const noPermsSpan = document.createElement('span');
+    noPermsSpan.textContent = 'No Permissions';
+    noPermsSpan.className = 'permissions-checkbox-label';
+    
+    noPermsLabel.appendChild(noPermsCheckbox);
+    noPermsLabel.appendChild(noPermsSpan);
+    checkboxList.appendChild(noPermsLabel);
+
     // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
         const label = document.createElement('label');
@@ -261,12 +279,19 @@ function matchesFilters(card) {
     if (f.roles && !d.roles.includes(f.roles)) return false;
     if (f.tags && !d.tags.includes(f.tags)) return false;
     if (f.permissions) {
-        // Multi-select: check if ALL selected permissions are present (AND logic)
         const selectedPerms = f.permissions.split(' ').filter(p => p);
         if (selectedPerms.length > 0) {
-            const cardPerms = (d.permissions || '').split(' ').filter(p => p);
-            const hasAllPerms = selectedPerms.every(selected => cardPerms.includes(selected));
-            if (!hasAllPerms) return false;
+            // Special case: "No Permissions" selected
+            if (selectedPerms.includes('__no_permissions__')) {
+                // If "No Permissions" is selected, show only endpoints with no permissions
+                const cardPerms = (d.permissions || '').split(' ').filter(p => p);
+                if (cardPerms.length > 0) return false;
+            } else {
+                // Multi-select: check if ALL selected permissions are present (AND logic)
+                const cardPerms = (d.permissions || '').split(' ').filter(p => p);
+                const hasAllPerms = selectedPerms.every(selected => cardPerms.includes(selected));
+                if (!hasAllPerms) return false;
+            }
         }
     }
     if (f.contentType && d.contentType !== f.contentType) return false;
