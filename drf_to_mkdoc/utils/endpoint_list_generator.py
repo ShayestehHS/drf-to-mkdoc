@@ -99,6 +99,7 @@ def create_endpoints_index(
             "path",
             "app",
             "search",
+            "permissions",
         ]
     )
     generator.create_endpoints_index(endpoints_by_app, docs_dir)
