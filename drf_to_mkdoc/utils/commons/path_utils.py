@@ -86,8 +86,9 @@ def get_permission_url(permission_class_path: str) -> str:
         permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
     
     Returns:
-        URL path (e.g., "permissions/rest_framework.permissions.IsAuthenticated/")
+        URL path (e.g., "permissions/rest_framework/permissions/IsAuthenticated/")
     """
     # Replace dots with slashes for URL path, but keep the full path structure
-    # This ensures unique URLs for each permission class
-    return f"permissions/{permission_class_path}/"
+    # This ensures unique URLs for each permission class and creates a directory structure
+    safe_path = permission_class_path.replace(".", "/")
+    return f"permissions/{safe_path}/"
