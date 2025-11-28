@@ -862,6 +862,7 @@ def create_endpoint_page(
             "stylesheets/endpoints/animations.css",
             "stylesheets/endpoints/accessibility.css",
             "stylesheets/endpoints/loading.css",
+            "stylesheets/endpoints/query-parameters.css",
             "stylesheets/try-out/main.css",
         ],
         "scripts": [
@@ -873,6 +874,7 @@ def create_endpoint_page(
             "javascripts/try-out/request-executor.js",
             "javascripts/try-out/suggestions.js",
             "javascripts/try-out/main.js",
+            "javascripts/query-parameters.js",
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
         "auth_required": is_endpoint_secure(operation_id, endpoint_data),
