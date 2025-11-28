@@ -1,8 +1,17 @@
 <div class="filter-group">
     <label class="filter-label">Permissions</label>
-    <select id="filter-permissions" class="filter-select" multiple>
-        <option value="">All</option>
-        <!-- Dynamically filled -->
-    </select>
+    <div class="permissions-filter-wrapper">
+        <input 
+            type="text" 
+            id="filter-permissions-search" 
+            class="filter-input permissions-search" 
+            placeholder="Search permissions..."
+            autocomplete="off"
+        />
+        <select id="filter-permissions" class="filter-select permissions-multiselect" multiple size="6">
+            <!-- Dynamically filled -->
+        </select>
+        <div class="permissions-selected-count" id="permissions-selected-count"></div>
+    </div>
 </div>
 

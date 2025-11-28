@@ -908,6 +908,38 @@ def _add_custom_parameters(operation_id: str, query_params: dict) -> None:
         query_params[queryparam_type].append(parameter["name"])
 
 
+def _extract_all_permission_class_paths(endpoint_data: dict[str, Any]) -> list[str]:
+    """
+    Extract ALL permission class paths from endpoint data for filtering.
+    This includes all permissions, even those without descriptions.
+    
+    Args:
+        endpoint_data: Endpoint data from OpenAPI schema
+    
+    Returns:
+        List of permission class paths
+    """
+    permission_class_paths = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+    
+    if not permission_classes:
+        return permission_class_paths
+    
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            permission_class_paths.append(perm)
+        elif isinstance(perm, dict):
+            # Structured format
+            class_path = perm.get("class_path", "")
+            if class_path:
+                permission_class_paths.append(class_path)
+    
+    return permission_class_paths
+
+
 def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Parse endpoints from OpenAPI schema and organize by app"""
 
@@ -926,9 +958,8 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
             operation_id = endpoint_data.get("operationId", "")
             filename = create_safe_filename(path, method)
 
-            # Extract permissions for filtering
-            permissions = _extract_permissions_data(operation_id, endpoint_data)
-            permission_class_paths = [p["class_path"] for p in permissions]
+            # Extract ALL permissions for filtering (including those without descriptions)
+            permission_class_paths = _extract_all_permission_class_paths(endpoint_data)
             
             endpoint_info = {
                 "path": path,

@@ -106,26 +106,65 @@ function populatePermissionsFilterOptions() {
     const select = document.getElementById('filter-permissions');
     if (!select) return;
     
-    const permissions = new Set();
+    const permissions = new Map(); // Use Map to store both full path and display name
 
     document.querySelectorAll('.endpoint-card').forEach(card => {
         const perms = card.dataset.permissions;
         if (perms) {
             perms.split(' ').forEach(perm => {
-                if (perm) permissions.add(perm);
+                if (perm) {
+                    // Extract display name (class name without module path)
+                    const displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+                    permissions.set(perm, displayName);
+                }
             });
         }
     });
 
-    // Convert to sorted array and add as options
-    Array.from(permissions).sort().forEach(perm => {
+    // Sort by display name for better UX
+    const sortedPerms = Array.from(permissions.entries()).sort((a, b) => 
+        a[1].localeCompare(b[1])
+    );
+
+    // Add options
+    sortedPerms.forEach(([fullPath, displayName]) => {
         const opt = document.createElement('option');
-        opt.value = perm;
-        // Extract display name (class name without module path)
-        const displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+        opt.value = fullPath;
         opt.textContent = displayName;
+        opt.dataset.fullPath = fullPath; // Store full path for search
         select.appendChild(opt);
     });
+    
+    // Add search functionality
+    const searchInput = document.getElementById('filter-permissions-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            Array.from(select.options).forEach(opt => {
+                const displayName = opt.textContent.toLowerCase();
+                const fullPath = (opt.dataset.fullPath || opt.value).toLowerCase();
+                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
+                opt.style.display = matches ? '' : 'none';
+            });
+        });
+    }
+    
+    // Update selected count
+    updatePermissionsSelectedCount();
+}
+
+function updatePermissionsSelectedCount() {
+    const select = document.getElementById('filter-permissions');
+    const countEl = document.getElementById('permissions-selected-count');
+    if (!select || !countEl) return;
+    
+    const selectedCount = select.selectedOptions.length;
+    if (selectedCount > 0) {
+        countEl.textContent = `${selectedCount} selected`;
+        countEl.style.display = 'block';
+    } else {
+        countEl.style.display = 'none';
+    }
 }
 
 function matchesFilters(card) {
@@ -162,11 +201,24 @@ function clearFilters() {
     document.querySelectorAll('.filter-input, .filter-select').forEach(el => {
         if (el.multiple) {
             // Clear multi-select
-            Array.from(el.options).forEach(opt => opt.selected = false);
+            Array.from(el.options).forEach(opt => {
+                opt.selected = false;
+                opt.style.display = ''; // Show all options when clearing
+            });
         } else {
             el.value = '';
         }
     });
+    
+    // Clear permissions search
+    const permissionsSearch = document.getElementById('filter-permissions-search');
+    if (permissionsSearch) {
+        permissionsSearch.value = '';
+    }
+    
+    // Update selected count
+    updatePermissionsSelectedCount();
+    
     currentFilters = {
         method: '', path: '', models: '', auth: '', roles: '', contentType: '',
         params: '', schema: '', pagination: '', tags: '', app: '', ordering: '', search: '', permissions: ''
@@ -198,8 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadURLParams();
     document.querySelectorAll('.filter-input, .filter-select').forEach(input => {
         if (input.multiple) {
-            input.addEventListener('change', debounce(applyFilters, 250));
-        } else {
+            input.addEventListener('change', () => {
+                updatePermissionsSelectedCount();
+                debounce(applyFilters, 250)();
+            });
+        } else if (input.id !== 'filter-permissions-search') {
+            // Don't add filter listener to search input
             input.addEventListener('input', debounce(applyFilters, 250));
         }
     });
