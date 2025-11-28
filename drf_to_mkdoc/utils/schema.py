@@ -56,6 +56,23 @@ class ViewMetadataExtractor:
         Returns:
             String representation of the permission class or combined permissions
         """
+        # Call the structured version and convert to string for backward compatibility
+        structured = self._extract_permission_recursive_structured(perm, depth, max_depth)
+        return self._structured_permission_to_string(structured)
+    
+    def _extract_permission_recursive_structured(self, perm, depth=0, max_depth=10):
+        """
+        Recursively extract permission class with structured data, handling nested OperandHolders.
+        
+        Args:
+            perm: Permission class or OperandHolder instance
+            depth: Current recursion depth
+            max_depth: Maximum allowed recursion depth to prevent infinite loops
+        
+        Returns:
+            Dict with keys: 'class_path', 'display_name', 'logic_operator' (for AND/OR),
+            'children' (for OperandHolder), or string for fallback cases
+        """
         # Protection against infinite recursion
         if depth > max_depth:
             logger.warning(
@@ -89,46 +106,107 @@ class ViewMetadataExtractor:
                 return str(perm)
             
             # Recursively process the permission classes
-            left_perms = self._extract_permission_recursive(op1_class, depth + 1, max_depth)
-            right_perms = self._extract_permission_recursive(op2_class, depth + 1, max_depth)
+            left_perms = self._extract_permission_recursive_structured(op1_class, depth + 1, max_depth)
+            right_perms = self._extract_permission_recursive_structured(op2_class, depth + 1, max_depth)
             
-            # Determine the operator symbol from operator_class or op attribute
+            # Determine the operator from operator_class or op attribute
             if hasattr(perm, 'operator_class'):
                 # operator_class is typically a class with __name__ attribute (AND or OR)
                 try:
-                    op_symbol = ' & ' if perm.operator_class.__name__ == 'AND' else ' | '
+                    logic_operator = 'AND' if perm.operator_class.__name__ == 'AND' else 'OR'
                 except AttributeError:
                     # Fallback if operator_class doesn't have __name__
-                    op_symbol = ' | '  # default to OR
+                    logic_operator = 'OR'  # default to OR
             elif hasattr(perm, 'op'):
-                op_symbol = ' & ' if perm.op == '&' else ' | '
+                logic_operator = 'AND' if perm.op == '&' else 'OR'
             else:
-                op_symbol = ' | '  # default to OR
+                logic_operator = 'OR'  # default to OR
             
-            # Combine recursively extracted permissions
-            return f"({left_perms}{op_symbol}{right_perms})"
+            return {
+                'logic_operator': logic_operator,
+                'children': [left_perms, right_perms]
+            }
         else:
             # Regular permission class or instance
             try:
                 # Handle both permission classes and instances
                 if inspect.isclass(perm):
-                    return f"{perm.__module__}.{perm.__name__}"
+                    class_path = f"{perm.__module__}.{perm.__name__}"
+                    display_name = perm.__name__
                 else:
                     # Permission instance
                     perm_class = perm.__class__
-                    return f"{perm_class.__module__}.{perm_class.__name__}"
+                    class_path = f"{perm_class.__module__}.{perm_class.__name__}"
+                    display_name = perm_class.__name__
+                
+                return {
+                    'class_path': class_path,
+                    'display_name': display_name
+                }
             except (AttributeError, TypeError):
                 # Fallback for unexpected types
                 return str(perm)
+    
+    def _structured_permission_to_string(self, structured_perm):
+        """Convert structured permission data to string representation."""
+        if isinstance(structured_perm, str):
+            return structured_perm
+        
+        if isinstance(structured_perm, dict):
+            if 'class_path' in structured_perm:
+                # Simple permission class
+                return structured_perm['class_path']
+            elif 'logic_operator' in structured_perm and 'children' in structured_perm:
+                # OperandHolder with children
+                children = structured_perm['children']
+                left_str = self._structured_permission_to_string(children[0])
+                right_str = self._structured_permission_to_string(children[1])
+                op_symbol = ' & ' if structured_perm['logic_operator'] == 'AND' else ' | '
+                return f"({left_str}{op_symbol}{right_str})"
+        
+        return str(structured_perm)
 
     def _extract_permissions(self):
         """Extract permission classes from view, handling OperandHolder objects."""
         permission_classes = []
         if hasattr(self.view, "permission_classes"):
             for perm_class in self.view.permission_classes:
-                permission_str = self._extract_permission_recursive(perm_class)
-                permission_classes.append(permission_str)
+                # Extract structured permission data
+                structured = self._extract_permission_recursive_structured(perm_class)
+                # Flatten structured permissions to list of permission dicts
+                flattened = self._flatten_permissions(structured)
+                permission_classes.extend(flattened)
         return permission_classes
+    
+    def _flatten_permissions(self, structured_perm):
+        """
+        Flatten structured permission data to list of permission dictionaries.
+        
+        Args:
+            structured_perm: Structured permission data (dict or str)
+        
+        Returns:
+            List of permission dictionaries with class_path and display_name
+        """
+        if isinstance(structured_perm, str):
+            # Fallback string - extract class path if possible
+            return [{"class_path": structured_perm, "display_name": structured_perm.rsplit(".", 1)[-1] if "." in structured_perm else structured_perm}]
+        
+        if isinstance(structured_perm, dict):
+            if 'class_path' in structured_perm:
+                # Simple permission class
+                return [{
+                    "class_path": structured_perm['class_path'],
+                    "display_name": structured_perm.get('display_name', structured_perm['class_path'].rsplit(".", 1)[-1])
+                }]
+            elif 'logic_operator' in structured_perm and 'children' in structured_perm:
+                # OperandHolder - recursively flatten children
+                result = []
+                for child in structured_perm['children']:
+                    result.extend(self._flatten_permissions(child))
+                return result
+        
+        return []
 
     def _extract_action(self):
         """Extract action name from ViewSet."""
