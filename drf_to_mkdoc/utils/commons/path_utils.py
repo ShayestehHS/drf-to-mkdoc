@@ -109,17 +109,27 @@ def camel_case_to_readable(name: str) -> str:
 
     return result.strip()
 
-def get_permission_url(permission_class_path: str) -> str:
+def get_permission_url(permission_class_path: str, relative_from_endpoint: bool = True) -> str:
     """
     Generate URL path for permission detail page.
     
     Args:
         permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
+        relative_from_endpoint: If True, returns relative path from endpoint pages (with ../../../ prefix).
+                                If False, returns base path without prefix (for file paths).
     
     Returns:
-        URL path (e.g., "permissions/rest_framework/permissions/IsAuthenticated/")
+        URL path (e.g., "../../../permissions/rest_framework/permissions/IsAuthenticated/" or
+                 "permissions/rest_framework/permissions/IsAuthenticated/")
     """
     # Replace dots with slashes for URL path, but keep the full path structure
     # This ensures unique URLs for each permission class and creates a directory structure
     safe_path = permission_class_path.replace(".", "/")
-    return f"permissions/{safe_path}/"
+    base_path = f"permissions/{safe_path}/"
+    
+    # Endpoint pages are at endpoints/{app}/{viewset}/{file}.md
+    # Permission pages are at permissions/{path}/index.md
+    # So we need to go up 3 levels from endpoint pages
+    if relative_from_endpoint:
+        return f"../../../{base_path}"
+    return base_path

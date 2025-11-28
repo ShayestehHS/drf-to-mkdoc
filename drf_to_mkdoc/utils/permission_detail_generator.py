@@ -30,7 +30,7 @@ def generate_permission_docs(permissions: dict[str, dict[str, Any]]) -> None:
         content = create_permission_page(permission_class_path, long_description, short_description)
         
         # Generate file path: permissions/{full_class_path}/index.md
-        url_path = get_permission_url(permission_class_path)
+        url_path = get_permission_url(permission_class_path, relative_from_endpoint=False)
         file_path = f"{url_path}index.md"
         
         write_file(file_path, content)
