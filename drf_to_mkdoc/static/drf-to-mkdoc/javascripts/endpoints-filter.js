@@ -392,39 +392,6 @@ function debounce(func, delay) {
 }
 
 
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Example filter implementation
-    const container = document.getElementById('fullscreen-container');
-    
-    // Check if container exists before proceeding
-    if (!container) {
-        return;
-    }
-
-    // Add filter controls
-    const filterControls = document.createElement('div');
-    filterControls.className = 'filter-controls';
-    filterControls.innerHTML = `
-        <select id="filter-select">
-            <option value="none">No Filter</option>
-            <option value="grayscale">Grayscale</option>
-            <option value="sepia">Sepia</option>
-            <option value="blur">Blur</option>
-        </select>
-    `;
-    container.prepend(filterControls);
-
-    // Apply filter based on selection
-    document.getElementById('filter-select').addEventListener('change', function(e) {
-        container.style.filter = e.target.value === 'none' ? '' : e.target.value + '(100%)';
-    });
-
-    // Your custom filter logic here
-    // Example: Apply initial filter if needed
-    // container.style.filter = 'grayscale(50%)';
-});
-
 document.addEventListener('DOMContentLoaded', () => {
     const filterPanel = document.getElementById('filterSidebar');
     const leftSidebar = document.querySelector('.md-sidebar--primary');

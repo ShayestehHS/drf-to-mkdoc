@@ -15,7 +15,7 @@ def generate_permission_docs(permissions: dict[str, dict[str, Any]]) -> None:
     Args:
         permissions: Dictionary mapping permission class paths to permission data
     """
-    for permission_class_path, permission_data in permissions.items():
+    for permission_class_path, _permission_data in permissions.items():
         # Get descriptions (short and long)
         descriptions = get_permission_description(permission_class_path)
         long_description = descriptions.get("long") or descriptions.get("short")
@@ -53,7 +53,12 @@ def create_permission_page(
     display_name = permission_class_path.rsplit(".", 1)[-1] if "." in permission_class_path else permission_class_path
     
     # Use plain paths (not Django static URLs) for MkDocs compatibility
-    # The template will use static_with_prefix filter to resolve them
+    # The template will use static_with_prefix filter to resolve them.
+    # Note: static_with_prefix uses django_static() which returns Django static URLs.
+    # These URLs work when docs are served through Django (see serving_mkdocs_with_django.md).
+    # For pure MkDocs builds, static files must be accessible via Django's static file serving
+    # or copied to the MkDocs site directory. This follows the same pattern as
+    # endpoint_detail_generator.py for consistency.
     stylesheets = [
         "stylesheets/endpoints/variables.css",
         "stylesheets/endpoints/base.css",
