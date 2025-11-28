@@ -31,7 +31,7 @@ function applyFilters() {
         app: getValue('filter-app'),
         ordering: getValue('filter-ordering'),
         search: getValue('filter-search'),
-        permissions: getMultiSelectValue('filter-permissions'),
+        permissions: getPermissionsCheckboxValue(),
     };
 
     updateURLParams(currentFilters);
@@ -84,6 +84,25 @@ function getMultiSelectValue(id) {
     return selected.length > 0 ? selected.join(' ') : '';
 }
 
+function getPermissionsCheckboxValue() {
+    const checkboxes = document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]:checked');
+    const selected = Array.from(checkboxes)
+        .map(cb => cb.value.trim().toLowerCase())
+        .filter(val => val !== '');
+    
+    return selected.length > 0 ? selected.join(' ') : '';
+}
+
+function camelCaseToReadable(str) {
+    // Convert camelCase to readable format
+    // e.g., "IsAuthenticated" -> "Is Authenticated"
+    // e.g., "IsAdminUser" -> "Is Admin User"
+    return str
+        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+        .replace(/^ /, '') // Remove leading space
+        .trim();
+}
+
 function populateAppFilterOptions() {
     const select = document.getElementById('filter-app');
     const apps = new Set();
@@ -103,8 +122,8 @@ function populateAppFilterOptions() {
 }
 
 function populatePermissionsFilterOptions() {
-    const select = document.getElementById('filter-permissions');
-    if (!select) return;
+    const checkboxList = document.getElementById('permissions-checkbox-list');
+    if (!checkboxList) return;
     
     const permissions = new Map(); // Use Map to store both full path and display name
 
@@ -113,8 +132,10 @@ function populatePermissionsFilterOptions() {
         if (perms) {
             perms.split(' ').forEach(perm => {
                 if (perm) {
-                    // Extract display name (class name without module path)
-                    const displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+                    // Extract class name (without module path)
+                    const className = perm.includes('.') ? perm.split('.').pop() : perm;
+                    // Convert camelCase to readable format
+                    const displayName = camelCaseToReadable(className);
                     permissions.set(perm, displayName);
                 }
             });
@@ -126,13 +147,27 @@ function populatePermissionsFilterOptions() {
         a[1].localeCompare(b[1])
     );
 
-    // Add options
+    // Clear existing checkboxes
+    checkboxList.innerHTML = '';
+
+    // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
-        const opt = document.createElement('option');
-        opt.value = fullPath;
-        opt.textContent = displayName;
-        opt.dataset.fullPath = fullPath; // Store full path for search
-        select.appendChild(opt);
+        const label = document.createElement('label');
+        label.className = 'permissions-checkbox-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = fullPath;
+        checkbox.dataset.fullPath = fullPath;
+        checkbox.dataset.displayName = displayName;
+        
+        const span = document.createElement('span');
+        span.textContent = displayName;
+        span.className = 'permissions-checkbox-label';
+        
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        checkboxList.appendChild(label);
     });
     
     // Add search functionality
@@ -140,30 +175,75 @@ function populatePermissionsFilterOptions() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
-            Array.from(select.options).forEach(opt => {
-                const displayName = opt.textContent.toLowerCase();
-                const fullPath = (opt.dataset.fullPath || opt.value).toLowerCase();
+            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
+                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
                 const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
-                opt.style.display = matches ? '' : 'none';
+                item.style.display = matches ? '' : 'none';
             });
         });
     }
     
-    // Update selected count
-    updatePermissionsSelectedCount();
+    // Add checkbox change listeners
+    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            updatePermissionsTriggerText();
+            debounce(applyFilters, 250)();
+        });
+    });
+    
+    // Setup dropdown toggle
+    setupPermissionsDropdown();
+    
+    // Update trigger text
+    updatePermissionsTriggerText();
 }
 
-function updatePermissionsSelectedCount() {
-    const select = document.getElementById('filter-permissions');
-    const countEl = document.getElementById('permissions-selected-count');
-    if (!select || !countEl) return;
+function setupPermissionsDropdown() {
+    const trigger = document.getElementById('permissions-dropdown-trigger');
+    const dropdown = document.getElementById('permissions-dropdown');
     
-    const selectedCount = select.selectedOptions.length;
-    if (selectedCount > 0) {
-        countEl.textContent = `${selectedCount} selected`;
-        countEl.style.display = 'block';
+    if (!trigger || !dropdown) return;
+    
+    // Toggle dropdown on trigger click
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('open');
+        
+        // Focus search input when opened
+        if (dropdown.classList.contains('open')) {
+            const searchInput = document.getElementById('filter-permissions-search');
+            if (searchInput) {
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+            trigger.classList.remove('open');
+        }
+    });
+}
+
+function updatePermissionsTriggerText() {
+    const triggerText = document.getElementById('permissions-trigger-text');
+    const checkboxes = document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]:checked');
+    
+    if (!triggerText) return;
+    
+    const selectedCount = checkboxes.length;
+    if (selectedCount === 0) {
+        triggerText.textContent = 'Select permissions...';
+    } else if (selectedCount === 1) {
+        const displayName = checkboxes[0].dataset.displayName || checkboxes[0].value;
+        triggerText.textContent = displayName;
     } else {
-        countEl.style.display = 'none';
+        triggerText.textContent = `${selectedCount} permissions selected`;
     }
 }
 
@@ -205,19 +285,27 @@ function clearFilters() {
                 opt.selected = false;
                 opt.style.display = ''; // Show all options when clearing
             });
-        } else {
+        } else if (el.id !== 'filter-permissions-search') {
             el.value = '';
         }
     });
     
-    // Clear permissions search
+    // Clear permissions checkboxes
+    document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Clear permissions search and show all items
     const permissionsSearch = document.getElementById('filter-permissions-search');
     if (permissionsSearch) {
         permissionsSearch.value = '';
+        document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
+            item.style.display = '';
+        });
     }
     
-    // Update selected count
-    updatePermissionsSelectedCount();
+    // Update trigger text
+    updatePermissionsTriggerText();
     
     currentFilters = {
         method: '', path: '', models: '', auth: '', roles: '', contentType: '',
@@ -239,8 +327,17 @@ function updateURLParams(filters) {
 function loadURLParams() {
     const params = new URLSearchParams(location.search);
     params.forEach((v, k) => {
-        const input = document.getElementById(`filter-${k}`);
-        if (input) input.value = v;
+        if (k === 'permissions') {
+            // Handle permissions checkboxes
+            const selectedPerms = v.split(' ').filter(p => p);
+            document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]').forEach(cb => {
+                cb.checked = selectedPerms.includes(cb.value.toLowerCase());
+            });
+            updatePermissionsTriggerText();
+        } else {
+            const input = document.getElementById(`filter-${k}`);
+            if (input) input.value = v;
+        }
     });
 }
 
@@ -250,12 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadURLParams();
     document.querySelectorAll('.filter-input, .filter-select').forEach(input => {
         if (input.multiple) {
-            input.addEventListener('change', () => {
-                updatePermissionsSelectedCount();
-                debounce(applyFilters, 250)();
-            });
+            input.addEventListener('change', debounce(applyFilters, 250));
         } else if (input.id !== 'filter-permissions-search') {
-            // Don't add filter listener to search input
+            // Don't add filter listener to search input (it's handled in populatePermissionsFilterOptions)
             input.addEventListener('input', debounce(applyFilters, 250));
         }
     });
