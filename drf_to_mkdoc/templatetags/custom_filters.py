@@ -170,3 +170,9 @@ def json_for_display(value):
     # Unescape any HTML entities that might have been introduced
     value = html.unescape(value)
     return mark_safe(value)  # noqa: S308
+
+
+@register.filter
+def to_json(value):
+    """Convert Python object to JSON string for JavaScript"""
+    return mark_safe(json.dumps(value))  # noqa: S308

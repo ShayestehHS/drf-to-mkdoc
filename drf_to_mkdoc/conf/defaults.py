@@ -6,6 +6,7 @@ DEFAULTS = {
     "MODEL_DOCS_FILE": "docs/model-docs.json",  # Path to model documentation JSON file
     "DOC_CONFIG_FILE": "docs/configs/doc_config.json",  # Path to documentation configuration file
     "CUSTOM_SCHEMA_FILE": "docs/configs/custom_schema.json",  # Path to custom schema file
+    "REFERENCES_FILE": "docs/configs/references.json",  # Path to references file for reusable descriptions
     "PATH_PARAM_SUBSTITUTE_FUNCTION": None,
     "PATH_PARAM_SUBSTITUTE_MAPPING": {},
     "FIELD_GENERATORS": {},
