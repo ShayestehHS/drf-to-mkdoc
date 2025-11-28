@@ -22,8 +22,12 @@ def generate_permission_docs(permissions: dict[str, dict[str, Any]]) -> None:
     for permission_class_path, permission_data in permissions.items():
         # Get descriptions (short and long)
         descriptions = get_permission_description(permission_class_path)
-        long_description = descriptions.get("long") or descriptions.get("short") or "No description available."
+        long_description = descriptions.get("long") or descriptions.get("short")
         short_description = descriptions.get("short")
+        
+        # Only create page if there's a description
+        if not long_description:
+            continue
         
         # Create the permission page content
         content = create_permission_page(permission_class_path, long_description, short_description)

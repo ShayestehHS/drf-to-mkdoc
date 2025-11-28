@@ -791,7 +791,11 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
         
         # Get descriptions (short and long)
         descriptions = get_permission_description(class_path)
-        short_description = descriptions.get("short") or descriptions.get("long") or "No description available."
+        short_description = descriptions.get("short") or descriptions.get("long")
+        
+        # Only add permission if it has a description
+        if not short_description:
+            continue
         
         # Generate URL
         url = get_permission_url(class_path)

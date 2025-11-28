@@ -333,6 +333,7 @@ def get_permission_description(permission_class_path: str) -> dict[str, str | No
                 result["short"] = _truncate_description(long_desc)
     
     # Priority 2: Extract docstring from permission class
+    # Use __doc__ directly to avoid getting parent class docstrings
     if not result["long"]:
         try:
             # Parse module and class name
@@ -340,13 +341,36 @@ def get_permission_description(permission_class_path: str) -> dict[str, str | No
             module = import_module(module_path)
             permission_class = getattr(module, class_name)
             
-            # Get docstring
-            docstring = inspect.getdoc(permission_class)
+            # Get docstring directly from the class (not from parent classes)
+            # Check if the class itself has a docstring in its __dict__
+            docstring = None
+            
+            # First, check if __doc__ is defined in the class's own __dict__
+            if "__doc__" in permission_class.__dict__:
+                docstring = permission_class.__dict__["__doc__"]
+            else:
+                # If not in __dict__, check if __doc__ exists and is not from a parent
+                class_doc = getattr(permission_class, "__doc__", None)
+                if class_doc:
+                    # Verify this docstring is not inherited from a parent class
+                    # by checking all parent classes in the MRO
+                    is_inherited = False
+                    for base in inspect.getmro(permission_class)[1:]:  # Skip the class itself
+                        if hasattr(base, "__doc__") and base.__doc__ == class_doc:
+                            # This docstring comes from a parent class, skip it
+                            is_inherited = True
+                            break
+                    
+                    if not is_inherited:
+                        docstring = class_doc
+            
             if docstring:
-                long_desc = docstring.strip()
-                result["long"] = long_desc
-                # Auto-truncate for short version
-                result["short"] = _truncate_description(long_desc)
+                docstring = docstring.strip()
+                # Only use if it's not empty and has meaningful content
+                if docstring and len(docstring) > 10:  # Minimum meaningful length
+                    result["long"] = docstring
+                    # Auto-truncate for short version
+                    result["short"] = _truncate_description(docstring)
         except (ImportError, AttributeError, ValueError) as e:
             # Gracefully handle import errors
             logger.debug(f"Could not extract docstring for {permission_class_path}: {e}")
