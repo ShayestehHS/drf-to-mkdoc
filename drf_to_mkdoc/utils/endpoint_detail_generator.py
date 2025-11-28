@@ -758,55 +758,180 @@ def _extract_request_examples(
     return []
 
 
+def _process_structured_permission(structured_perm: dict[str, Any] | str) -> dict[str, Any]:
+    """
+    Process a structured permission and extract permission details.
+    
+    Args:
+        structured_perm: Structured permission data (dict with class_path or logic_operator)
+    
+    Returns:
+        Dictionary with 'type' ('single' or 'group'), 'permissions' list, and 'operator' (for groups)
+    """
+    if isinstance(structured_perm, str):
+        # Simple string format (backward compatibility)
+        class_path = structured_perm
+        class_name = structured_perm.rsplit(".", 1)[-1] if "." in structured_perm else structured_perm
+        from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
+        display_name = camel_case_to_readable(class_name)
+        
+        descriptions = get_permission_description(class_path)
+        short_description = descriptions.get("short") or descriptions.get("long") or ""
+        url = get_permission_url(class_path)
+        
+        return {
+            "type": "single",
+            "permissions": [{
+                "class_path": class_path,
+                "display_name": display_name,
+                "description": short_description,
+                "url": url,
+            }]
+        }
+    elif isinstance(structured_perm, dict):
+        if "class_path" in structured_perm:
+            # Simple permission class
+            class_path = structured_perm.get("class_path", "")
+            display_name = structured_perm.get("display_name", "")
+            if not display_name:
+                class_name = class_path.rsplit(".", 1)[-1] if "." in class_path else class_path
+                from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
+                display_name = camel_case_to_readable(class_name)
+            
+            descriptions = get_permission_description(class_path)
+            short_description = descriptions.get("short") or descriptions.get("long") or ""
+            url = get_permission_url(class_path)
+            
+            return {
+                "type": "single",
+                "permissions": [{
+                    "class_path": class_path,
+                    "display_name": display_name,
+                    "description": short_description,
+                    "url": url,
+                }]
+            }
+        elif "logic_operator" in structured_perm and "children" in structured_perm:
+            # OperandHolder - process children recursively
+            operator = structured_perm.get("logic_operator", "OR")
+            children = structured_perm.get("children", [])
+            
+            if operator == "AND":
+                # AND group: collect all permissions in this group
+                group_permissions = []
+                for child in children:
+                    child_result = _process_structured_permission(child)
+                    if child_result["type"] == "single":
+                        group_permissions.extend(child_result["permissions"])
+                    elif child_result["type"] == "group" and child_result["operator"] == "AND":
+                        # Flatten nested AND groups
+                        group_permissions.extend(child_result["permissions"])
+                    else:
+                        # Nested OR group - treat as separate
+                        group_permissions.extend(child_result["permissions"])
+                
+                return {
+                    "type": "group",
+                    "operator": "AND",
+                    "permissions": group_permissions
+                }
+            else:
+                # OR operator: return as list of separate items
+                all_permissions = []
+                for child in children:
+                    child_result = _process_structured_permission(child)
+                    all_permissions.append(child_result)
+                
+                return {
+                    "type": "or_list",
+                    "items": all_permissions
+                }
+    
+    return {"type": "single", "permissions": []}
+
+
 def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Extract permissions data from endpoint for display in template.
+    Preserves AND/OR grouping structure.
     
     Args:
         operation_id: Operation ID of the endpoint
         endpoint_data: Endpoint data from OpenAPI schema
     
     Returns:
-        List of permission dictionaries with class_path, display_name, description, url
+        List of permission row dictionaries. Each row can be:
+        - Single permission: {type: 'single', permission: {...}}
+        - Group: {type: 'group', permissions: [...]}
     """
-    permissions = []
+    permission_rows = []
     metadata = endpoint_data.get("x-metadata", {})
-    permission_classes = metadata.get("permission_classes", [])
     
-    if not permission_classes:
-        return permissions
+    # Try to use structured permissions first (preserves AND/OR grouping)
+    structured_permissions = metadata.get("permission_classes_structured", [])
+    if structured_permissions:
+        for structured_perm in structured_permissions:
+            result = _process_structured_permission(structured_perm)
+            
+            if result["type"] == "single":
+                permission_rows.append({
+                    "type": "single",
+                    "permission": result["permissions"][0]
+                })
+            elif result["type"] == "group":
+                permission_rows.append({
+                    "type": "group",
+                    "permissions": result["permissions"]
+                })
+            elif result["type"] == "or_list":
+                # Flatten OR list - each item becomes a separate row
+                for item in result["items"]:
+                    if item["type"] == "single":
+                        permission_rows.append({
+                            "type": "single",
+                            "permission": item["permissions"][0]
+                        })
+                    elif item["type"] == "group":
+                        permission_rows.append({
+                            "type": "group",
+                            "permissions": item["permissions"]
+                        })
+    else:
+        # Fallback to flattened permissions (backward compatibility)
+        permission_classes = metadata.get("permission_classes", [])
+        if not permission_classes:
+            return permission_rows
+        
+        for perm in permission_classes:
+            if isinstance(perm, str):
+                class_path = perm
+                class_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
+                from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
+                display_name = camel_case_to_readable(class_name)
+            elif isinstance(perm, dict):
+                class_path = perm.get("class_path", "")
+                display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
+            else:
+                continue
+            
+            if not class_path:
+                continue
+            
+            descriptions = get_permission_description(class_path)
+            short_description = descriptions.get("short") or descriptions.get("long") or ""
+            url = get_permission_url(class_path)
+            
+            permission_rows.append({
+                "type": "single",
+                "permission": {
+                    "class_path": class_path,
+                    "display_name": display_name,
+                    "description": short_description,
+                    "url": url,
+                }
+            })
     
-    # Process each permission (can be string or structured)
-    for perm in permission_classes:
-        if isinstance(perm, str):
-            # Simple string format (backward compatibility)
-            class_path = perm
-            display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
-        elif isinstance(perm, dict):
-            # Structured format - display_name should already be calculated in _flatten_permissions
-            class_path = perm.get("class_path", "")
-            display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
-        else:
-            continue
-        
-        if not class_path:
-            continue
-        
-        # Get descriptions (short and long)
-        descriptions = get_permission_description(class_path)
-        short_description = descriptions.get("short") or descriptions.get("long") or ""
-        
-        # Generate URL
-        url = get_permission_url(class_path)
-        
-        permissions.append({
-            "class_path": class_path,
-            "display_name": display_name,
-            "description": short_description,  # Use short description for endpoint detail page (empty if none)
-            "url": url,
-        })
-    
-    return permissions
+    return permission_rows
 
 
 def create_endpoint_page(

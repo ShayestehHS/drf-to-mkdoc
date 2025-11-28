@@ -179,6 +179,16 @@ class ViewMetadataExtractor:
                 permission_classes.extend(flattened)
         return permission_classes
     
+    def _extract_permissions_structured(self):
+        """Extract structured permission classes from view (preserves AND/OR grouping)."""
+        structured_permissions = []
+        if hasattr(self.view, "permission_classes"):
+            for perm_class in self.view.permission_classes:
+                # Extract structured permission data (preserves logic operators)
+                structured = self._extract_permission_recursive_structured(perm_class)
+                structured_permissions.append(structured)
+        return structured_permissions
+    
     def _flatten_permissions(self, structured_perm):
         """
         Flatten structured permission data to list of permission dictionaries.
@@ -341,6 +351,7 @@ class ViewMetadataExtractor:
                 "action": None,
                 "serializer_class": None,
                 "permission_classes": [],
+                "permission_classes_structured": [],
                 "error_message": str(self.error_message),
                 "action_source": {},
                 "serializer_parents": [],
@@ -348,6 +359,7 @@ class ViewMetadataExtractor:
             }
 
         permission_classes = self._extract_permissions()
+        structured_permissions = self._extract_permissions_structured()
         self._extract_action()
 
         serializer_class = None
@@ -378,6 +390,7 @@ class ViewMetadataExtractor:
             "action": self.action,
             "serializer_class": serializer_class_str,
             "permission_classes": permission_classes,
+            "permission_classes_structured": structured_permissions,
             "error_message": str(self.error_message) if self.error_message else None,
             "action_source": action_source,
             "serializer_parents": serializer_parents,
