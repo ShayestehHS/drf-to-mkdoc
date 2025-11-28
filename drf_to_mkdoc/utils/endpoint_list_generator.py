@@ -60,9 +60,8 @@ class EndpointsIndexGenerator:
             static(prefix_path + "javascripts/settings-modal.js"),
         ]
 
-        # Process endpoints to add view_class and collect all permissions with display names
+        # Process endpoints to add view_class
         processed_endpoints = {}
-        all_permissions_map = {}  # Map permission class_path to display_name
         
         for app_name, app_endpoints in endpoints_by_app.items():
             processed_endpoints[app_name] = []
@@ -75,12 +74,6 @@ class EndpointsIndexGenerator:
                     f"{app_name}/{processed_endpoint['viewset'].lower()}/{processed_endpoint['filename'].replace('.md', '/index.html')}"
                 )
                 
-                # Collect permissions with display names for JavaScript
-                permissions_data = endpoint.get("permissions_data", [])
-                for perm in permissions_data:
-                    if perm.get("class_path") and perm.get("display_name"):
-                        all_permissions_map[perm["class_path"].lower()] = perm["display_name"]
-                
                 processed_endpoints[app_name].append(processed_endpoint)
 
         context = {
@@ -88,7 +81,6 @@ class EndpointsIndexGenerator:
             "scripts": scripts,
             "endpoints_by_app": processed_endpoints,
             "active_filters": self.active_filters,
-            "permissions_map": all_permissions_map,  # Pass to template for JavaScript
             **get_auth_config(),
         }
 
