@@ -13,7 +13,10 @@
     data-tags="{{ endpoint.tags|default:''|join:' '|lower }}"
     data-schema="{{ endpoint.schema_fields|default:''|join:' '|lower }}"
     data-params="{{ endpoint.query_parameters|default:''|join:' '|lower }}"
-    data-permissions="{{ endpoint.permissions|default:''|join:' '|lower }}">
+    data-permissions="{{ endpoint.permissions|default:''|join:' '|lower }}"
+    {% if endpoint.permissions_data %}
+    data-permissions-names='{{ endpoint.permissions_data|to_json }}'
+    {% endif %}>
     <span class="method-badge method-{{ endpoint.method|lower }}">{{ endpoint.method }}</span>
     <span class="endpoint-path">{{ endpoint.path }}</span>
 </a>

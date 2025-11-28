@@ -333,7 +333,6 @@ def get_permission_description(permission_class_path: str) -> dict[str, str | No
                 result["short"] = _truncate_description(long_desc)
     
     # Priority 2: Extract docstring from permission class
-    # Use __doc__ directly to avoid getting parent class docstrings
     if not result["long"]:
         try:
             # Parse module and class name

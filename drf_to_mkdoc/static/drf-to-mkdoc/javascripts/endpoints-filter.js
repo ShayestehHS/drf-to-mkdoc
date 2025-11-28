@@ -201,16 +201,36 @@ function populatePermissionsFilterOptions() {
     if (!checkboxList) return;
     
     const permissions = new Map(); // Use Map to store both full path and display name
-
+    
     document.querySelectorAll('.endpoint-card').forEach(card => {
+        // Get display names from data attribute (calculated in _flatten_permissions)
+        let permissionsMap = {};
+        if (card.dataset.permissionsNames) {
+            try {
+                permissionsMap = JSON.parse(card.dataset.permissionsNames);
+            } catch (e) {
+                console.debug('Failed to parse permissions_names', e);
+            }
+        }
+        
         const perms = card.dataset.permissions;
         if (perms) {
             perms.split(' ').forEach(perm => {
                 if (perm) {
-                    // Extract class name (without module path)
-                    const className = perm.includes('.') ? perm.split('.').pop() : perm;
-                    // Convert camelCase to readable format
-                    const displayName = camelCaseToReadable(className);
+                    // Find display name from permissions data
+                    let displayName = null;
+                    if (Array.isArray(permissionsMap)) {
+                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm);
+                        if (permData && permData.display_name) {
+                            displayName = permData.display_name;
+                        }
+                    }
+                    
+                    // Fallback: convert camelCase to readable format if not found
+                    if (!displayName) {
+                        displayName = camelCaseToReadable(perm.includes('.') ? perm.split('.').pop() : perm);
+                    }
+                    
                     permissions.set(perm, displayName);
                 }
             });

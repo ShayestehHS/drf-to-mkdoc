@@ -188,16 +188,26 @@ class ViewMetadataExtractor:
         Returns:
             List of permission dictionaries with class_path and display_name
         """
+        from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
+        
         if isinstance(structured_perm, str):
             # Fallback string - extract class path if possible
-            return [{"class_path": structured_perm, "display_name": structured_perm.rsplit(".", 1)[-1] if "." in structured_perm else structured_perm}]
+            class_path = structured_perm
+            class_name = structured_perm.rsplit(".", 1)[-1] if "." in structured_perm else structured_perm
+            display_name = camel_case_to_readable(class_name)
+            return [{"class_path": class_path, "display_name": display_name}]
         
         if isinstance(structured_perm, dict):
             if 'class_path' in structured_perm:
                 # Simple permission class
+                class_path = structured_perm['class_path']
+                class_name = structured_perm.get('display_name')
+                if not class_name:
+                    class_name = class_path.rsplit(".", 1)[-1] if "." in class_path else class_path
+                display_name = camel_case_to_readable(class_name)
                 return [{
-                    "class_path": structured_perm['class_path'],
-                    "display_name": structured_perm.get('display_name', structured_perm['class_path'].rsplit(".", 1)[-1])
+                    "class_path": class_path,
+                    "display_name": display_name
                 }]
             elif 'logic_operator' in structured_perm and 'children' in structured_perm:
                 # OperandHolder - recursively flatten children

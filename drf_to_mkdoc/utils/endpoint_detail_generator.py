@@ -16,7 +16,10 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
 )
-from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename, get_permission_url
+from drf_to_mkdoc.utils.commons.path_utils import (
+    create_safe_filename,
+    get_permission_url,
+)
 from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
 from drf_to_mkdoc.utils.commons.schema_utils import (
     get_custom_schema,
@@ -780,7 +783,7 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
             class_path = perm
             display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
         elif isinstance(perm, dict):
-            # Structured format
+            # Structured format - display_name should already be calculated in _flatten_permissions
             class_path = perm.get("class_path", "")
             display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
         else:
@@ -940,6 +943,48 @@ def _extract_all_permission_class_paths(endpoint_data: dict[str, Any]) -> list[s
     return permission_class_paths
 
 
+def _extract_permissions_with_display_names(endpoint_data: dict[str, Any]) -> list[dict[str, str]]:
+    """
+    Extract permission class paths with their display names for filtering.
+    Display names should already be calculated in _flatten_permissions.
+    
+    Args:
+        endpoint_data: Endpoint data from OpenAPI schema
+    
+    Returns:
+        List of dictionaries with 'class_path' and 'display_name' keys
+    """
+    permissions = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+    
+    if not permission_classes:
+        return permissions
+    
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            class_path = perm
+            display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
+        elif isinstance(perm, dict):
+            # Structured format - display_name should already be calculated in _flatten_permissions
+            class_path = perm.get("class_path", "")
+            display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
+        else:
+            continue
+        
+        if not class_path:
+            continue
+        
+        permissions.append({
+            "class_path": class_path,
+            "display_name": display_name,
+        })
+    
+    return permissions
+
+
 def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Parse endpoints from OpenAPI schema and organize by app"""
 
@@ -960,6 +1005,8 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
 
             # Extract ALL permissions for filtering (including those without descriptions)
             permission_class_paths = _extract_all_permission_class_paths(endpoint_data)
+            # Also extract permissions with display names for JavaScript
+            permissions_with_names = _extract_permissions_with_display_names(endpoint_data)
             
             endpoint_info = {
                 "path": path,
@@ -970,6 +1017,7 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
                 "data": endpoint_data,
                 "auth_required": is_endpoint_secure(operation_id, endpoint_data),
                 "permissions": permission_class_paths,
+                "permissions_data": permissions_with_names,  # Include display names for JS
             }
 
             endpoints_by_app[app_name].append(endpoint_info)

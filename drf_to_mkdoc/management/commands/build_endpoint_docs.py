@@ -69,7 +69,6 @@ class Command(BaseCommand):
             )
         )
         
-        # Generate permission detail pages
         self._generate_permission_pages(paths)
 
     def _generate_permission_pages(self, paths):

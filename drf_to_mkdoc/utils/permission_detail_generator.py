@@ -1,6 +1,3 @@
-"""Permission detail page generation utilities."""
-
-from pathlib import Path
 from typing import Any
 
 from django.template.loader import render_to_string
