@@ -202,11 +202,14 @@ function populatePermissionsFilterOptions() {
         });
     }
     
+    // Create a single debounced function instance to reuse
+    const debouncedApplyFilters = debounce(applyFilters, 250);
+    
     // Add checkbox change listeners
     checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             updatePermissionsTriggerText();
-            debounce(applyFilters, 250)();
+            debouncedApplyFilters();
         });
     });
     

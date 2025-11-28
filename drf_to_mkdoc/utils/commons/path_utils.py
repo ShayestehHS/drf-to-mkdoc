@@ -127,9 +127,14 @@ def get_permission_url(permission_class_path: str, relative_from_endpoint: bool 
     safe_path = permission_class_path.replace(".", "/")
     base_path = f"permissions/{safe_path}/"
     
-    # Endpoint pages are at endpoints/{app}/{viewset}/{file}.md
-    # Permission pages are at permissions/{path}/index.md
-    # So we need to go up 3 levels from endpoint pages
+    # Endpoint pages are at endpoints/{app}/{viewset}/{file}.md (3 directory levels deep)
+    # Permission pages are at permissions/{path}/index.md (at docs root level)
+    # To go from endpoints/{app}/{viewset}/file.md to permissions/{path}/index.md:
+    #   ../ goes up to {viewset}/
+    #   ../../ goes up to {app}/
+    #   ../../../ goes up to endpoints/
+    #   ../../../permissions/ reaches the permissions directory at docs root
+    # This hardcoded depth assumes the fixed structure: endpoints/{app}/{viewset}/{file}.md
     if relative_from_endpoint:
         return f"../../../{base_path}"
     return base_path

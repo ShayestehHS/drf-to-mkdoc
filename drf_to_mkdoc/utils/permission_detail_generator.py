@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.template.loader import render_to_string
-from django.templatetags.static import static
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.commons.file_utils import write_file
@@ -53,9 +52,11 @@ def create_permission_page(
     # Extract display name (class name without module path)
     display_name = permission_class_path.rsplit(".", 1)[-1] if "." in permission_class_path else permission_class_path
     
+    # Use plain paths (not Django static URLs) for MkDocs compatibility
+    # The template will use static_with_prefix filter to resolve them
     stylesheets = [
-        static(f"{drf_to_mkdoc_settings.PROJECT_NAME}/stylesheets/endpoints/variables.css"),
-        static(f"{drf_to_mkdoc_settings.PROJECT_NAME}/stylesheets/endpoints/base.css"),
+        "stylesheets/endpoints/variables.css",
+        "stylesheets/endpoints/base.css",
     ]
     
     context = {
@@ -64,6 +65,7 @@ def create_permission_page(
         "description": long_description,
         "short_description": short_description,
         "stylesheets": stylesheets,
+        "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
     }
     
     return render_to_string("permissions/base.html", context)
