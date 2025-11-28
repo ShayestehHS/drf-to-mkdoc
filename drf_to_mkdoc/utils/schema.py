@@ -10,6 +10,7 @@ from rest_framework.serializers import BaseSerializer, ListSerializer
 from rest_framework.viewsets import ViewSetMixin
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
+from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
 
 logger = logging.getLogger(__name__)
 
@@ -188,8 +189,6 @@ class ViewMetadataExtractor:
         Returns:
             List of permission dictionaries with class_path and display_name
         """
-        from drf_to_mkdoc.utils.commons.path_utils import camel_case_to_readable
-        
         if isinstance(structured_perm, str):
             # Fallback string - extract class path if possible
             class_path = structured_perm

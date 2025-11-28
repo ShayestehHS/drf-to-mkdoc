@@ -91,8 +91,6 @@ def camel_case_to_readable(name: str) -> str:
     if not name:
         return name
 
-    import re
-
     # Handle camelCase: insert space before uppercase letters
     # This catches transitions from lowercase to uppercase
     result = re.sub(r'([a-z])([A-Z])', r'\1 \2', name)
