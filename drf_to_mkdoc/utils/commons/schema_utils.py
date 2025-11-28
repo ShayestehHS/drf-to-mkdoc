@@ -1,6 +1,9 @@
+import inspect
 import json
+import logging
 from copy import deepcopy
 from functools import lru_cache
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +11,8 @@ from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
 from drf_to_mkdoc.utils.commons.file_utils import load_json_data
+
+logger = logging.getLogger(__name__)
 
 
 class SchemaValidationError(Exception):
@@ -261,3 +266,74 @@ class OperationExtractor:
                 mapping[operation_id] = {"path": path, **metadata}
 
         return mapping
+
+
+@lru_cache(maxsize=1)
+def get_references() -> dict[str, Any]:
+    """
+    Load references from separate JSON file.
+    
+    References file contains reusable descriptions for permissions, serializers,
+    responses, and other components to avoid redundancy in schema files.
+    
+    Structure:
+    {
+        "rest_framework.permissions.IsAuthenticated": {
+            "description": "User must be authenticated to access this endpoint."
+        },
+        ...
+    }
+    
+    Returns:
+        Dictionary of references, or empty dict if file doesn't exist
+    """
+    references_data = load_json_data(
+        drf_to_mkdoc_settings.REFERENCES_FILE, raise_not_found=False
+    )
+    if not references_data:
+        return {}
+    
+    # Validate structure - should be a dict
+    if not isinstance(references_data, dict):
+        raise SchemaValidationError(
+            f"References file must contain a JSON object (dict), got {type(references_data).__name__}"
+        )
+    
+    return references_data
+
+
+def get_permission_description(permission_class_path: str) -> str | None:
+    """
+    Get permission description with priority: schema JSON > docstring > None.
+    
+    Args:
+        permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
+    
+    Returns:
+        Description string if found, None otherwise
+    """
+    # Priority 1: Check references file
+    references = get_references()
+    if permission_class_path in references:
+        permission_data = references[permission_class_path]
+        if isinstance(permission_data, dict):
+            description = permission_data.get("description")
+            if description:
+                return description
+    
+    # Priority 2: Extract docstring from permission class
+    try:
+        # Parse module and class name
+        module_path, class_name = permission_class_path.rsplit(".", 1)
+        module = import_module(module_path)
+        permission_class = getattr(module, class_name)
+        
+        # Get docstring
+        docstring = inspect.getdoc(permission_class)
+        if docstring:
+            return docstring.strip()
+    except (ImportError, AttributeError, ValueError) as e:
+        # Gracefully handle import errors
+        logger.debug(f"Could not extract docstring for {permission_class_path}: {e}")
+    
+    return None
