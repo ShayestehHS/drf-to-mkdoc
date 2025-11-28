@@ -261,12 +261,12 @@ function matchesFilters(card) {
     if (f.roles && !d.roles.includes(f.roles)) return false;
     if (f.tags && !d.tags.includes(f.tags)) return false;
     if (f.permissions) {
-        // Multi-select: check if any selected permission matches
+        // Multi-select: check if ALL selected permissions are present (AND logic)
         const selectedPerms = f.permissions.split(' ').filter(p => p);
         if (selectedPerms.length > 0) {
             const cardPerms = (d.permissions || '').split(' ').filter(p => p);
-            const hasMatch = selectedPerms.some(selected => cardPerms.includes(selected));
-            if (!hasMatch) return false;
+            const hasAllPerms = selectedPerms.every(selected => cardPerms.includes(selected));
+            if (!hasAllPerms) return false;
         }
     }
     if (f.contentType && d.contentType !== f.contentType) return false;
