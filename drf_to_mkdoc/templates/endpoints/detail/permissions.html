@@ -3,9 +3,8 @@
 
 | Permission | Description |
 |------------|-------------|
-{% for row in permissions %}{% if row.type == "single" %}| [{{ row.permission.display_name }}]({{ row.permission.url }}) | {% if row.permission.description %}{{ row.permission.description }}{% else %}-{% endif %} |
-{% elif row.type == "group" %}| {% for perm in row.permissions %}[{{ perm.display_name }}]({{ perm.url }}){% if not forloop.last %} & {% endif %}{% endfor %} | {% for perm in row.permissions %}{% if perm.description %}{{ perm.description }}{% else %}-{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %} |
-{% endif %}{% endfor %}
+{% for perm in permissions %}| [{{ perm.display_name }}]({{ perm.url }}) | {% if perm.description %}{{ perm.description }}{% else %}-{% endif %} |
+{% endfor %}
 
 {% endif %}
 
