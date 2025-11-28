@@ -1,0 +1,10 @@
+{% if permissions %}
+## Permissions <span class="hint-icon" tabindex="0" data-tooltip="Access control requirements for this endpoint. All listed permissions must be satisfied unless otherwise specified." aria-label="Information about permissions" title="Access control requirements for this endpoint">ℹ️</span>
+
+| Permission | Required | Description |
+|------------|----------|-------------|
+{% for perm in permissions %}| [{{ perm.display_name }}]({{ perm.url }}) | Yes | {{ perm.description }} |
+{% endfor %}
+
+{% endif %}
+

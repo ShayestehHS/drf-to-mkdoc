@@ -16,9 +16,13 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
 )
-from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
+from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename, get_permission_url
 from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
-from drf_to_mkdoc.utils.commons.schema_utils import get_custom_schema, is_endpoint_secure
+from drf_to_mkdoc.utils.commons.schema_utils import (
+    get_custom_schema,
+    get_permission_description,
+    is_endpoint_secure,
+)
 from drf_to_mkdoc.utils.extractors.query_parameter_extractors import (
     extract_query_parameters_from_view,
 )
@@ -751,6 +755,56 @@ def _extract_request_examples(
     return []
 
 
+def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Extract permissions data from endpoint for display in template.
+    
+    Args:
+        operation_id: Operation ID of the endpoint
+        endpoint_data: Endpoint data from OpenAPI schema
+    
+    Returns:
+        List of permission dictionaries with class_path, display_name, description, url
+    """
+    permissions = []
+    metadata = endpoint_data.get("x-metadata", {})
+    permission_classes = metadata.get("permission_classes", [])
+    
+    if not permission_classes:
+        return permissions
+    
+    # Process each permission (can be string or structured)
+    for perm in permission_classes:
+        if isinstance(perm, str):
+            # Simple string format (backward compatibility)
+            class_path = perm
+            display_name = perm.rsplit(".", 1)[-1] if "." in perm else perm
+        elif isinstance(perm, dict):
+            # Structured format
+            class_path = perm.get("class_path", "")
+            display_name = perm.get("display_name", class_path.rsplit(".", 1)[-1] if "." in class_path else class_path)
+        else:
+            continue
+        
+        if not class_path:
+            continue
+        
+        # Get description
+        description = get_permission_description(class_path)
+        
+        # Generate URL
+        url = get_permission_url(class_path)
+        
+        permissions.append({
+            "class_path": class_path,
+            "display_name": display_name,
+            "description": description or "No description available.",
+            "url": url,
+        })
+    
+    return permissions
+
+
 def create_endpoint_page(
     path: str, method: str, endpoint_data: dict[str, Any], components: dict[str, Any]
 ) -> str:
@@ -818,6 +872,7 @@ def create_endpoint_page(
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
         "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+        "permissions": _extract_permissions_data(operation_id, endpoint_data),
         **get_auth_config(),
     }
 
