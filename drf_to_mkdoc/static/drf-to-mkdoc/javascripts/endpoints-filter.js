@@ -73,17 +73,6 @@ function getValue(id) {
     return el ? el.value.trim().toLowerCase() : '';
 }
 
-function getMultiSelectValue(id) {
-    const el = document.getElementById(id);
-    if (!el) return '';
-    
-    const selected = Array.from(el.selectedOptions)
-        .map(opt => opt.value.trim().toLowerCase())
-        .filter(val => val !== '');
-    
-    return selected.length > 0 ? selected.join(' ') : '';
-}
-
 function getPermissionsCheckboxValue() {
     const checkboxes = document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]:checked');
     const selected = Array.from(checkboxes)
@@ -226,9 +215,9 @@ function populatePermissionsFilterOptions() {
                         }
                     }
                     
-                    // Fallback: convert camelCase to readable format if not found
+                    // If no display name, use the original class name (unreadable)
                     if (!displayName) {
-                        displayName = camelCaseToReadable(perm.includes('.') ? perm.split('.').pop() : perm);
+                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
                     }
                     
                     permissions.set(perm, displayName);
