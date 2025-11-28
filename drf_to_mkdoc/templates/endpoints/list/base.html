@@ -10,13 +10,6 @@
 <script src="{{ script|safe }}" defer></script>
 {% endfor %}
 
-{% if permissions_map %}
-<script{% if request.csp_nonce %} nonce="{{ request.csp_nonce }}"{% endif %}>
-    // Permission display names map (from Python)
-    window.DRF_TO_MKDOC_PERMISSIONS_MAP = {{ permissions_map|to_json }};
-</script>
-{% endif %}
-
 {% if enable_auto_auth %}
 <script{% if request.csp_nonce %} nonce="{{ request.csp_nonce }}"{% endif %}>
     // Auto-authentication configuration
