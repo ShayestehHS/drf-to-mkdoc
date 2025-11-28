@@ -11,7 +11,8 @@ let currentFilters = {
     tags: '',
     app: '',
     ordering: '',
-    search: ''
+    search: '',
+    permissions: ''
 };
 
 function applyFilters() {
@@ -30,6 +31,7 @@ function applyFilters() {
         app: getValue('filter-app'),
         ordering: getValue('filter-ordering'),
         search: getValue('filter-search'),
+        permissions: getMultiSelectValue('filter-permissions'),
     };
 
     updateURLParams(currentFilters);
@@ -71,6 +73,17 @@ function getValue(id) {
     return el ? el.value.trim().toLowerCase() : '';
 }
 
+function getMultiSelectValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return '';
+    
+    const selected = Array.from(el.selectedOptions)
+        .map(opt => opt.value.trim().toLowerCase())
+        .filter(val => val !== '');
+    
+    return selected.length > 0 ? selected.join(' ') : '';
+}
+
 function populateAppFilterOptions() {
     const select = document.getElementById('filter-app');
     const apps = new Set();
@@ -89,6 +102,32 @@ function populateAppFilterOptions() {
     });
 }
 
+function populatePermissionsFilterOptions() {
+    const select = document.getElementById('filter-permissions');
+    if (!select) return;
+    
+    const permissions = new Set();
+
+    document.querySelectorAll('.endpoint-card').forEach(card => {
+        const perms = card.dataset.permissions;
+        if (perms) {
+            perms.split(' ').forEach(perm => {
+                if (perm) permissions.add(perm);
+            });
+        }
+    });
+
+    // Convert to sorted array and add as options
+    Array.from(permissions).sort().forEach(perm => {
+        const opt = document.createElement('option');
+        opt.value = perm;
+        // Extract display name (class name without module path)
+        const displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+        opt.textContent = displayName;
+        select.appendChild(opt);
+    });
+}
+
 function matchesFilters(card) {
     const d = card.dataset;
     const f = currentFilters;
@@ -103,6 +142,15 @@ function matchesFilters(card) {
     if (f.models && !d.models.includes(f.models)) return false;
     if (f.roles && !d.roles.includes(f.roles)) return false;
     if (f.tags && !d.tags.includes(f.tags)) return false;
+    if (f.permissions) {
+        // Multi-select: check if any selected permission matches
+        const selectedPerms = f.permissions.split(' ').filter(p => p);
+        if (selectedPerms.length > 0) {
+            const cardPerms = (d.permissions || '').split(' ').filter(p => p);
+            const hasMatch = selectedPerms.some(selected => cardPerms.includes(selected));
+            if (!hasMatch) return false;
+        }
+    }
     if (f.contentType && d.contentType !== f.contentType) return false;
 
     if (f.params && !d.params.includes(f.params)) return false;
@@ -111,10 +159,17 @@ function matchesFilters(card) {
 }
 
 function clearFilters() {
-    document.querySelectorAll('.filter-input, .filter-select').forEach(el => el.value = '');
+    document.querySelectorAll('.filter-input, .filter-select').forEach(el => {
+        if (el.multiple) {
+            // Clear multi-select
+            Array.from(el.options).forEach(opt => opt.selected = false);
+        } else {
+            el.value = '';
+        }
+    });
     currentFilters = {
         method: '', path: '', models: '', auth: '', roles: '', contentType: '',
-        params: '', schema: '', pagination: '', tags: '', app: '', ordering: '', search: ''
+        params: '', schema: '', pagination: '', tags: '', app: '', ordering: '', search: '', permissions: ''
     };
     applyFilters();
     updateURLParams(currentFilters);
@@ -139,9 +194,14 @@ function loadURLParams() {
 
 document.addEventListener('DOMContentLoaded', () => {
     populateAppFilterOptions();
+    populatePermissionsFilterOptions();
     loadURLParams();
     document.querySelectorAll('.filter-input, .filter-select').forEach(input => {
-        input.addEventListener('input', debounce(applyFilters, 250));
+        if (input.multiple) {
+            input.addEventListener('change', debounce(applyFilters, 250));
+        } else {
+            input.addEventListener('input', debounce(applyFilters, 250));
+        }
     });
     applyFilters();
 });

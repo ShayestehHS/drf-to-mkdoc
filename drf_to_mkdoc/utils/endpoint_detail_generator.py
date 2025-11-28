@@ -925,6 +925,10 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
             operation_id = endpoint_data.get("operationId", "")
             filename = create_safe_filename(path, method)
 
+            # Extract permissions for filtering
+            permissions = _extract_permissions_data(operation_id, endpoint_data)
+            permission_class_paths = [p["class_path"] for p in permissions]
+            
             endpoint_info = {
                 "path": path,
                 "method": method.upper(),
@@ -933,6 +937,7 @@ def parse_endpoints_from_schema(paths: dict[str, Any]) -> dict[str, list[dict[st
                 "filename": filename,
                 "data": endpoint_data,
                 "auth_required": is_endpoint_secure(operation_id, endpoint_data),
+                "permissions": permission_class_paths,
             }
 
             endpoints_by_app[app_name].append(endpoint_info)

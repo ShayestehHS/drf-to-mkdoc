@@ -25,6 +25,7 @@ class EndpointsIndexGenerator:
             "ordering",
             "search",
             "tags",
+            "permissions",
         ]
 
     def create_endpoints_index(
