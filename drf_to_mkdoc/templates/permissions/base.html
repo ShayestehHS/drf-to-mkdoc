@@ -11,3 +11,7 @@
 
 {{ description }}
 
+{% if short_description and short_description != description %}
+**Short Description:** {{ short_description }}
+{% endif %}
+

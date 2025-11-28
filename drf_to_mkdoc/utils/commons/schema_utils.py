@@ -302,38 +302,86 @@ def get_references() -> dict[str, Any]:
     return references_data
 
 
-def get_permission_description(permission_class_path: str) -> str | None:
+def get_permission_description(permission_class_path: str) -> dict[str, str | None]:
     """
-    Get permission description with priority: schema JSON > docstring > None.
+    Get permission descriptions (short and long) with priority: schema JSON > docstring > None.
     
     Args:
         permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
     
     Returns:
-        Description string if found, None otherwise
+        Dictionary with 'short' and 'long' keys, each containing description string or None
     """
+    result = {"short": None, "long": None}
+    
     # Priority 1: Check references file
     references = get_references()
     if permission_class_path in references:
         permission_data = references[permission_class_path]
         if isinstance(permission_data, dict):
-            description = permission_data.get("description")
-            if description:
-                return description
+            # Get long description
+            long_desc = permission_data.get("description")
+            if long_desc:
+                result["long"] = long_desc
+            
+            # Get short description (custom or auto-truncated)
+            short_desc = permission_data.get("short_description")
+            if short_desc:
+                result["short"] = short_desc
+            elif long_desc:
+                # Auto-truncate long description if short not provided
+                result["short"] = _truncate_description(long_desc)
     
     # Priority 2: Extract docstring from permission class
-    try:
-        # Parse module and class name
-        module_path, class_name = permission_class_path.rsplit(".", 1)
-        module = import_module(module_path)
-        permission_class = getattr(module, class_name)
-        
-        # Get docstring
-        docstring = inspect.getdoc(permission_class)
-        if docstring:
-            return docstring.strip()
-    except (ImportError, AttributeError, ValueError) as e:
-        # Gracefully handle import errors
-        logger.debug(f"Could not extract docstring for {permission_class_path}: {e}")
+    if not result["long"]:
+        try:
+            # Parse module and class name
+            module_path, class_name = permission_class_path.rsplit(".", 1)
+            module = import_module(module_path)
+            permission_class = getattr(module, class_name)
+            
+            # Get docstring
+            docstring = inspect.getdoc(permission_class)
+            if docstring:
+                long_desc = docstring.strip()
+                result["long"] = long_desc
+                # Auto-truncate for short version
+                result["short"] = _truncate_description(long_desc)
+        except (ImportError, AttributeError, ValueError) as e:
+            # Gracefully handle import errors
+            logger.debug(f"Could not extract docstring for {permission_class_path}: {e}")
     
-    return None
+    return result
+
+
+def _truncate_description(description: str, max_length: int = 100) -> str:
+    """
+    Truncate description to short version.
+    
+    Args:
+        description: Full description text
+        max_length: Maximum length for truncated version
+    
+    Returns:
+        Truncated description with ellipsis if needed
+    """
+    if len(description) <= max_length:
+        return description
+    
+    # Try to truncate at sentence boundary
+    truncated = description[:max_length]
+    last_period = truncated.rfind('.')
+    last_newline = truncated.rfind('\n')
+    
+    # Use the last sentence boundary if found within reasonable distance
+    if last_period > max_length * 0.7:
+        return truncated[:last_period + 1]
+    elif last_newline > max_length * 0.7:
+        return truncated[:last_newline].strip()
+    else:
+        # Truncate at word boundary
+        last_space = truncated.rfind(' ')
+        if last_space > max_length * 0.7:
+            return truncated[:last_space] + '...'
+        else:
+            return truncated + '...'

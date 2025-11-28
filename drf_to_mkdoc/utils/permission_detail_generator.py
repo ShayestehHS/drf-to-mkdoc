@@ -20,13 +20,13 @@ def generate_permission_docs(permissions: dict[str, dict[str, Any]]) -> None:
         permissions: Dictionary mapping permission class paths to permission data
     """
     for permission_class_path, permission_data in permissions.items():
-        description = permission_data.get("description")
-        if not description:
-            # Try to get description from references or docstring
-            description = get_permission_description(permission_class_path)
+        # Get descriptions (short and long)
+        descriptions = get_permission_description(permission_class_path)
+        long_description = descriptions.get("long") or descriptions.get("short") or "No description available."
+        short_description = descriptions.get("short")
         
         # Create the permission page content
-        content = create_permission_page(permission_class_path, description)
+        content = create_permission_page(permission_class_path, long_description, short_description)
         
         # Generate file path: permissions/{full_class_path}/index.md
         url_path = get_permission_url(permission_class_path)
@@ -35,13 +35,16 @@ def generate_permission_docs(permissions: dict[str, dict[str, Any]]) -> None:
         write_file(file_path, content)
 
 
-def create_permission_page(permission_class_path: str, description: str | None) -> str:
+def create_permission_page(
+    permission_class_path: str, long_description: str, short_description: str | None
+) -> str:
     """
     Create a permission documentation page.
     
     Args:
         permission_class_path: Full path to permission class
-        description: Permission description (from references or docstring)
+        long_description: Full permission description (shown on detail page)
+        short_description: Short permission description (for reference)
     
     Returns:
         Rendered template content
@@ -57,7 +60,8 @@ def create_permission_page(permission_class_path: str, description: str | None) 
     context = {
         "permission_class_path": permission_class_path,
         "display_name": display_name,
-        "description": description or "No description available.",
+        "description": long_description,
+        "short_description": short_description,
         "stylesheets": stylesheets,
     }
     
