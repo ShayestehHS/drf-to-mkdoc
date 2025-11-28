@@ -3,10 +3,10 @@
 .filter-sidebar {
     background: linear-gradient(135deg, #e0f2ff, #ffffff);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 32px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
     width: 100%;
     max-width: 100%;
@@ -21,21 +21,21 @@
 }
 
 .filter-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     text-align: left;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
     width: 100%;
 }
 
@@ -47,7 +47,7 @@
 }
 
 .filter-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 4px;
@@ -58,16 +58,16 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    padding: 10px 12px;
+    padding: 6px 10px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     background: var(--bg-primary);
     color: var(--text-primary);
     transition: border 0.2s ease, box-shadow 0.2s ease;
     appearance: none;
     background-image: none;
-    min-height: 40px; /* Consistent height */
+    min-height: 32px; /* Consistent height */
 }
 
 .filter-select {
@@ -93,26 +93,26 @@
 .filter-actions {
     display: flex;
     justify-content: center;
-    gap: 12px;
-    padding-top: 20px;
+    gap: 8px;
+    padding-top: 12px;
     border-top: 1px solid var(--border-color);
-    margin-top: 20px;
+    margin-top: 12px;
 }
 
 .filter-settings,
 .filter-clear {
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-width: 100px;
+    min-width: 80px;
     border: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .filter-settings {
@@ -147,8 +147,8 @@
 }
 
 .filter-results {
-    margin-top: 16px;
-    font-size: 13px;
+    margin-top: 10px;
+    font-size: 11px;
     text-align: center;
     color: var(--text-secondary);
     font-style: italic;
@@ -166,12 +166,12 @@
 @media (max-width: 768px) {
     .filter-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 8px;
     }
 
     .filter-actions {
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
 
     .filter-settings,
@@ -180,14 +180,14 @@
     }
 
     .filter-sidebar {
-        padding: 16px;
-        margin-bottom: 24px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
     }
 }
 
 @media (max-width: 480px) {
     .filter-title {
-        font-size: 18px;
+        font-size: 14px;
     }
 
     .filter-input,
@@ -198,7 +198,7 @@
 
 /* Ensure proper spacing with endpoint cards */
 .endpoints-grid {
-    margin-top: 24px;
+    margin-top: 16px;
     clear: both;
 }
 

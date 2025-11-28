@@ -1,36 +1,191 @@
+{% load custom_filters %}
 {% comment %}
-Check if any query parameter fields have content
+Query parameters with tabbed interface for different parameter types
 {% endcomment %}
 
 {% if query_parameters.filter_fields or query_parameters.search_fields or query_parameters.ordering_fields or query_parameters.pagination_fields %}
 ## Query Parameters
 
-{% if query_parameters.filter_fields %}
-### Filter Fields
-{% for field in query_parameters.filter_fields %}
-- `{{ field }}`
-{% endfor %}
-{% endif %}
+<div class="query-params-container">
+    <div class="query-params-section">
+        <button class="query-params-header" type="button" aria-expanded="false" aria-controls="query-params-content">
+            <span class="query-params-title">
+                <span class="query-params-icon">📋</span>
+                Query Parameters
+            </span>
+            <span class="query-params-toggle">▼</span>
+        </button>
+        <div class="query-params-content" id="query-params-content">
+            <!-- Tabs Navigation -->
+            <div class="query-params-tabs" role="tablist">
+                {% if query_parameters.filter_fields %}
+                <button 
+                    id="filter-fields-tab-button"
+                    class="query-params-tab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="filter-fields-panel"
+                    data-tab="filter-fields">
+                    <span class="tab-icon">🔽</span>
+                    Filter Fields
+                    <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used to filter the results (e.g., ?field=value)." aria-label="Information about filter fields">ℹ️</span>
+                </button>
+                {% endif %}
+                
+                {% if query_parameters.ordering_fields %}
+                <button 
+                    id="ordering-fields-tab-button"
+                    class="query-params-tab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="ordering-fields-panel"
+                    data-tab="ordering-fields">
+                    <span class="tab-icon">↕️</span>
+                    Ordering Fields
+                    <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used to sort/order the results (e.g., ?ordering=field_name or ?ordering=-field_name for descending)." aria-label="Information about ordering fields">ℹ️</span>
+                </button>
+                {% endif %}
+                
+                {% if query_parameters.pagination_fields %}
+                <button 
+                    id="pagination-fields-tab-button"
+                    class="query-params-tab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="pagination-fields-panel"
+                    data-tab="pagination-fields">
+                    <span class="tab-icon">📄</span>
+                    Pagination Fields
+                    <span class="hint-icon" tabindex="0" data-tooltip="Query parameters used for pagination to navigate through result pages (e.g., ?page=1&amp;page_size=10)." aria-label="Information about pagination fields">ℹ️</span>
+                </button>
+                {% endif %}
+                
+                {% if query_parameters.search_fields %}
+                <button 
+                    id="search-fields-tab-button"
+                    class="query-params-tab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="search-fields-panel"
+                    data-tab="search-fields">
+                    <span class="tab-icon">🔍</span>
+                    Search Fields
+                    <span class="hint-icon" tabindex="0" data-tooltip="Database columns that are searched when using the search query parameter (e.g., ?search=value)." aria-label="Information about search fields">ℹ️</span>
+                </button>
+                {% endif %}
+            </div>
 
-{% if query_parameters.search_fields %}
-### Search Fields
-{% for field in query_parameters.search_fields %}
-- `{{ field }}`
-{% endfor %}
-{% endif %}
+            <!-- Tab Contents -->
+            {% if query_parameters.filter_fields %}
+            <div 
+                class="query-params-tab-content" 
+                id="filter-fields-panel" 
+                role="tabpanel"
+                aria-labelledby="filter-fields-tab-button">
+                <div class="query-params-table-wrapper">
+                    <table class="query-params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in query_parameters.filter_fields %}
+                            <tr class="query-param-row">
+                                <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
+                                <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
+                                <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
 
-{% if query_parameters.ordering_fields %}
-### Ordering Fields
-{% for field in query_parameters.ordering_fields %}
-- `{{ field }}`
-{% endfor %}
-{% endif %}
+            {% if query_parameters.ordering_fields %}
+            <div 
+                class="query-params-tab-content" 
+                id="ordering-fields-panel" 
+                role="tabpanel"
+                aria-labelledby="ordering-fields-tab-button">
+                <div class="query-params-table-wrapper">
+                    <table class="query-params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in query_parameters.ordering_fields %}
+                            <tr class="query-param-row">
+                                <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
+                                <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
+                                <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
 
-{% if query_parameters.pagination_fields %}
-### Pagination Fields
-{% for field in query_parameters.pagination_fields %}
-- `{{ field }}`
-{% endfor %}
-{% endif %}
+            {% if query_parameters.pagination_fields %}
+            <div 
+                class="query-params-tab-content" 
+                id="pagination-fields-panel" 
+                role="tabpanel"
+                aria-labelledby="pagination-fields-tab-button">
+                <div class="query-params-table-wrapper">
+                    <table class="query-params-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in query_parameters.pagination_fields %}
+                            <tr class="query-param-row">
+                                <td><code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code></td>
+                                <td><code class="query-param-type">{% if field.type %}{{ field.type }}{% else %}string{% endif %}</code></td>
+                                <td>{% if field.description %}{{ field.description }}{% else %}—{% endif %}</td>
+                                <td>{% if field.example is not None %}<code>{% if field.example|format_example %}{{ field.example|format_example }}{% else %}{{ field.example }}{% endif %}</code>{% else %}—{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if query_parameters.search_fields %}
+            <div 
+                class="query-params-tab-content" 
+                id="search-fields-panel" 
+                role="tabpanel"
+                aria-labelledby="search-fields-tab-button">
+                <div class="query-params-list">
+                    {% for field in query_parameters.search_fields %}
+                    <div class="query-param-item">
+                        <code class="query-param-name">{% if field.name %}{{ field.name }}{% else %}{{ field }}{% endif %}</code>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
 {% endif %}
