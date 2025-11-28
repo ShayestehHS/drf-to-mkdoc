@@ -108,7 +108,7 @@ function populatePermissionsFilterOptions() {
     
     document.querySelectorAll('.endpoint-card').forEach(card => {
         // Get display names from data attribute (calculated in _flatten_permissions)
-        let permissionsMap = {};
+        let permissionsMap = null;
         if (card.dataset.permissionsNames) {
             try {
                 permissionsMap = JSON.parse(card.dataset.permissionsNames);
@@ -124,7 +124,7 @@ function populatePermissionsFilterOptions() {
                     // Find display name from permissions data
                     let displayName = null;
                     if (Array.isArray(permissionsMap)) {
-                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm);
+                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
                         if (permData && permData.display_name) {
                             displayName = permData.display_name;
                         }
@@ -356,7 +356,8 @@ function loadURLParams() {
     params.forEach((v, k) => {
         if (k === 'permissions') {
             // Handle permissions checkboxes
-            const selectedPerms = v.split(' ').filter(p => p);
+            // Normalize to lowercase to match format from getPermissionsCheckboxValue()
+            const selectedPerms = v.split(' ').filter(p => p).map(p => p.toLowerCase());
             document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]').forEach(cb => {
                 cb.checked = selectedPerms.includes(cb.value.toLowerCase());
             });
