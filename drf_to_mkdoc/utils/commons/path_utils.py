@@ -81,78 +81,35 @@ def create_safe_filename(path: str, method: str) -> str:
 def camel_case_to_readable(name: str) -> str:
     """
     Convert camelCase or all-lowercase class name to readable format.
-    
+
     Args:
         name: Class name (e.g., "IsAuthenticated", "deleteserverpermission")
-    
+
     Returns:
         Readable format (e.g., "Is Authenticated", "Delete Server Permission")
     """
     if not name:
         return name
-    
-    import re
-    
-    # First, handle camelCase by adding spaces before capital letters
-    result = re.sub(r'([A-Z])', r' \1', name)
-    
-    # If the string is all lowercase (no spaces added), try to split intelligently
-    if result == name and name == name.lower():
-        # Common permission word patterns (sorted by length, longest first for greedy matching)
-        common_words = [
-            'authenticated', 'permission', 'anonymous', 'instance', 'resource',
-            'delete', 'create', 'update', 'server', 'team', 'user', 'admin', 'staff',
-            'object', 'model', 'action', 'access', 'manage', 'remove', 'change',
-            'read', 'view', 'list', 'edit', 'grant', 'revoke',
-            'get', 'post', 'put', 'has', 'can', 'is', 'add', 'deny', 'allow'
-        ]
-        
-        # Try to find and split by these words
-        remaining = name.lower()
-        found_words = []
-        
-        while remaining:
-            matched = False
-            # Try to match from longest to shortest words
-            for word in common_words:
-                if remaining.startswith(word):
-                    found_words.append(word)
-                    remaining = remaining[len(word):]
-                    matched = True
-                    break
-            
-            if not matched:
-                # If no word matches, try to find the next word boundary
-                next_match = None
-                next_match_index = len(remaining)
-                
-                for word in common_words:
-                    index = remaining.find(word)
-                    if 0 < index < next_match_index:
-                        next_match = word
-                        next_match_index = index
-                
-                if next_match and next_match_index > 0:
-                    # Found a word later in the string, take everything before it as a word
-                    before_word = remaining[:next_match_index]
-                    if before_word:
-                        found_words.append(before_word)
-                    remaining = remaining[next_match_index:]
-                else:
-                    # No more matches, take the rest as one word
-                    if remaining:
-                        found_words.append(remaining)
-                    break
-        
-        # Capitalize first letter of each word
-        result = ' '.join(word.capitalize() for word in found_words)
-    else:
-        # Handle camelCase: capitalize first letter and clean up
-        words = [w for w in result.split() if w]
-        result = ' '.join(word[0].upper() + word[1:].lower() if len(word) > 1 else word.upper() for word in words)
-    
-    return result.strip()
 
+    import re
+
+    # Handle camelCase: insert space before uppercase letters
+    # This catches transitions from lowercase to uppercase
+    result = re.sub(r'([a-z])([A-Z])', r'\1 \2', name)
+
+    # Handle sequences of capitals followed by lowercase (e.g., "XMLParser" -> "XML Parser")
+    result = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', result)
+
+    # If still no spaces (all lowercase), insert spaces before common suffixes/patterns
+    if ' ' not in result:
+        # Insert space before common word boundaries using lookahead
+        # This handles patterns like: "deleteserver" -> "delete server"
+        result = re.sub(r'([a-z])([A-Z]|permission|server|user|admin|team)', r'\1 \2', result, flags=re.IGNORECASE)
+
+    # Title case each word
+    result = ' '.join(word.capitalize() for word in result.split())
+
+    return result.strip()
 
 def get_permission_url(permission_class_path: str) -> str:
     """
