@@ -15,7 +15,7 @@ let currentFilters = {
     permissions: ''
 };
 
-function applyFilters() {
+function applyFilters(skipUpdateOptions = false) {
     // Read all filters
     currentFilters = {
         method: getValue('filter-method'),
@@ -66,6 +66,11 @@ function applyFilters() {
     // Update filter result stats
     document.querySelector('.filter-results').textContent =
         `Showing ${visibleCount} of ${cards.length} endpoints`;
+
+    // Update filter options based on visible cards (unless skipped)
+    if (!skipUpdateOptions) {
+        updateFilterOptions();
+    }
 }
 
 function getValue(id) {
@@ -84,6 +89,8 @@ function getPermissionsCheckboxValue() {
 
 function populateAppFilterOptions() {
     const select = document.getElementById('filter-app');
+    if (!select) return;
+    
     const apps = new Set();
 
     document.querySelectorAll('.endpoint-card').forEach(card => {
@@ -100,13 +107,240 @@ function populateAppFilterOptions() {
     });
 }
 
+function updateAppFilterOptions() {
+    const select = document.getElementById('filter-app');
+    if (!select) return;
+    
+    const currentValue = select.value;
+    const apps = new Set();
+
+    // Only collect apps from visible cards
+    document.querySelectorAll('.endpoint-card:not(.hidden)').forEach(card => {
+        const app = card.dataset.app;
+        if (app) apps.add(app);
+    });
+
+    // Remove all options except "All"
+    const allOption = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    if (allOption) {
+        select.appendChild(allOption);
+    } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'All';
+        select.appendChild(opt);
+    }
+
+    // Add options from visible cards
+    Array.from(apps).sort().forEach(app => {
+        const opt = document.createElement('option');
+        opt.value = app;
+        opt.textContent = app;
+        select.appendChild(opt);
+    });
+
+    // Restore current selection if it's still valid
+    if (currentValue && apps.has(currentValue)) {
+        select.value = currentValue;
+    } else if (currentValue && !apps.has(currentValue)) {
+        // Current selection is no longer available, reset to "All"
+        select.value = '';
+        currentFilters.app = '';
+    }
+}
+
 function populatePermissionsFilterOptions() {
     const checkboxList = document.getElementById('permissions-checkbox-list');
     if (!checkboxList) return;
     
     const permissions = new Map(); // Use Map to store both full path and display name
+    let hasNoPermissions = false;
     
     document.querySelectorAll('.endpoint-card').forEach(card => {
+        // Get display names from data attribute (calculated in _flatten_permissions)
+        let permissionsMap = null;
+        if (card.dataset.permissionsNames) {
+            try {
+                permissionsMap = JSON.parse(card.dataset.permissionsNames);
+            } catch (e) {
+                console.debug('Failed to parse permissions_names', e);
+            }
+        }
+        
+        const perms = card.dataset.permissions;
+        if (perms && perms.trim() !== '') {
+            perms.split(' ').forEach(perm => {
+                if (perm) {
+                    // Find display name from permissions data
+                    let displayName = null;
+                    if (Array.isArray(permissionsMap)) {
+                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
+                        if (permData && permData.display_name) {
+                            displayName = permData.display_name;
+                        }
+                    }
+                    
+                    // If no display name, use the original class name (unreadable)
+                    if (!displayName) {
+                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+                    }
+                    
+                    permissions.set(perm, displayName);
+                }
+            });
+        } else {
+            // This card has no permissions
+            hasNoPermissions = true;
+        }
+    });
+
+    // Sort by display name for better UX
+    const sortedPerms = Array.from(permissions.entries()).sort((a, b) => 
+        a[1].localeCompare(b[1])
+    );
+
+    // Clear existing checkboxes
+    checkboxList.innerHTML = '';
+
+    // Add "No Permissions" option first if there are any cards with no permissions
+    if (hasNoPermissions) {
+        const noPermsLabel = document.createElement('label');
+        noPermsLabel.className = 'permissions-checkbox-item';
+        
+        const noPermsCheckbox = document.createElement('input');
+        noPermsCheckbox.type = 'checkbox';
+        noPermsCheckbox.value = '__no_permissions__';
+        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
+        noPermsCheckbox.dataset.displayName = 'No Permissions';
+        
+        const noPermsSpan = document.createElement('span');
+        noPermsSpan.textContent = 'No Permissions';
+        noPermsSpan.className = 'permissions-checkbox-label';
+        
+        noPermsLabel.appendChild(noPermsCheckbox);
+        noPermsLabel.appendChild(noPermsSpan);
+        checkboxList.appendChild(noPermsLabel);
+    }
+
+    // Add checkboxes
+    sortedPerms.forEach(([fullPath, displayName]) => {
+        const label = document.createElement('label');
+        label.className = 'permissions-checkbox-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = fullPath;
+        checkbox.dataset.fullPath = fullPath;
+        checkbox.dataset.displayName = displayName;
+        
+        const span = document.createElement('span');
+        span.textContent = displayName;
+        span.className = 'permissions-checkbox-label';
+        
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        checkboxList.appendChild(label);
+    });
+    
+    // Add search functionality (remove old listener first to avoid duplicates)
+    const searchInput = document.getElementById('filter-permissions-search');
+    if (searchInput) {
+        // Clone the input to remove all event listeners
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        
+        newSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
+                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
+                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
+                item.style.display = matches ? '' : 'none';
+            });
+        });
+    }
+    
+    // Create a single debounced function instance to reuse
+    const debouncedApplyFilters = debounce(applyFilters, 250);
+    
+    // Add checkbox change listeners
+    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            updatePermissionsTriggerText();
+            debouncedApplyFilters();
+        });
+    });
+    
+    // Setup dropdown toggle (only if not already set up)
+    setupPermissionsDropdown();
+    
+    // Update trigger text
+    updatePermissionsTriggerText();
+}
+
+// Store original permissions for restoration
+let originalPermissionsData = null;
+
+function storeOriginalPermissions() {
+    if (originalPermissionsData) return; // Already stored
+    
+    const checkboxList = document.getElementById('permissions-checkbox-list');
+    if (!checkboxList) return;
+    
+    originalPermissionsData = {
+        permissions: new Map(),
+        hasNoPermissions: false
+    };
+    
+    document.querySelectorAll('.endpoint-card').forEach(card => {
+        let permissionsMap = null;
+        if (card.dataset.permissionsNames) {
+            try {
+                permissionsMap = JSON.parse(card.dataset.permissionsNames);
+            } catch (e) {
+                console.debug('Failed to parse permissions_names', e);
+            }
+        }
+        
+        const perms = card.dataset.permissions;
+        if (perms && perms.trim() !== '') {
+            perms.split(' ').forEach(perm => {
+                if (perm) {
+                    let displayName = null;
+                    if (Array.isArray(permissionsMap)) {
+                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
+                        if (permData && permData.display_name) {
+                            displayName = permData.display_name;
+                        }
+                    }
+                    if (!displayName) {
+                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+                    }
+                    originalPermissionsData.permissions.set(perm, displayName);
+                }
+            });
+        } else {
+            originalPermissionsData.hasNoPermissions = true;
+        }
+    });
+}
+
+function updatePermissionsFilterOptions() {
+    const checkboxList = document.getElementById('permissions-checkbox-list');
+    if (!checkboxList) return;
+    
+    // Get currently selected permissions
+    const selectedPermissions = new Set();
+    checkboxList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        selectedPermissions.add(cb.value.toLowerCase());
+    });
+    
+    const permissions = new Map(); // Use Map to store both full path and display name
+    
+    // Only collect permissions from visible cards
+    document.querySelectorAll('.endpoint-card:not(.hidden)').forEach(card => {
         // Get display names from data attribute (calculated in _flatten_permissions)
         let permissionsMap = null;
         if (card.dataset.permissionsNames) {
@@ -135,9 +369,18 @@ function populatePermissionsFilterOptions() {
                         displayName = perm.includes('.') ? perm.split('.').pop() : perm;
                     }
                     
-                    permissions.set(perm, displayName);
+                    permissions.set(perm.toLowerCase(), displayName);
                 }
             });
+        }
+    });
+
+    // Check if we need to show "No Permissions" option
+    let hasNoPermissions = false;
+    document.querySelectorAll('.endpoint-card:not(.hidden)').forEach(card => {
+        const perms = card.dataset.permissions;
+        if (!perms || perms.trim() === '') {
+            hasNoPermissions = true;
         }
     });
 
@@ -149,23 +392,28 @@ function populatePermissionsFilterOptions() {
     // Clear existing checkboxes
     checkboxList.innerHTML = '';
 
-    // Add "No Permissions" option first
-    const noPermsLabel = document.createElement('label');
-    noPermsLabel.className = 'permissions-checkbox-item';
-    
-    const noPermsCheckbox = document.createElement('input');
-    noPermsCheckbox.type = 'checkbox';
-    noPermsCheckbox.value = '__no_permissions__';
-    noPermsCheckbox.dataset.fullPath = '__no_permissions__';
-    noPermsCheckbox.dataset.displayName = 'No Permissions';
-    
-    const noPermsSpan = document.createElement('span');
-    noPermsSpan.textContent = 'No Permissions';
-    noPermsSpan.className = 'permissions-checkbox-label';
-    
-    noPermsLabel.appendChild(noPermsCheckbox);
-    noPermsLabel.appendChild(noPermsSpan);
-    checkboxList.appendChild(noPermsLabel);
+    // Add "No Permissions" option first if there are visible cards with no permissions
+    if (hasNoPermissions) {
+        const noPermsLabel = document.createElement('label');
+        noPermsLabel.className = 'permissions-checkbox-item';
+        
+        const noPermsCheckbox = document.createElement('input');
+        noPermsCheckbox.type = 'checkbox';
+        noPermsCheckbox.value = '__no_permissions__';
+        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
+        noPermsCheckbox.dataset.displayName = 'No Permissions';
+        if (selectedPermissions.has('__no_permissions__')) {
+            noPermsCheckbox.checked = true;
+        }
+        
+        const noPermsSpan = document.createElement('span');
+        noPermsSpan.textContent = 'No Permissions';
+        noPermsSpan.className = 'permissions-checkbox-label';
+        
+        noPermsLabel.appendChild(noPermsCheckbox);
+        noPermsLabel.appendChild(noPermsSpan);
+        checkboxList.appendChild(noPermsLabel);
+    }
 
     // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
@@ -177,6 +425,10 @@ function populatePermissionsFilterOptions() {
         checkbox.value = fullPath;
         checkbox.dataset.fullPath = fullPath;
         checkbox.dataset.displayName = displayName;
+        // Restore checked state if it was previously selected
+        if (selectedPermissions.has(fullPath)) {
+            checkbox.checked = true;
+        }
         
         const span = document.createElement('span');
         span.textContent = displayName;
@@ -187,25 +439,8 @@ function populatePermissionsFilterOptions() {
         checkboxList.appendChild(label);
     });
     
-    // Add search functionality
-    const searchInput = document.getElementById('filter-permissions-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
-                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
-                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
-                item.style.display = matches ? '' : 'none';
-            });
-        });
-    }
-    
-    // Create a single debounced function instance to reuse
+    // Re-attach event listeners
     const debouncedApplyFilters = debounce(applyFilters, 250);
-    
-    // Add checkbox change listeners
     checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             updatePermissionsTriggerText();
@@ -213,18 +448,21 @@ function populatePermissionsFilterOptions() {
         });
     });
     
-    // Setup dropdown toggle
-    setupPermissionsDropdown();
-    
     // Update trigger text
     updatePermissionsTriggerText();
 }
+
+let permissionsDropdownSetup = false;
 
 function setupPermissionsDropdown() {
     const trigger = document.getElementById('permissions-dropdown-trigger');
     const dropdown = document.getElementById('permissions-dropdown');
     
     if (!trigger || !dropdown) return;
+    
+    // Only setup once to avoid duplicate event listeners
+    if (permissionsDropdownSetup) return;
+    permissionsDropdownSetup = true;
     
     // Toggle dropdown on trigger click
     trigger.addEventListener('click', (e) => {
@@ -304,7 +542,62 @@ function matchesFilters(card) {
     return true;
 }
 
+function updateFilterOptions() {
+    // Update filter options based on currently visible cards
+    updateAppFilterOptions();
+    updatePermissionsFilterOptions();
+    updateMethodFilterOptions();
+}
+
+function updateMethodFilterOptions() {
+    const select = document.getElementById('filter-method');
+    if (!select) return;
+    
+    const currentValue = select.value;
+    const methods = new Set();
+
+    // Only collect methods from visible cards
+    document.querySelectorAll('.endpoint-card:not(.hidden)').forEach(card => {
+        const method = card.dataset.method;
+        if (method) methods.add(method);
+    });
+
+    // Get all existing options
+    const allOption = select.querySelector('option[value=""]');
+    const existingOptions = Array.from(select.options).map(opt => ({
+        value: opt.value,
+        text: opt.textContent
+    }));
+
+    // Hide/show options based on availability
+    Array.from(select.options).forEach(opt => {
+        if (opt.value === '') {
+            // Always show "All" option
+            opt.style.display = '';
+        } else {
+            // Show option only if it exists in visible cards
+            opt.style.display = methods.has(opt.value) ? '' : 'none';
+        }
+    });
+
+    // If current selection is no longer available, reset to "All"
+    if (currentValue && !methods.has(currentValue)) {
+        select.value = '';
+        currentFilters.method = '';
+    }
+}
+
 function clearFilters() {
+    // First, ensure all cards are visible
+    document.querySelectorAll('.endpoint-card').forEach(card => {
+        card.classList.remove('hidden');
+    });
+    
+    // Show all app sections
+    document.querySelectorAll('.app-section').forEach(app => {
+        app.style.display = '';
+    });
+    
     document.querySelectorAll('.filter-input, .filter-select').forEach(el => {
         if (el.multiple) {
             // Clear multi-select
@@ -317,7 +610,15 @@ function clearFilters() {
         }
     });
     
-    // Clear permissions checkboxes
+    // Show all method options when clearing
+    const methodSelect = document.getElementById('filter-method');
+    if (methodSelect) {
+        Array.from(methodSelect.options).forEach(opt => {
+            opt.style.display = '';
+        });
+    }
+    
+    // Clear permissions checkboxes (but don't remove them yet)
     document.querySelectorAll('#permissions-checkbox-list input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
@@ -338,8 +639,113 @@ function clearFilters() {
         method: '', path: '', models: '', auth: '', roles: '', contentType: '',
         params: '', schema: '', pagination: '', tags: '', app: '', ordering: '', search: '', permissions: ''
     };
-    applyFilters();
+    
+    // Update URL params
     updateURLParams(currentFilters);
+    
+    // Update filter result stats
+    const cards = document.querySelectorAll('.endpoint-card');
+    document.querySelector('.filter-results').textContent =
+        `Showing ${cards.length} of ${cards.length} endpoints`;
+    
+    // Hide empty state
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) {
+        emptyState.style.display = 'none';
+    }
+    
+    // Restore all filter options after clearing - this will show all options from all cards
+    populateAppFilterOptions();
+    
+    // Use stored original permissions if available, otherwise populate from cards
+    if (originalPermissionsData) {
+        restorePermissionsFromStoredData();
+    } else {
+        populatePermissionsFilterOptions();
+    }
+}
+
+function restorePermissionsFromStoredData() {
+    const checkboxList = document.getElementById('permissions-checkbox-list');
+    if (!checkboxList || !originalPermissionsData) return;
+    
+    // Sort by display name
+    const sortedPerms = Array.from(originalPermissionsData.permissions.entries()).sort((a, b) => 
+        a[1].localeCompare(b[1])
+    );
+    
+    // Clear existing checkboxes
+    checkboxList.innerHTML = '';
+    
+    // Add "No Permissions" option if needed
+    if (originalPermissionsData.hasNoPermissions) {
+        const noPermsLabel = document.createElement('label');
+        noPermsLabel.className = 'permissions-checkbox-item';
+        
+        const noPermsCheckbox = document.createElement('input');
+        noPermsCheckbox.type = 'checkbox';
+        noPermsCheckbox.value = '__no_permissions__';
+        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
+        noPermsCheckbox.dataset.displayName = 'No Permissions';
+        
+        const noPermsSpan = document.createElement('span');
+        noPermsSpan.textContent = 'No Permissions';
+        noPermsSpan.className = 'permissions-checkbox-label';
+        
+        noPermsLabel.appendChild(noPermsCheckbox);
+        noPermsLabel.appendChild(noPermsSpan);
+        checkboxList.appendChild(noPermsLabel);
+    }
+    
+    // Add checkboxes
+    sortedPerms.forEach(([fullPath, displayName]) => {
+        const label = document.createElement('label');
+        label.className = 'permissions-checkbox-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = fullPath;
+        checkbox.dataset.fullPath = fullPath;
+        checkbox.dataset.displayName = displayName;
+        
+        const span = document.createElement('span');
+        span.textContent = displayName;
+        span.className = 'permissions-checkbox-label';
+        
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        checkboxList.appendChild(label);
+    });
+    
+    // Re-attach search functionality
+    const searchInput = document.getElementById('filter-permissions-search');
+    if (searchInput) {
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        
+        newSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
+                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
+                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
+                item.style.display = matches ? '' : 'none';
+            });
+        });
+    }
+    
+    // Re-attach checkbox change listeners
+    const debouncedApplyFilters = debounce(applyFilters, 250);
+    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            updatePermissionsTriggerText();
+            debouncedApplyFilters();
+        });
+    });
+    
+    // Update trigger text
+    updatePermissionsTriggerText();
 }
 
 
@@ -370,6 +776,9 @@ function loadURLParams() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Store original permissions data for restoration
+    storeOriginalPermissions();
+    
     populateAppFilterOptions();
     populatePermissionsFilterOptions();
     loadURLParams();
