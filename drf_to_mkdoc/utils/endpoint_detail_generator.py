@@ -16,10 +16,7 @@ from drf_to_mkdoc.utils.commons.operation_utils import (
     extract_app_from_operation_id,
     extract_viewset_name_from_operation_id,
 )
-from drf_to_mkdoc.utils.commons.path_utils import (
-    create_safe_filename,
-    get_permission_url,
-)
+from drf_to_mkdoc.utils.commons.path_utils import create_safe_filename
 from drf_to_mkdoc.utils.commons.auth_utils import get_auth_config
 from drf_to_mkdoc.utils.commons.schema_utils import (
     get_custom_schema,
@@ -767,7 +764,7 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
         endpoint_data: Endpoint data from OpenAPI schema
 
     Returns:
-        List of permission dictionaries with class_path, display_name, description, url
+        List of permission dictionaries with class_path, display_name, description
     """
     permissions = []
     metadata = endpoint_data.get("x-metadata", {})
@@ -792,18 +789,14 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
         if not class_path:
             continue
 
-        # Get descriptions (short and long)
+        # Get short description only
         descriptions = get_permission_description(class_path)
-        short_description = descriptions.get("short") or descriptions.get("long") or ""
-
-        # Generate URL
-        url = get_permission_url(class_path)
+        short_description = descriptions.get("short") or ""
 
         permissions.append({
             "class_path": class_path,
             "display_name": display_name,
-            "description": short_description,  # Use short description for endpoint detail page (empty if none)
-            "url": url,
+            "description": short_description,
         })
 
     return permissions

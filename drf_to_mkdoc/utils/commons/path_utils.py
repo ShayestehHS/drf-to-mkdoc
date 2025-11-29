@@ -115,11 +115,11 @@ def get_permission_url(permission_class_path: str, relative_from_endpoint: bool 
     
     Args:
         permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
-        relative_from_endpoint: If True, returns relative path from endpoint pages (with ../../../ prefix).
+        relative_from_endpoint: If True, returns relative path from endpoint pages (with ../../../../ prefix).
                                 If False, returns base path without prefix (for file paths).
     
     Returns:
-        URL path (e.g., "../../../permissions/rest_framework/permissions/IsAuthenticated/" or
+        URL path (e.g., "../../../../permissions/rest_framework/permissions/IsAuthenticated/" or
                  "permissions/rest_framework/permissions/IsAuthenticated/")
     """
     # Replace dots with slashes for URL path, but keep the full path structure
@@ -133,8 +133,9 @@ def get_permission_url(permission_class_path: str, relative_from_endpoint: bool 
     #   ../ goes up to {viewset}/
     #   ../../ goes up to {app}/
     #   ../../../ goes up to endpoints/
-    #   ../../../permissions/ reaches the permissions directory at docs root
-    # This hardcoded depth assumes the fixed structure: endpoints/{app}/{viewset}/{file}.md
+    #   ../../../../ goes up to docs root
+    #   ../../../../permissions/ reaches the permissions directory at docs root
+    # This matches the pattern used in er_diagrams/app.html: ../../models/... (from 1 level deep)
     if relative_from_endpoint:
-        return f"../../../{base_path}"
+        return f"../../../../{base_path}"
     return base_path
