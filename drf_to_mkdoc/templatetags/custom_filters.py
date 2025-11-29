@@ -202,3 +202,48 @@ def format_example(value):
         return formatted
     # For strings and other types, return as string
     return str(value)
+
+
+@register.filter
+def format_description(value):
+    """
+    Format description text for MkDocs Material rendering.
+    
+    Clients write markdown directly in their JSON descriptions.
+    This filter normalizes various encoding issues that can occur during JSON processing.
+    
+    Handles:
+    - HTML entities (e.g., &quot; → ")
+    - Double-escaped newlines (e.g., \\n → \n) - only if needed
+    - Escaped HTML entities (e.g., \&quot; → ")
+    
+    Example JSON:
+    {
+      "description": "This endpoint creates a user.\\n\\n- Requires authentication\\n- Returns user ID\\n\\n**Important**: Email must be unique."
+    }
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    
+    formatted = value
+    
+    # Step 1: Remove backslashes before HTML entities
+    # Handles: \&quot; → &quot;, \&#34; → &#34;, \&#x27; → &#x27;
+    formatted = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', formatted)  # Named entities
+    formatted = re.sub(r'\\(&#\d+;)', r'\1', formatted)        # Numeric entities
+    formatted = re.sub(r'\\(&#x[0-9a-fA-F]+;)', r'\1', formatted)  # Hex entities
+    
+    # Step 2: Unescape HTML entities
+    # Handles: &quot; → ", &amp; → &, &lt; → <, etc.
+    formatted = html.unescape(formatted)
+    
+    # Step 3: Convert double-escaped newlines ONLY if they exist
+    # Note: If json.loads() already converted these, this won't match anything
+    # This is a safety net for edge cases where strings aren't properly loaded
+    if '\\n' in formatted:
+        formatted = formatted.replace('\\n', '\n')
+    if '\\t' in formatted:
+        formatted = formatted.replace('\\t', '\t')
+    
+    # Clean up excessive whitespace at start/end
+    return formatted.strip()

@@ -26,7 +26,7 @@
 {% include "endpoints/detail/permissions.html" %}
 
 {% if description %}
-{{ description|safe }}
+{{ description|format_description }}
 {% endif %}
 
 {% include "endpoints/detail/path_parameters.html" %}
