@@ -143,6 +143,12 @@ const ModalManager = {
     openResponseModal: function() {
         const modal = document.getElementById('responseModal');
         if (modal) {
+            // Show the response section container if it exists
+            const responseSection = modal.closest('.response-section');
+            if (responseSection) {
+                responseSection.hidden = false;
+            }
+            
             modal.classList.add('show');
             modal.style.display = 'flex';
             
@@ -167,6 +173,13 @@ const ModalManager = {
         if (modal) {
             modal.classList.remove('show');
             modal.style.display = 'none';
+            
+            // Also hide the response section container if it exists
+            // The response modal is nested inside .response-section in the try-out modal
+            const responseSection = document.querySelector('.response-section');
+            if (responseSection) {
+                responseSection.hidden = true;
+            }
         }
     },
 
