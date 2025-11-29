@@ -7,7 +7,7 @@
     aria-labelledby="responseTitle"
     aria-describedby="responseDescription"
 >
-    <div class="modal-overlay" onclick="TryOutSidebar.closeResponseModal()"></div>
+    <div class="modal-overlay" onclick="event.stopPropagation(); event.stopImmediatePropagation(); TryOutSidebar.closeResponseModal(event)"></div>
     <div class="modal-content">
         <!-- Modal Header -->
         <div class="modal-header">
@@ -34,7 +34,7 @@
                     <button 
                         class="modal-close" 
                         aria-label="Close response modal" 
-                        onclick="TryOutSidebar.closeResponseModal()"
+                        onclick="TryOutSidebar.closeResponseModal(event)"
                     >
                         <span class="icon">✕</span>
                     </button>
