@@ -172,37 +172,42 @@ table tr:hover {
 
 .example-tabs {
     display: flex;
-    gap: 0.5rem;
-    border-bottom: 2px solid var(--md-default-fg-color--lightest);
-    margin-bottom: 1rem;
     flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 2px solid var(--md-default-fg-color--lightest, #e5e7eb);
+    padding-bottom: 0;
+    margin-bottom: 24px;
 }
 
 .example-tab {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--md-default-fg-color--lighter);
+    padding: 12px 20px;
+    border: 1px solid var(--md-default-fg-color--lightest, #d1d5db);
+    border-bottom: none;
+    background: var(--md-code-bg-color, #f9fafb);
+    color: var(--md-default-fg-color, #0f172a);
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
     transition: all 0.2s ease;
-    margin-bottom: -2px;
-    white-space: nowrap;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap; /* Prevents wrapping */
+    border-radius: 6px 6px 0 0;
+    position: relative;
+    bottom: -2px; /* Aligns with container border */
 }
 
 .example-tab:hover {
-    color: var(--md-primary-fg-color);
-    background: var(--md-default-fg-color--lightest);
+    background: var(--md-default-fg-color--lightest, #f3f4f6);
+    border-color: var(--md-default-fg-color--light, #9ca3af);
+    color: var(--md-default-fg-color, #0f172a);
 }
 
 .example-tab.active {
-    color: var(--md-primary-fg-color);
-    border-bottom-color: var(--md-primary-fg-color);
+    background: var(--md-default-bg-color, #ffffff);
+    border-color: var(--accent-primary, #3b82f6);
+    border-bottom: 2px solid var(--md-default-bg-color, #ffffff); /* Covers container border */
+    color: var(--accent-primary, #3b82f6);
     font-weight: 600;
+    z-index: 1;
 }
 
 .example-tab-content {
@@ -215,10 +220,38 @@ table tr:hover {
 }
 
 .example-description {
-    color: var(--md-default-fg-color--lighter);
+    color: var(--md-default-fg-color--light, var(--text-secondary));
     font-size: 0.9rem;
     margin-bottom: 0.75rem;
     line-height: 1.5;
+}
+
+/* Dark mode adjustments for example tabs */
+[data-md-color-scheme="slate"] .example-tabs {
+    border-bottom-color: var(--md-default-fg-color--lightest, #404040);
+}
+
+[data-md-color-scheme="slate"] .example-tab {
+    background: var(--md-code-bg-color, #1a1a1a);
+    border-color: var(--md-default-fg-color--lightest, #404040);
+    color: var(--md-default-fg-color, #ffffff);
+}
+
+[data-md-color-scheme="slate"] .example-tab:hover {
+    background: var(--md-default-fg-color--lightest, #2d2d2d);
+    border-color: var(--md-default-fg-color--light, #555555);
+    color: var(--md-default-fg-color, #ffffff);
+}
+
+[data-md-color-scheme="slate"] .example-tab.active {
+    background: var(--md-default-bg-color, #1a1a1a);
+    border-color: var(--accent-primary, #60a5fa);
+    border-bottom-color: var(--md-default-bg-color, #1a1a1a);
+    color: var(--accent-primary, #60a5fa);
+}
+
+[data-md-color-scheme="slate"] .example-description {
+    color: var(--md-default-fg-color--light, #cccccc);
 }
 
 @keyframes fadeInExample {
