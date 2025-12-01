@@ -11,34 +11,14 @@
     >
         <div class="fab-content">
             <span class="fab-icon">🚀</span>
+            <span class="fab-text">try-it-out</span>
         </div>
-        <div class="ripple-container"></div>
-        <div class="pulse-ring"></div>
     </button>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Ripple effect
     const fab = document.querySelector('.try-out-fab');
-    
-    fab.addEventListener('click', function(e) {
-        const ripple = document.createElement('div');
-        ripple.className = 'ripple';
-        
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        
-        ripple.style.width = ripple.style.height = `${size}px`;
-        ripple.style.left = `${x}px`;
-        ripple.style.top = `${y}px`;
-        
-        this.querySelector('.ripple-container').appendChild(ripple);
-        
-        setTimeout(() => ripple.remove(), 600);
-    });
 
     // Keyboard shortcut
     document.addEventListener('keydown', function(e) {
@@ -56,12 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let hintTimeout;
     fab.addEventListener('mouseenter', function() {
         clearTimeout(hintTimeout);
-        document.querySelector('.shortcut-hint').classList.add('visible');
+        document.querySelector('.shortcut-hint')?.classList.add('visible');
     });
 
     fab.addEventListener('mouseleave', function() {
         hintTimeout = setTimeout(() => {
-            document.querySelector('.shortcut-hint').classList.remove('visible');
+            document.querySelector('.shortcut-hint')?.classList.remove('visible');
         }, 500);
     });
 });

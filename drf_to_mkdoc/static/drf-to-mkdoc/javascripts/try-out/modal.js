@@ -12,6 +12,12 @@ const ModalManager = {
         // Trap focus within modal when open
         modal.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                // Check if response modal is open first
+                const responseModal = document.getElementById('responseModal');
+                if (responseModal && responseModal.classList.contains('show')) {
+                    // Don't close tryOutModal if response modal is open
+                    return;
+                }
                 this.closeTryOut();
             }
             
@@ -38,17 +44,38 @@ const ModalManager = {
     },
 
     setupEventListeners: function() {
-        // Close modal when clicking overlay
-        const overlay = document.querySelector('.modal-overlay');
-        if (overlay) {
-            overlay.addEventListener('click', () => this.closeTryOut());
-        }
+        // Close modal when clicking overlay - only for tryOutModal
+        const modal = document.getElementById('tryOutModal');
+        if (modal) {
+            const overlay = modal.querySelector('.modal-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', (e) => {
+                    // Don't close if clicking inside the response modal
+                    const responseModal = document.getElementById('responseModal');
+                    if (responseModal && responseModal.contains(e.target)) {
+                        return;
+                    }
+                    // Only close if clicking the overlay itself, not child elements
+                    if (e.target === overlay) {
+                        this.closeTryOut();
+                    }
+                });
+            }
 
-        // Close modal with close button
-        const closeButtons = document.querySelectorAll('.modal-close');
-        closeButtons.forEach(btn => {
-            btn.addEventListener('click', () => this.closeTryOut());
-        });
+            // Close modal with close button - only buttons inside tryOutModal (not response modal)
+            const closeButtons = modal.querySelectorAll('.modal-close');
+            closeButtons.forEach(btn => {
+                // Skip buttons that are inside the response modal
+                const responseModal = document.getElementById('responseModal');
+                if (responseModal && responseModal.contains(btn)) {
+                    return;
+                }
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent event bubbling
+                    this.closeTryOut();
+                });
+            });
+        }
     },
     openTryOut: function() {
         const modal = document.getElementById('tryOutModal');
@@ -78,6 +105,12 @@ const ModalManager = {
     },
 
     closeTryOut: function() {
+        // Don't close if response modal is open
+        const responseModal = document.getElementById('responseModal');
+        if (responseModal && responseModal.classList.contains('show')) {
+            return;
+        }
+        
         const modal = document.getElementById('tryOutModal');
         if (modal) {
             modal.classList.remove('show');
@@ -85,7 +118,7 @@ const ModalManager = {
             document.body.classList.remove('modal-open');
             
             // Hide response section
-            const responseSection = document.querySelector('.response-section');
+            const responseSection = modal.querySelector('.response-section');
             if (responseSection) {
                 responseSection.hidden = true;
             }
@@ -110,6 +143,12 @@ const ModalManager = {
     openResponseModal: function() {
         const modal = document.getElementById('responseModal');
         if (modal) {
+            // Show the response section container if it exists
+            const responseSection = modal.closest('.response-section');
+            if (responseSection) {
+                responseSection.hidden = false;
+            }
+            
             modal.classList.add('show');
             modal.style.display = 'flex';
             
@@ -122,11 +161,22 @@ const ModalManager = {
         }
     },
 
-    closeResponseModal: function() {
+    closeResponseModal: function(event) {
+        // Prevent event from bubbling to tryOutModal handlers
+        if (event) {
+            event.stopPropagation();
+        }
         const modal = document.getElementById('responseModal');
         if (modal) {
             modal.classList.remove('show');
             modal.style.display = 'none';
+            
+            // Also hide the response section container if it exists
+            // The response modal is nested inside .response-section in the try-out modal
+            const responseSection = modal.closest('.response-section');
+            if (responseSection) {
+                responseSection.hidden = true;
+            }
         }
     },
 
@@ -338,15 +388,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global keyboard navigation
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        // Only close if not already handled by modal's keyboard trap
-        const modal = document.getElementById('tryOutModal');
         const responseModal = document.getElementById('responseModal');
+        const tryOutModal = document.getElementById('tryOutModal');
         
-        if (modal && !modal.contains(document.activeElement)) {
-            ModalManager.closeTryOut();
-        }
-        if (responseModal && !responseModal.contains(document.activeElement)) {
+        // If response modal is open, close it first (it's on top)
+        if (responseModal && responseModal.classList.contains('show')) {
             ModalManager.closeResponseModal();
+            e.stopPropagation(); // Prevent closing tryOutModal
+        } else if (tryOutModal && tryOutModal.classList.contains('show')) {
+            // Only close tryOutModal if response modal is not open
+            ModalManager.closeTryOut();
         }
     }
 });
@@ -356,8 +407,12 @@ window.ModalManager = ModalManager;
 
 // Create TryOutSidebar alias for backward compatibility
 window.TryOutSidebar = {
-    closeResponseModal: function() {
-        ModalManager.closeResponseModal();
+    closeResponseModal: function(event) {
+        ModalManager.closeResponseModal(event);
+    },
+    
+    closeTryOut: function() {
+        ModalManager.closeTryOut();
     },
     
     addQueryParam: function(paramName) {

@@ -3,9 +3,9 @@
     position: fixed;
     bottom: var(--try-out-spacing-xl);
     right: var(--try-out-spacing-xl);
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
+    min-width: auto;
+    height: 3rem;
+    border-radius: 1.5rem;
     background-color: var(--try-out-primary);
     color: white;
     display: flex;
@@ -13,10 +13,20 @@
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 2px 8px var(--try-out-shadow-strong);
-    transition: var(--try-out-transition);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: var(--try-out-z-fab);
     border: none;
-    font-size: var(--try-out-font-lg);
+    font-size: var(--try-out-font-base);
+    padding: 0 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.fab-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .try-out-fab:hover {
@@ -28,8 +38,61 @@
     transform: scale(0.95);
 }
 
-.try-out-fab span {
-    font-size: 1.2rem;
+.try-out-fab:focus {
+    outline: 2px solid var(--try-out-primary);
+    outline-offset: 2px;
+}
+
+.try-out-fab:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.try-out-fab .fab-icon {
+    font-size: 1.3rem;
+    display: inline-block;
+    animation: rocket-float 2s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+.try-out-fab:hover .fab-icon {
+    animation: rocket-launch 0.6s ease-in-out;
+}
+
+.try-out-fab .fab-text {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+@keyframes rocket-float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-4px) rotate(-5deg);
+    }
+}
+
+@keyframes rocket-launch {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    50% {
+        transform: translateY(-8px) rotate(-15deg) scale(1.2);
+    }
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .try-out-fab .fab-icon {
+        animation: none;
+    }
+    
+    .try-out-fab:hover .fab-icon {
+        animation: none;
+    }
 }
 
 /* Mobile adjustments */
@@ -37,11 +100,15 @@
     .try-out-fab {
         bottom: var(--try-out-spacing-lg);
         right: var(--try-out-spacing-lg);
-        width: 2.75rem;
         height: 2.75rem;
+        padding: 0 0.875rem;
     }
     
-    .try-out-fab span {
-        font-size: 1.1rem;
+    .try-out-fab .fab-icon {
+        font-size: 1.2rem;
+    }
+    
+    .try-out-fab .fab-text {
+        font-size: 0.9rem;
     }
 }

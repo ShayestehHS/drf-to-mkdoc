@@ -304,36 +304,33 @@ def get_references() -> dict[str, Any]:
 
 def get_permission_description(permission_class_path: str) -> dict[str, str | None]:
     """
-    Get permission descriptions (short and long) with priority: schema JSON > docstring > None.
+    Get permission short description with priority: schema JSON > docstring > None.
     
     Args:
         permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
     
     Returns:
-        Dictionary with 'short' and 'long' keys, each containing description string or None
+        Dictionary with 'short' key containing description string or None
     """
-    result = {"short": None, "long": None}
+    result = {"short": None}
     
     # Priority 1: Check references file
     references = get_references()
     if permission_class_path in references:
         permission_data = references[permission_class_path]
         if isinstance(permission_data, dict):
-            # Get long description
-            long_desc = permission_data.get("description")
-            if long_desc:
-                result["long"] = long_desc
-            
-            # Get short description (custom or auto-truncated)
+            # Get short description (custom or from description field)
             short_desc = permission_data.get("short_description")
             if short_desc:
                 result["short"] = short_desc
-            elif long_desc:
-                # Auto-truncate long description if short not provided
-                result["short"] = _truncate_description(long_desc)
+            else:
+                # Use description field as short description if short_description not provided
+                desc = permission_data.get("description")
+                if desc:
+                    result["short"] = _truncate_description(desc)
     
     # Priority 2: Extract docstring from permission class
-    if not result["long"]:
+    if not result["short"]:
         try:
             # Parse module and class name
             module_path, class_name = permission_class_path.rsplit(".", 1)
@@ -367,7 +364,6 @@ def get_permission_description(permission_class_path: str) -> dict[str, str | No
                 docstring = docstring.strip()
                 # Only use if it's not empty and has meaningful content
                 if docstring and len(docstring) > 10:  # Minimum meaningful length
-                    result["long"] = docstring
                     # Auto-truncate for short version
                     result["short"] = _truncate_description(docstring)
         except (ImportError, AttributeError, ValueError) as e:

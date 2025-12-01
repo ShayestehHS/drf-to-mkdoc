@@ -7,7 +7,7 @@
     aria-labelledby="responseTitle"
     aria-describedby="responseDescription"
 >
-    <div class="modal-overlay" onclick="TryOutSidebar.closeResponseModal()"></div>
+    <div class="modal-overlay" onclick="event.stopPropagation(); event.stopImmediatePropagation(); TryOutSidebar.closeResponseModal(event)"></div>
     <div class="modal-content">
         <!-- Modal Header -->
         <div class="modal-header">
@@ -17,7 +17,7 @@
                 <div class="header-actions">
                     <button 
                         class="action-btn" 
-                        onclick="copyResponse()" 
+                        onclick="ResponseModalManager.copyResponse()" 
                         aria-label="Copy response"
                         data-tooltip="Copy to clipboard"
                     >
@@ -25,7 +25,7 @@
                     </button>
                     <button 
                         class="action-btn" 
-                        onclick="downloadResponse()" 
+                        onclick="ResponseModalManager.downloadResponse()" 
                         aria-label="Download response"
                         data-tooltip="Download as JSON"
                     >
@@ -34,7 +34,7 @@
                     <button 
                         class="modal-close" 
                         aria-label="Close response modal" 
-                        onclick="TryOutSidebar.closeResponseModal()"
+                        onclick="TryOutSidebar.closeResponseModal(event)"
                     >
                         <span class="icon">✕</span>
                     </button>
@@ -97,21 +97,21 @@
                     <div class="toolbar-group">
                         <button 
                             class="tool-btn" 
-                            onclick="formatResponse()"
+                            onclick="ResponseModalManager.formatResponse()"
                             data-tooltip="Format JSON"
                         >
                             <span class="icon">🔧</span>
                         </button>
                         <button 
                             class="tool-btn" 
-                            onclick="collapseAll()"
+                            onclick="ResponseModalManager.collapseAll()"
                             data-tooltip="Collapse all"
                         >
                             <span class="icon">📦</span>
                         </button>
                         <button 
                             class="tool-btn" 
-                            onclick="expandAll()"
+                            onclick="ResponseModalManager.expandAll()"
                             data-tooltip="Expand all"
                         >
                             <span class="icon">📂</span>
@@ -135,15 +135,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    // Update event handlers to use the ResponseModalManager
-    document.addEventListener('DOMContentLoaded', function() {
-        // Update button click handlers
-        document.querySelector('button[onclick="copyResponse()"]').setAttribute('onclick', 'ResponseModalManager.copyResponse()');
-        document.querySelector('button[onclick="downloadResponse()"]').setAttribute('onclick', 'ResponseModalManager.downloadResponse()');
-        document.querySelector('button[onclick="formatResponse()"]').setAttribute('onclick', 'ResponseModalManager.formatResponse()');
-        document.querySelector('button[onclick="collapseAll()"]').setAttribute('onclick', 'ResponseModalManager.collapseAll()');
-        document.querySelector('button[onclick="expandAll()"]').setAttribute('onclick', 'ResponseModalManager.expandAll()');
-    });
-</script>

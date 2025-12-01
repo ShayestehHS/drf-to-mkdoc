@@ -78,11 +78,22 @@
     padding-right: 40px;
 }
 
+/* Dark mode dropdown arrow */
+[data-md-color-scheme="slate"] .filter-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cccccc' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
 .filter-input:focus,
 .filter-select:focus {
     outline: none;
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Dark mode focus shadow */
+[data-md-color-scheme="slate"] .filter-input:focus,
+[data-md-color-scheme="slate"] .filter-select:focus {
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
 .filter-input:hover,
@@ -139,6 +150,11 @@
     border-color: var(--accent-primary);
     color: var(--text-primary);
     background: rgba(59, 130, 246, 0.05);
+}
+
+/* Dark mode clear button hover */
+[data-md-color-scheme="slate"] .filter-clear:hover {
+    background: rgba(96, 165, 250, 0.1);
 }
 
 .filter-settings:active,
@@ -244,6 +260,11 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* Dark mode permissions trigger open state */
+[data-md-color-scheme="slate"] .permissions-dropdown-trigger.open {
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
 .permissions-trigger-text {
     flex: 1;
     text-align: left;
@@ -280,6 +301,11 @@
     max-height: 400px;
     overflow: hidden;
     flex-direction: column;
+}
+
+/* Dark mode dropdown shadow */
+[data-md-color-scheme="slate"] .permissions-dropdown {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .permissions-dropdown.open {
@@ -319,6 +345,11 @@
     background-color: rgba(59, 130, 246, 0.08);
 }
 
+/* Dark mode checkbox item hover */
+[data-md-color-scheme="slate"] .permissions-checkbox-item:hover {
+    background-color: rgba(96, 165, 250, 0.15);
+}
+
 .permissions-checkbox-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
@@ -355,4 +386,24 @@
 
 .permissions-checkbox-list::-webkit-scrollbar-thumb:hover {
     background: var(--accent-primary);
+}
+
+/* Dark mode scrollbar */
+[data-md-color-scheme="slate"] .permissions-checkbox-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-md-color-scheme="slate"] .permissions-checkbox-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+}
+
+[data-md-color-scheme="slate"] .permissions-checkbox-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+/* Dark mode filter sidebar - beautiful gradient background */
+[data-md-color-scheme="slate"] .filter-section,
+[data-md-color-scheme="slate"] .filter-sidebar {
+    background: linear-gradient(135deg, #2d3a4a, #1a1a1a);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }

@@ -3,7 +3,7 @@
 
 | Permission | Description |
 |------------|-------------|
-{% for perm in permissions %}| [{{ perm.display_name }}]({{ perm.url }}) | {% if perm.description %}{{ perm.description }}{% else %}-{% endif %} |
+{% for perm in permissions %}| `{{ perm.display_name }}` | {% if perm.description %}{{ perm.description }}{% else %}-{% endif %} |
 {% endfor %}
 
 {% endif %}
