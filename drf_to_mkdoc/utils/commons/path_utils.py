@@ -108,34 +108,3 @@ def camel_case_to_readable(name: str) -> str:
     result = ' '.join(word.capitalize() for word in result.split())
 
     return result.strip()
-
-def get_permission_url(permission_class_path: str, relative_from_endpoint: bool = True) -> str:
-    """
-    Generate URL path for permission detail page.
-    
-    Args:
-        permission_class_path: Full path to permission class (e.g., "rest_framework.permissions.IsAuthenticated")
-        relative_from_endpoint: If True, returns relative path from endpoint pages (with ../../../../ prefix).
-                                If False, returns base path without prefix (for file paths).
-    
-    Returns:
-        URL path (e.g., "../../../../permissions/rest_framework/permissions/IsAuthenticated/" or
-                 "permissions/rest_framework/permissions/IsAuthenticated/")
-    """
-    # Replace dots with slashes for URL path, but keep the full path structure
-    # This ensures unique URLs for each permission class and creates a directory structure
-    safe_path = permission_class_path.replace(".", "/")
-    base_path = f"permissions/{safe_path}/"
-    
-    # Endpoint pages are at endpoints/{app}/{viewset}/{file}.md (3 directory levels deep)
-    # Permission pages are at permissions/{path}/index.md (at docs root level)
-    # To go from endpoints/{app}/{viewset}/file.md to permissions/{path}/index.md:
-    #   ../ goes up to {viewset}/
-    #   ../../ goes up to {app}/
-    #   ../../../ goes up to endpoints/
-    #   ../../../../ goes up to docs root
-    #   ../../../../permissions/ reaches the permissions directory at docs root
-    # This matches the pattern used in er_diagrams/app.html: ../../models/... (from 1 level deep)
-    if relative_from_endpoint:
-        return f"../../../../{base_path}"
-    return base_path

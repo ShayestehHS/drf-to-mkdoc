@@ -36,12 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let hintTimeout;
     fab.addEventListener('mouseenter', function() {
         clearTimeout(hintTimeout);
-        document.querySelector('.shortcut-hint').classList.add('visible');
+        document.querySelector('.shortcut-hint')?.classList.add('visible');
     });
 
     fab.addEventListener('mouseleave', function() {
         hintTimeout = setTimeout(() => {
-            document.querySelector('.shortcut-hint').classList.remove('visible');
+            document.querySelector('.shortcut-hint')?.classList.remove('visible');
         }, 500);
     });
 });

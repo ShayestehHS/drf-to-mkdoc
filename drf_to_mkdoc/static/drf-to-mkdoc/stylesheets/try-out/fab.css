@@ -85,6 +85,16 @@
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .try-out-fab .fab-icon {
+        animation: none;
+    }
+    
+    .try-out-fab:hover .fab-icon {
+        animation: none;
+    }
+}
+
 /* Mobile adjustments */
 @media screen and (max-width: 768px) {
     .try-out-fab {

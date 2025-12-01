@@ -150,6 +150,43 @@ function updateAppFilterOptions() {
     }
 }
 
+// Helper function to build a permission checkbox element
+function buildPermissionCheckbox(fullPath, displayName, isChecked = false) {
+    const label = document.createElement('label');
+    label.className = 'permissions-checkbox-item';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = fullPath;
+    checkbox.dataset.fullPath = fullPath;
+    checkbox.dataset.displayName = displayName;
+    if (isChecked) checkbox.checked = true;
+    
+    const span = document.createElement('span');
+    span.textContent = displayName;
+    span.className = 'permissions-checkbox-label';
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    return label;
+}
+
+// Helper function to build "No Permissions" checkbox
+function buildNoPermissionsCheckbox(isChecked = false) {
+    return buildPermissionCheckbox('__no_permissions__', 'No Permissions', isChecked);
+}
+
+// Helper function to attach checkbox change listeners
+function attachPermissionCheckboxListeners(checkboxList) {
+    const debouncedApplyFilters = debounce(applyFilters, 250);
+    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            updatePermissionsTriggerText();
+            debouncedApplyFilters();
+        });
+    });
+}
+
 function populatePermissionsFilterOptions() {
     const checkboxList = document.getElementById('permissions-checkbox-list');
     if (!checkboxList) return;
@@ -205,52 +242,23 @@ function populatePermissionsFilterOptions() {
 
     // Add "No Permissions" option first if there are any cards with no permissions
     if (hasNoPermissions) {
-        const noPermsLabel = document.createElement('label');
-        noPermsLabel.className = 'permissions-checkbox-item';
-        
-        const noPermsCheckbox = document.createElement('input');
-        noPermsCheckbox.type = 'checkbox';
-        noPermsCheckbox.value = '__no_permissions__';
-        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
-        noPermsCheckbox.dataset.displayName = 'No Permissions';
-        
-        const noPermsSpan = document.createElement('span');
-        noPermsSpan.textContent = 'No Permissions';
-        noPermsSpan.className = 'permissions-checkbox-label';
-        
-        noPermsLabel.appendChild(noPermsCheckbox);
-        noPermsLabel.appendChild(noPermsSpan);
-        checkboxList.appendChild(noPermsLabel);
+        checkboxList.appendChild(buildNoPermissionsCheckbox());
     }
 
     // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
-        const label = document.createElement('label');
-        label.className = 'permissions-checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = fullPath;
-        checkbox.dataset.fullPath = fullPath;
-        checkbox.dataset.displayName = displayName;
-        
-        const span = document.createElement('span');
-        span.textContent = displayName;
-        span.className = 'permissions-checkbox-label';
-        
-        label.appendChild(checkbox);
-        label.appendChild(span);
-        checkboxList.appendChild(label);
+        checkboxList.appendChild(buildPermissionCheckbox(fullPath, displayName));
     });
     
     // Add search functionality (remove old listener first to avoid duplicates)
     const searchInput = document.getElementById('filter-permissions-search');
     if (searchInput) {
-        // Clone the input to remove all event listeners
-        const newSearchInput = searchInput.cloneNode(true);
-        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        // Store reference for proper cleanup
+        if (searchInput._permissionsSearchHandler) {
+            searchInput.removeEventListener('input', searchInput._permissionsSearchHandler);
+        }
         
-        newSearchInput.addEventListener('input', (e) => {
+        searchInput._permissionsSearchHandler = (e) => {
             const searchTerm = e.target.value.toLowerCase();
             document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
@@ -259,19 +267,13 @@ function populatePermissionsFilterOptions() {
                 const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
                 item.style.display = matches ? '' : 'none';
             });
-        });
+        };
+        
+        searchInput.addEventListener('input', searchInput._permissionsSearchHandler);
     }
     
-    // Create a single debounced function instance to reuse
-    const debouncedApplyFilters = debounce(applyFilters, 250);
-    
-    // Add checkbox change listeners
-    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            updatePermissionsTriggerText();
-            debouncedApplyFilters();
-        });
-    });
+    // Attach checkbox change listeners
+    attachPermissionCheckboxListeners(checkboxList);
     
     // Setup dropdown toggle (only if not already set up)
     setupPermissionsDropdown();
@@ -394,59 +396,16 @@ function updatePermissionsFilterOptions() {
 
     // Add "No Permissions" option first if there are visible cards with no permissions
     if (hasNoPermissions) {
-        const noPermsLabel = document.createElement('label');
-        noPermsLabel.className = 'permissions-checkbox-item';
-        
-        const noPermsCheckbox = document.createElement('input');
-        noPermsCheckbox.type = 'checkbox';
-        noPermsCheckbox.value = '__no_permissions__';
-        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
-        noPermsCheckbox.dataset.displayName = 'No Permissions';
-        if (selectedPermissions.has('__no_permissions__')) {
-            noPermsCheckbox.checked = true;
-        }
-        
-        const noPermsSpan = document.createElement('span');
-        noPermsSpan.textContent = 'No Permissions';
-        noPermsSpan.className = 'permissions-checkbox-label';
-        
-        noPermsLabel.appendChild(noPermsCheckbox);
-        noPermsLabel.appendChild(noPermsSpan);
-        checkboxList.appendChild(noPermsLabel);
+        checkboxList.appendChild(buildNoPermissionsCheckbox(selectedPermissions.has('__no_permissions__')));
     }
 
     // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
-        const label = document.createElement('label');
-        label.className = 'permissions-checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = fullPath;
-        checkbox.dataset.fullPath = fullPath;
-        checkbox.dataset.displayName = displayName;
-        // Restore checked state if it was previously selected
-        if (selectedPermissions.has(fullPath)) {
-            checkbox.checked = true;
-        }
-        
-        const span = document.createElement('span');
-        span.textContent = displayName;
-        span.className = 'permissions-checkbox-label';
-        
-        label.appendChild(checkbox);
-        label.appendChild(span);
-        checkboxList.appendChild(label);
+        checkboxList.appendChild(buildPermissionCheckbox(fullPath, displayName, selectedPermissions.has(fullPath)));
     });
     
-    // Re-attach event listeners
-    const debouncedApplyFilters = debounce(applyFilters, 250);
-    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            updatePermissionsTriggerText();
-            debouncedApplyFilters();
-        });
-    });
+    // Attach checkbox change listeners
+    attachPermissionCheckboxListeners(checkboxList);
     
     // Update trigger text
     updatePermissionsTriggerText();
@@ -679,51 +638,23 @@ function restorePermissionsFromStoredData() {
     
     // Add "No Permissions" option if needed
     if (originalPermissionsData.hasNoPermissions) {
-        const noPermsLabel = document.createElement('label');
-        noPermsLabel.className = 'permissions-checkbox-item';
-        
-        const noPermsCheckbox = document.createElement('input');
-        noPermsCheckbox.type = 'checkbox';
-        noPermsCheckbox.value = '__no_permissions__';
-        noPermsCheckbox.dataset.fullPath = '__no_permissions__';
-        noPermsCheckbox.dataset.displayName = 'No Permissions';
-        
-        const noPermsSpan = document.createElement('span');
-        noPermsSpan.textContent = 'No Permissions';
-        noPermsSpan.className = 'permissions-checkbox-label';
-        
-        noPermsLabel.appendChild(noPermsCheckbox);
-        noPermsLabel.appendChild(noPermsSpan);
-        checkboxList.appendChild(noPermsLabel);
+        checkboxList.appendChild(buildNoPermissionsCheckbox());
     }
     
     // Add checkboxes
     sortedPerms.forEach(([fullPath, displayName]) => {
-        const label = document.createElement('label');
-        label.className = 'permissions-checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = fullPath;
-        checkbox.dataset.fullPath = fullPath;
-        checkbox.dataset.displayName = displayName;
-        
-        const span = document.createElement('span');
-        span.textContent = displayName;
-        span.className = 'permissions-checkbox-label';
-        
-        label.appendChild(checkbox);
-        label.appendChild(span);
-        checkboxList.appendChild(label);
+        checkboxList.appendChild(buildPermissionCheckbox(fullPath, displayName));
     });
     
     // Re-attach search functionality
     const searchInput = document.getElementById('filter-permissions-search');
     if (searchInput) {
-        const newSearchInput = searchInput.cloneNode(true);
-        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        // Store reference for proper cleanup
+        if (searchInput._permissionsSearchHandler) {
+            searchInput.removeEventListener('input', searchInput._permissionsSearchHandler);
+        }
         
-        newSearchInput.addEventListener('input', (e) => {
+        searchInput._permissionsSearchHandler = (e) => {
             const searchTerm = e.target.value.toLowerCase();
             document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
@@ -732,17 +663,13 @@ function restorePermissionsFromStoredData() {
                 const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
                 item.style.display = matches ? '' : 'none';
             });
-        });
+        };
+        
+        searchInput.addEventListener('input', searchInput._permissionsSearchHandler);
     }
     
-    // Re-attach checkbox change listeners
-    const debouncedApplyFilters = debounce(applyFilters, 250);
-    checkboxList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            updatePermissionsTriggerText();
-            debouncedApplyFilters();
-        });
-    });
+    // Attach checkbox change listeners
+    attachPermissionCheckboxListeners(checkboxList);
     
     // Update trigger text
     updatePermissionsTriggerText();

@@ -11,7 +11,7 @@
     <div 
         class="modal-overlay" 
         data-action="close"
-        onclick="if (!event.target.closest('#responseModal')) { TryOutSidebar.closeTryOut(); }"
+        onclick="if (!document.getElementById('responseModal')?.classList.contains('show')) { TryOutSidebar.closeTryOut(); }"
         style="backdrop-filter: blur(var(--try-out-backdrop-blur));"
     ></div>
 

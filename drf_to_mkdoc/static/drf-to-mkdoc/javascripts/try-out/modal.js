@@ -118,7 +118,7 @@ const ModalManager = {
             document.body.classList.remove('modal-open');
             
             // Hide response section
-            const responseSection = document.querySelector('.response-section');
+            const responseSection = modal.querySelector('.response-section');
             if (responseSection) {
                 responseSection.hidden = true;
             }
@@ -166,8 +166,6 @@ const ModalManager = {
         if (event) {
             event.stopPropagation();
             event.preventDefault();
-            // Stop immediate propagation to prevent any parent handlers
-            event.stopImmediatePropagation();
         }
         const modal = document.getElementById('responseModal');
         if (modal) {
@@ -176,7 +174,7 @@ const ModalManager = {
             
             // Also hide the response section container if it exists
             // The response modal is nested inside .response-section in the try-out modal
-            const responseSection = document.querySelector('.response-section');
+            const responseSection = modal.closest('.response-section');
             if (responseSection) {
                 responseSection.hidden = true;
             }
