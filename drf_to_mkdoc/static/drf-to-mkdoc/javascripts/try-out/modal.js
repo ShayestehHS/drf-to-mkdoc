@@ -165,7 +165,6 @@ const ModalManager = {
         // Prevent event from bubbling to tryOutModal handlers
         if (event) {
             event.stopPropagation();
-            event.preventDefault();
         }
         const modal = document.getElementById('responseModal');
         if (modal) {
@@ -410,6 +409,10 @@ window.ModalManager = ModalManager;
 window.TryOutSidebar = {
     closeResponseModal: function(event) {
         ModalManager.closeResponseModal(event);
+    },
+    
+    closeTryOut: function() {
+        ModalManager.closeTryOut();
     },
     
     addQueryParam: function(paramName) {

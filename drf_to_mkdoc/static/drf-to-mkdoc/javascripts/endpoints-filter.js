@@ -91,6 +91,17 @@ function populateAppFilterOptions() {
     const select = document.getElementById('filter-app');
     if (!select) return;
     
+    const allOption = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    if (allOption) {
+        select.appendChild(allOption);
+    } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'All';
+        select.appendChild(opt);
+    }
+    
     const apps = new Set();
 
     document.querySelectorAll('.endpoint-card').forEach(card => {
@@ -176,6 +187,65 @@ function buildNoPermissionsCheckbox(isChecked = false) {
     return buildPermissionCheckbox('__no_permissions__', 'No Permissions', isChecked);
 }
 
+// Helper function to extract permissions from a card
+function extractPermissionsFromCard(card) {
+    let permissionsMap = null;
+    if (card.dataset.permissionsNames) {
+        try {
+            permissionsMap = JSON.parse(card.dataset.permissionsNames);
+        } catch (e) {
+            console.debug('Failed to parse permissions_names', e);
+        }
+    }
+    
+    const perms = card.dataset.permissions;
+    const result = { permissions: [], hasNoPermissions: false };
+    
+    if (perms && perms.trim() !== '') {
+        perms.split(' ').forEach(perm => {
+            if (perm) {
+                let displayName = null;
+                if (Array.isArray(permissionsMap)) {
+                    const permData = permissionsMap.find(p => 
+                        p.class_path && p.class_path.toLowerCase() === perm.toLowerCase()
+                    );
+                    if (permData?.display_name) displayName = permData.display_name;
+                }
+                if (!displayName) {
+                    displayName = perm.includes('.') ? perm.split('.').pop() : perm;
+                }
+                result.permissions.push({ fullPath: perm, displayName });
+            }
+        });
+    } else {
+        result.hasNoPermissions = true;
+    }
+    return result;
+}
+
+// Helper function to setup permissions search handler
+function setupPermissionsSearchHandler() {
+    const searchInput = document.getElementById('filter-permissions-search');
+    if (!searchInput) return;
+    
+    if (searchInput._permissionsSearchHandler) {
+        searchInput.removeEventListener('input', searchInput._permissionsSearchHandler);
+    }
+    
+    searchInput._permissionsSearchHandler = (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            const displayName = (checkbox.dataset.displayName || '').toLowerCase();
+            const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
+            const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
+            item.style.display = matches ? '' : 'none';
+        });
+    };
+    
+    searchInput.addEventListener('input', searchInput._permissionsSearchHandler);
+}
+
 // Helper function to attach checkbox change listeners
 function attachPermissionCheckboxListeners(checkboxList) {
     const debouncedApplyFilters = debounce(applyFilters, 250);
@@ -195,39 +265,11 @@ function populatePermissionsFilterOptions() {
     let hasNoPermissions = false;
     
     document.querySelectorAll('.endpoint-card').forEach(card => {
-        // Get display names from data attribute (calculated in _flatten_permissions)
-        let permissionsMap = null;
-        if (card.dataset.permissionsNames) {
-            try {
-                permissionsMap = JSON.parse(card.dataset.permissionsNames);
-            } catch (e) {
-                console.debug('Failed to parse permissions_names', e);
-            }
-        }
-        
-        const perms = card.dataset.permissions;
-        if (perms && perms.trim() !== '') {
-            perms.split(' ').forEach(perm => {
-                if (perm) {
-                    // Find display name from permissions data
-                    let displayName = null;
-                    if (Array.isArray(permissionsMap)) {
-                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
-                        if (permData && permData.display_name) {
-                            displayName = permData.display_name;
-                        }
-                    }
-                    
-                    // If no display name, use the original class name (unreadable)
-                    if (!displayName) {
-                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
-                    }
-                    
-                    permissions.set(perm, displayName);
-                }
-            });
-        } else {
-            // This card has no permissions
+        const extracted = extractPermissionsFromCard(card);
+        extracted.permissions.forEach(({ fullPath, displayName }) => {
+            permissions.set(fullPath, displayName);
+        });
+        if (extracted.hasNoPermissions) {
             hasNoPermissions = true;
         }
     });
@@ -250,27 +292,8 @@ function populatePermissionsFilterOptions() {
         checkboxList.appendChild(buildPermissionCheckbox(fullPath, displayName));
     });
     
-    // Add search functionality (remove old listener first to avoid duplicates)
-    const searchInput = document.getElementById('filter-permissions-search');
-    if (searchInput) {
-        // Store reference for proper cleanup
-        if (searchInput._permissionsSearchHandler) {
-            searchInput.removeEventListener('input', searchInput._permissionsSearchHandler);
-        }
-        
-        searchInput._permissionsSearchHandler = (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
-                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
-                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
-                item.style.display = matches ? '' : 'none';
-            });
-        };
-        
-        searchInput.addEventListener('input', searchInput._permissionsSearchHandler);
-    }
+    // Setup search functionality
+    setupPermissionsSearchHandler();
     
     // Attach checkbox change listeners
     attachPermissionCheckboxListeners(checkboxList);
@@ -297,33 +320,11 @@ function storeOriginalPermissions() {
     };
     
     document.querySelectorAll('.endpoint-card').forEach(card => {
-        let permissionsMap = null;
-        if (card.dataset.permissionsNames) {
-            try {
-                permissionsMap = JSON.parse(card.dataset.permissionsNames);
-            } catch (e) {
-                console.debug('Failed to parse permissions_names', e);
-            }
-        }
-        
-        const perms = card.dataset.permissions;
-        if (perms && perms.trim() !== '') {
-            perms.split(' ').forEach(perm => {
-                if (perm) {
-                    let displayName = null;
-                    if (Array.isArray(permissionsMap)) {
-                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
-                        if (permData && permData.display_name) {
-                            displayName = permData.display_name;
-                        }
-                    }
-                    if (!displayName) {
-                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
-                    }
-                    originalPermissionsData.permissions.set(perm, displayName);
-                }
-            });
-        } else {
+        const extracted = extractPermissionsFromCard(card);
+        extracted.permissions.forEach(({ fullPath, displayName }) => {
+            originalPermissionsData.permissions.set(fullPath, displayName);
+        });
+        if (extracted.hasNoPermissions) {
             originalPermissionsData.hasNoPermissions = true;
         }
     });
@@ -343,38 +344,10 @@ function updatePermissionsFilterOptions() {
     
     // Only collect permissions from visible cards
     document.querySelectorAll('.endpoint-card:not(.hidden)').forEach(card => {
-        // Get display names from data attribute (calculated in _flatten_permissions)
-        let permissionsMap = null;
-        if (card.dataset.permissionsNames) {
-            try {
-                permissionsMap = JSON.parse(card.dataset.permissionsNames);
-            } catch (e) {
-                console.debug('Failed to parse permissions_names', e);
-            }
-        }
-        
-        const perms = card.dataset.permissions;
-        if (perms) {
-            perms.split(' ').forEach(perm => {
-                if (perm) {
-                    // Find display name from permissions data
-                    let displayName = null;
-                    if (Array.isArray(permissionsMap)) {
-                        const permData = permissionsMap.find(p => p.class_path && p.class_path.toLowerCase() === perm.toLowerCase());
-                        if (permData && permData.display_name) {
-                            displayName = permData.display_name;
-                        }
-                    }
-                    
-                    // If no display name, use the original class name (unreadable)
-                    if (!displayName) {
-                        displayName = perm.includes('.') ? perm.split('.').pop() : perm;
-                    }
-                    
-                    permissions.set(perm.toLowerCase(), displayName);
-                }
-            });
-        }
+        const extracted = extractPermissionsFromCard(card);
+        extracted.permissions.forEach(({ fullPath, displayName }) => {
+            permissions.set(fullPath.toLowerCase(), displayName);
+        });
     });
 
     // Check if we need to show "No Permissions" option
@@ -646,27 +619,8 @@ function restorePermissionsFromStoredData() {
         checkboxList.appendChild(buildPermissionCheckbox(fullPath, displayName));
     });
     
-    // Re-attach search functionality
-    const searchInput = document.getElementById('filter-permissions-search');
-    if (searchInput) {
-        // Store reference for proper cleanup
-        if (searchInput._permissionsSearchHandler) {
-            searchInput.removeEventListener('input', searchInput._permissionsSearchHandler);
-        }
-        
-        searchInput._permissionsSearchHandler = (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            document.querySelectorAll('.permissions-checkbox-item').forEach(item => {
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                const displayName = (checkbox.dataset.displayName || '').toLowerCase();
-                const fullPath = (checkbox.dataset.fullPath || checkbox.value).toLowerCase();
-                const matches = displayName.includes(searchTerm) || fullPath.includes(searchTerm);
-                item.style.display = matches ? '' : 'none';
-            });
-        };
-        
-        searchInput.addEventListener('input', searchInput._permissionsSearchHandler);
-    }
+    // Setup search functionality
+    setupPermissionsSearchHandler();
     
     // Attach checkbox change listeners
     attachPermissionCheckboxListeners(checkboxList);

@@ -11,7 +11,7 @@
     <div 
         class="modal-overlay" 
         data-action="close"
-        onclick="if (!document.getElementById('responseModal')?.classList.contains('show')) { TryOutSidebar.closeTryOut(); }"
+        onclick="TryOutSidebar.closeTryOut()"
         style="backdrop-filter: blur(var(--try-out-backdrop-blur));"
     ></div>
 
@@ -29,7 +29,7 @@
                 <button 
                     class="modal-close" 
                     aria-label="Close modal"
-                    onclick="if (!document.getElementById('responseModal')?.classList.contains('show')) { TryOutSidebar.closeTryOut(); }"
+                    onclick="TryOutSidebar.closeTryOut()"
                     data-action="close"
                 >
                     <span aria-hidden="true">✕</span>
