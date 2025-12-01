@@ -494,28 +494,31 @@ function updateMethodFilterOptions() {
         if (method) methods.add(method);
     });
 
-    // Get all existing options
     const allOption = select.querySelector('option[value=""]');
-    const existingOptions = Array.from(select.options).map(opt => ({
-        value: opt.value,
-        text: opt.textContent
-    }));
-
-    // Hide/show options based on availability
-    Array.from(select.options).forEach(opt => {
-        if (opt.value === '') {
-            // Always show "All" option
-            opt.style.display = '';
-        } else {
-            // Show option only if it exists in visible cards
-            opt.style.display = methods.has(opt.value) ? '' : 'none';
-        }
+    select.innerHTML = '';
+    if (allOption) {
+        select.appendChild(allOption);
+    } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'All';
+        select.appendChild(opt);
+    }
+    
+    // Add methods from visible cards
+    Array.from(methods).sort().forEach(method => {
+        const opt = document.createElement('option');
+        opt.value = method;
+        opt.textContent = method.toUpperCase();
+        select.appendChild(opt);
     });
 
     // If current selection is no longer available, reset to "All"
     if (currentValue && !methods.has(currentValue)) {
         select.value = '';
         currentFilters.method = '';
+    } else if (currentValue && methods.has(currentValue)) {
+        select.value = currentValue;
     }
 }
 
