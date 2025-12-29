@@ -75,7 +75,12 @@ function applyFilters(skipUpdateOptions = false) {
 
 function getValue(id) {
     const el = document.getElementById(id);
-    return el ? el.value.trim().toLowerCase() : '';
+    if (!el) return '';
+    // Don't lowercase path filter to preserve regex patterns
+    if (id === 'filter-path') {
+        return el.value.trim();
+    }
+    return el.value.trim().toLowerCase();
 }
 
 function getPermissionsCheckboxValue() {
@@ -454,12 +459,36 @@ function updatePermissionsTriggerText() {
     }
 }
 
+/**
+ * Matches a path against a filter pattern, supporting both regex and simple text matching.
+ * Tries regex first, falls back to case-insensitive simple text matching if regex fails.
+ * @param {string} path - The path to match against
+ * @param {string} filterPattern - The filter pattern (can be regex or simple text)
+ * @returns {boolean} True if the path matches the filter pattern
+ */
+function matchesPathFilter(path, filterPattern) {
+    if (!filterPattern) return true;
+    
+    // Try regex matching first
+    try {
+        const regex = new RegExp(filterPattern, 'i'); // Case-insensitive regex
+        if (regex.test(path)) {
+            return true;
+        }
+    } catch (e) {
+        // Invalid regex, fall through to simple text matching
+    }
+    
+    // Fall back to case-insensitive simple text matching
+    return path.toLowerCase().includes(filterPattern.toLowerCase());
+}
+
 function matchesFilters(card) {
     const d = card.dataset;
     const f = currentFilters;
 
     if (f.method && d.method !== f.method) return false;
-    if (f.path && !d.path.includes(f.path)) return false;
+    if (f.path && !matchesPathFilter(d.path, f.path)) return false;
     if (f.app && d.app !== f.app) return false;
     if (f.auth && d.auth !== f.auth) return false;
     if (f.pagination && d.pagination !== f.pagination) return false;
