@@ -30,6 +30,9 @@
 
     .method-badge {
         align-self: flex-start;
+        font-size: 10px;
+        padding: 5px 12px;
+        min-width: 55px;
     }
 }
 
@@ -49,9 +52,10 @@
     }
 
     .method-badge {
-        font-size: 10px;
-        padding: 4px 6px;
+        font-size: 9px;
+        padding: 4px 10px;
         min-width: 50px;
+        letter-spacing: 0.3px;
     }
 }
 
