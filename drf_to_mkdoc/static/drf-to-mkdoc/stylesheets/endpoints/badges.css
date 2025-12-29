@@ -4,120 +4,78 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 14px;
+    padding: 5px 12px;
     font-size: 11px;
-    font-weight: 700;
-    border-radius: 6px;
+    font-weight: 600;
+    border-radius: 4px;
     color: white;
     text-transform: uppercase;
-    overflow: hidden;
-    min-width: 60px;
+    min-width: 56px;
     text-align: center;
     flex-shrink: 0;
-    z-index: 0;
-    vertical-align: middle;
-    line-height: 1.4;
+    line-height: 1.5;
     box-sizing: border-box;
     white-space: nowrap;
-    letter-spacing: 0.5px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-.method-badge::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
-    pointer-events: none;
-}
-
 .method-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.method-badge:hover::before {
-    left: 100%;
-}
-
-.method-badge:active {
-    transform: translateY(0);
+    transform: scale(1.02);
 }
 
 /* GET - Green */
 .method-get {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4),
-                0 2px 4px rgba(34, 197, 94, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #10b981;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
 }
 
 .method-get:hover {
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5),
-                0 4px 8px rgba(34, 197, 94, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: #059669;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
-/* POST - Orange/Amber */
+/* POST - Orange */
 .method-post {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%);
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4),
-                0 2px 4px rgba(249, 115, 22, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #f59e0b;
+    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
 }
 
 .method-post:hover {
-    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5),
-                0 4px 8px rgba(249, 115, 22, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: #d97706;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
 }
 
 /* PUT - Purple */
 .method-put {
-    background: linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%);
-    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4),
-                0 2px 4px rgba(168, 85, 247, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #8b5cf6;
+    box-shadow: 0 1px 2px rgba(139, 92, 246, 0.2);
 }
 
 .method-put:hover {
-    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5),
-                0 4px 8px rgba(168, 85, 247, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: #7c3aed;
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
 }
 
 /* PATCH - Cyan */
 .method-patch {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%);
-    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4),
-                0 2px 4px rgba(6, 182, 212, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #06b6d4;
+    box-shadow: 0 1px 2px rgba(6, 182, 212, 0.2);
 }
 
 .method-patch:hover {
-    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5),
-                0 4px 8px rgba(6, 182, 212, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: #0891b2;
+    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
 }
 
 /* DELETE - Red */
 .method-delete {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4),
-                0 2px 4px rgba(239, 68, 68, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: #ef4444;
+    box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
 }
 
 .method-delete:hover {
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5),
-                0 4px 8px rgba(239, 68, 68, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: #dc2626;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }

@@ -31,19 +31,19 @@
     .method-badge {
         align-self: flex-start;
         font-size: 10px;
-        padding: 5px 12px;
-        min-width: 55px;
+        padding: 4px 10px;
+        min-width: 52px;
     }
 }
 
 @media (max-width: 480px) {
     .endpoint-card {
-        padding: 12px;
+        padding: 12px 16px;
     }
 
     .endpoint-path {
         font-size: 13px;
-        padding: 6px;
+        padding: 8px 12px;
         width: 100%;
     }
     
@@ -53,9 +53,9 @@
 
     .method-badge {
         font-size: 9px;
-        padding: 4px 10px;
-        min-width: 50px;
-        letter-spacing: 0.3px;
+        padding: 4px 8px;
+        min-width: 48px;
+        letter-spacing: 0.2px;
     }
 }
 
