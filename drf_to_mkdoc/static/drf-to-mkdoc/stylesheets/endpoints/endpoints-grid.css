@@ -74,6 +74,70 @@
     z-index: 2;
 }
 
+/* ===== ENDPOINT PATH WITH COPY BUTTON ===== */
+.endpoint-card .endpoint-path {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* ===== ENDPOINT COPY BUTTON ===== */
+.endpoint-copy-btn {
+    margin-left: auto;
+    padding: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.endpoint-copy-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.endpoint-copy-btn:active {
+    transform: scale(0.95);
+}
+
+.endpoint-copy-btn:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.endpoint-copy-btn .copy-icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.endpoint-copy-btn.copied .copy-icon {
+    transform: scale(1.2);
+}
+
+.endpoint-copy-btn.copied {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    opacity: 1;
+}
+
 /* ===== DJANGO MODELS CARD LAYOUT ===== */
 /* Models container */
 .models-container {

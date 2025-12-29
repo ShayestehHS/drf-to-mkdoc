@@ -734,3 +734,48 @@ function debounce(func, delay) {
         timeout = setTimeout(func, delay);
     };
 }
+
+// Copy endpoint path to clipboard
+function copyEndpointPath(event, button) {
+    // Prevent navigation when clicking the copy button
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Find the endpoint path element (parent of the button)
+    const endpointPathElement = button.closest('.endpoint-path');
+    if (!endpointPathElement) return;
+    
+    // Get the path text excluding the button content
+    // Clone the element, remove the button, then get textContent
+    const clone = endpointPathElement.cloneNode(true);
+    const buttonClone = clone.querySelector('.endpoint-copy-btn');
+    if (buttonClone) {
+        buttonClone.remove();
+    }
+    const endpointPath = clone.textContent.trim();
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(endpointPath).then(() => {
+        // Show success feedback
+        const originalIcon = button.innerHTML;
+        button.classList.add('copied');
+        button.innerHTML = '<span class="copy-icon">✓</span>';
+        
+        // Reset after 1 second
+        setTimeout(() => {
+            button.classList.remove('copied');
+            button.innerHTML = originalIcon;
+        }, 1000);
+    }).catch((err) => {
+        console.error('Failed to copy endpoint path:', err);
+        // Fallback: show error feedback
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<span class="copy-icon">✕</span>';
+        setTimeout(() => {
+            button.innerHTML = originalIcon;
+        }, 1000);
+    });
+}
+
+// Make function globally available
+window.copyEndpointPath = copyEndpointPath;
