@@ -16,6 +16,7 @@
     <div class="example-tabs" role="tablist">
         {% for example in response.examples %}
         <button 
+            id="response-example-tab-{{ response.status_code }}-{{ forloop.counter0 }}"
             class="example-tab {% if forloop.first %}active{% endif %}" 
             role="tab" 
             aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"

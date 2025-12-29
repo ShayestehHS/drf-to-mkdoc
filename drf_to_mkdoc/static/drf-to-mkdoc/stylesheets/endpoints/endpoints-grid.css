@@ -81,10 +81,6 @@
     transition: all 0.2s ease;
 }
 
-.endpoint-card .endpoint-path:hover {
-    border-color: var(--border-color);
-    background: var(--bg-primary);
-}
 
 .endpoint-card .endpoint-path-text {
     white-space: nowrap;

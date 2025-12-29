@@ -501,6 +501,36 @@ function isWildcardPattern(pattern) {
  * @param {string} filterPattern - The filter pattern (can be regex, wildcard, or simple text)
  * @returns {boolean} True if the path matches the filter pattern
  */
+/**
+ * Validates a regex pattern for potential ReDoS vulnerabilities.
+ * @param {string} pattern - The regex pattern to validate
+ * @returns {boolean} True if the pattern appears safe, false if potentially dangerous
+ */
+function isSafeRegexPattern(pattern) {
+    // Limit pattern length to prevent extremely long patterns
+    if (pattern.length > 1000) {
+        return false;
+    }
+    
+    // Check for nested quantifiers that can cause exponential backtracking
+    // Patterns like (a+)+, (a*)*, (a?)?, etc. are dangerous
+    const dangerousPatterns = [
+        /\([^)]*\+[^)]*\)\+/,  // (a+)+
+        /\([^)]*\*[^)]*\)\*/,  // (a*)*
+        /\([^)]*\?[^)]*\)\?/,  // (a?)?
+        /\([^)]*\+[^)]*\)\*/,  // (a+)*
+        /\([^)]*\*[^)]*\)\+/,  // (a*)+
+    ];
+    
+    for (const dangerousPattern of dangerousPatterns) {
+        if (dangerousPattern.test(pattern)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 function matchesPathFilter(path, filterPattern) {
     if (!filterPattern) return true;
     
@@ -508,6 +538,12 @@ function matchesPathFilter(path, filterPattern) {
     let regexPattern = filterPattern;
     if (isWildcardPattern(filterPattern)) {
         regexPattern = wildcardToRegex(filterPattern);
+    }
+    
+    // Validate pattern for ReDoS before attempting to compile
+    if (!isSafeRegexPattern(regexPattern)) {
+        // Unsafe pattern detected, fall back to simple text matching
+        return path.toLowerCase().includes(filterPattern.toLowerCase());
     }
     
     // Try regex matching first

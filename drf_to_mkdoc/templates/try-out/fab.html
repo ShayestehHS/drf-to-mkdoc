@@ -34,15 +34,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show/hide shortcut hint
     let hintTimeout;
-    fab.addEventListener('mouseenter', function() {
-        clearTimeout(hintTimeout);
-        document.querySelector('.shortcut-hint').classList.add('visible');
-    });
+    const shortcutHint = document.querySelector('.shortcut-hint');
+    if (shortcutHint) {
+        fab.addEventListener('mouseenter', function() {
+            clearTimeout(hintTimeout);
+            shortcutHint.classList.add('visible');
+        });
 
-    fab.addEventListener('mouseleave', function() {
-        hintTimeout = setTimeout(() => {
-            document.querySelector('.shortcut-hint').classList.remove('visible');
-        }, 500);
-    });
+        fab.addEventListener('mouseleave', function() {
+            hintTimeout = setTimeout(() => {
+                shortcutHint.classList.remove('visible');
+            }, 500);
+        });
+    }
 });
 </script>

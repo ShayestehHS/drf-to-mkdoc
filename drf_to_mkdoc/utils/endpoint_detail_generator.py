@@ -790,7 +790,7 @@ def _generate_typescript_type(
         return f"{indent_str}type {interface_name} = {ts_type};"
 
 
-def _get_typescript_type(schema: dict, components: dict, _components_cache: dict = None, _indent: int = 0) -> str:
+def _get_typescript_type(schema: dict, components: dict, _components_cache: dict | None = None, _indent: int = 0) -> str:
     """Get TypeScript type string for a schema."""
     if not isinstance(schema, dict):
         return "any"
@@ -811,12 +811,8 @@ def _get_typescript_type(schema: dict, components: dict, _components_cache: dict
         items_type = _get_typescript_type(items, components, _components_cache, _indent)
         return f"{items_type}[]"
     elif schema_type == "object":
-        if "$ref" in schema:
-            ref_name = schema["$ref"].split("/")[-1]
-            return ref_name
-        else:
-            # Inline object type
-            properties = schema.get("properties", {})
+        # Inline object type
+        properties = schema.get("properties", {})
             if not properties:
                 return "Record<string, any>"
             
@@ -903,8 +899,9 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
                     schema_json_example = schema_to_example_json(operation_id, schema, components, for_response=True)
                     if schema_json_example is not None:
                         schema_json_example = json.dumps(schema_json_example, indent=2)
-                except Exception:
-                    # If generation fails, fall back to null
+                except Exception as e:
+                    # If generation fails, log error and fall back to null
+                    logger.warning(f"Failed to generate JSON example for operation {operation_id}: {e}")
                     schema_json_example = "null"
             
             # If we have generated examples, add them with schema (deduplicate by JSON string)
@@ -1037,7 +1034,7 @@ def _extract_request_examples(
 
 
 def _extract_response_examples(
-    operation_id: str, response_data: dict, components: dict
+    _operation_id: str, response_data: dict, _components: dict
 ) -> list[dict[str, Any]]:
     """
     Extract all examples from response.content[mediaType].examples.
@@ -1134,6 +1131,67 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
     return permissions
 
 
+def _extract_validation_constraints(
+    resolved_field_schema: dict[str, Any], field_type: str, components: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Extract validation constraints from a resolved field schema.
+    
+    Args:
+        resolved_field_schema: The resolved field schema dictionary
+        field_type: The type of the field (string, integer, number, array, object)
+        components: OpenAPI components dictionary for resolving references
+        
+    Returns:
+        Dictionary containing validation constraints
+    """
+    validation_info = {}
+    
+    # Type-specific validations
+    if field_type == "string":
+        if "minLength" in resolved_field_schema:
+            validation_info["minLength"] = resolved_field_schema["minLength"]
+        if "maxLength" in resolved_field_schema:
+            validation_info["maxLength"] = resolved_field_schema["maxLength"]
+        if "pattern" in resolved_field_schema:
+            validation_info["pattern"] = resolved_field_schema["pattern"]
+        if "format" in resolved_field_schema:
+            validation_info["format"] = resolved_field_schema["format"]
+        if "enum" in resolved_field_schema:
+            validation_info["enum"] = resolved_field_schema["enum"]
+    elif field_type in ("integer", "number"):
+        if "minimum" in resolved_field_schema:
+            validation_info["minimum"] = resolved_field_schema["minimum"]
+        if "maximum" in resolved_field_schema:
+            validation_info["maximum"] = resolved_field_schema["maximum"]
+        if "exclusiveMinimum" in resolved_field_schema:
+            validation_info["exclusiveMinimum"] = resolved_field_schema["exclusiveMinimum"]
+        if "exclusiveMaximum" in resolved_field_schema:
+            validation_info["exclusiveMaximum"] = resolved_field_schema["exclusiveMaximum"]
+        if "enum" in resolved_field_schema:
+            validation_info["enum"] = resolved_field_schema["enum"]
+    elif field_type == "array":
+        validation_info["array_type"] = "array"
+        items_schema = resolved_field_schema.get("items", {})
+        if "$ref" in items_schema:
+            items_schema = _resolve_schema_reference(items_schema, components)
+        validation_info["items_type"] = items_schema.get("type", "string")
+        if "minItems" in resolved_field_schema:
+            validation_info["minItems"] = resolved_field_schema["minItems"]
+        if "maxItems" in resolved_field_schema:
+            validation_info["maxItems"] = resolved_field_schema["maxItems"]
+    elif field_type == "object":
+        validation_info["object_type"] = "object"
+        if "properties" in resolved_field_schema:
+            validation_info["has_properties"] = True
+    
+    # Handle enum for any type
+    if "enum" in resolved_field_schema and "enum" not in validation_info:
+        validation_info["enum"] = resolved_field_schema["enum"]
+    
+    return validation_info
+
+
 def _extract_request_body_fields_with_validation(
     operation_id: str, request_body: dict[str, Any], components: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -1192,48 +1250,8 @@ def _extract_request_body_fields_with_validation(
             "example": resolved_field_schema.get("example"),
         }
         
-        # Type-specific validations
-        if field_type == "string":
-            if "minLength" in resolved_field_schema:
-                validation_info["minLength"] = resolved_field_schema["minLength"]
-            if "maxLength" in resolved_field_schema:
-                validation_info["maxLength"] = resolved_field_schema["maxLength"]
-            if "pattern" in resolved_field_schema:
-                validation_info["pattern"] = resolved_field_schema["pattern"]
-            if "format" in resolved_field_schema:
-                validation_info["format"] = resolved_field_schema["format"]
-            if "enum" in resolved_field_schema:
-                validation_info["enum"] = resolved_field_schema["enum"]
-        elif field_type in ("integer", "number"):
-            if "minimum" in resolved_field_schema:
-                validation_info["minimum"] = resolved_field_schema["minimum"]
-            if "maximum" in resolved_field_schema:
-                validation_info["maximum"] = resolved_field_schema["maximum"]
-            if "exclusiveMinimum" in resolved_field_schema:
-                validation_info["exclusiveMinimum"] = resolved_field_schema["exclusiveMinimum"]
-            if "exclusiveMaximum" in resolved_field_schema:
-                validation_info["exclusiveMaximum"] = resolved_field_schema["exclusiveMaximum"]
-            if "enum" in resolved_field_schema:
-                validation_info["enum"] = resolved_field_schema["enum"]
-        elif field_type == "array":
-            validation_info["array_type"] = "array"
-            items_schema = resolved_field_schema.get("items", {})
-            if "$ref" in items_schema:
-                items_schema = _resolve_schema_reference(items_schema, components)
-            validation_info["items_type"] = items_schema.get("type", "string")
-            if "minItems" in resolved_field_schema:
-                validation_info["minItems"] = resolved_field_schema["minItems"]
-            if "maxItems" in resolved_field_schema:
-                validation_info["maxItems"] = resolved_field_schema["maxItems"]
-        elif field_type == "object":
-            validation_info["object_type"] = "object"
-            # For nested objects, we could recursively extract, but for now just mark as object
-            if "properties" in resolved_field_schema:
-                validation_info["has_properties"] = True
-        
-        # Handle enum for any type
-        if "enum" in resolved_field_schema and "enum" not in validation_info:
-            validation_info["enum"] = resolved_field_schema["enum"]
+        # Extract type-specific validation constraints
+        validation_info.update(_extract_validation_constraints(resolved_field_schema, field_type, components))
         
         fields.append(validation_info)
     
@@ -1257,7 +1275,7 @@ def _extract_response_schema_fields(
         return []
     
     # Get the first response with a schema (usually 200)
-    for status_code, response_data in responses.items():
+    for _status_code, response_data in responses.items():
         content = response_data.get("content", {})
         if not content:
             continue
@@ -1299,47 +1317,8 @@ def _extract_response_schema_fields(
                 "example": resolved_field_schema.get("example"),
             }
             
-            # Type-specific validations
-            if field_type == "string":
-                if "minLength" in resolved_field_schema:
-                    validation_info["minLength"] = resolved_field_schema["minLength"]
-                if "maxLength" in resolved_field_schema:
-                    validation_info["maxLength"] = resolved_field_schema["maxLength"]
-                if "pattern" in resolved_field_schema:
-                    validation_info["pattern"] = resolved_field_schema["pattern"]
-                if "format" in resolved_field_schema:
-                    validation_info["format"] = resolved_field_schema["format"]
-                if "enum" in resolved_field_schema:
-                    validation_info["enum"] = resolved_field_schema["enum"]
-            elif field_type in ("integer", "number"):
-                if "minimum" in resolved_field_schema:
-                    validation_info["minimum"] = resolved_field_schema["minimum"]
-                if "maximum" in resolved_field_schema:
-                    validation_info["maximum"] = resolved_field_schema["maximum"]
-                if "exclusiveMinimum" in resolved_field_schema:
-                    validation_info["exclusiveMinimum"] = resolved_field_schema["exclusiveMinimum"]
-                if "exclusiveMaximum" in resolved_field_schema:
-                    validation_info["exclusiveMaximum"] = resolved_field_schema["exclusiveMaximum"]
-                if "enum" in resolved_field_schema:
-                    validation_info["enum"] = resolved_field_schema["enum"]
-            elif field_type == "array":
-                validation_info["array_type"] = "array"
-                items_schema = resolved_field_schema.get("items", {})
-                if "$ref" in items_schema:
-                    items_schema = _resolve_schema_reference(items_schema, components)
-                validation_info["items_type"] = items_schema.get("type", "string")
-                if "minItems" in resolved_field_schema:
-                    validation_info["minItems"] = resolved_field_schema["minItems"]
-                if "maxItems" in resolved_field_schema:
-                    validation_info["maxItems"] = resolved_field_schema["maxItems"]
-            elif field_type == "object":
-                validation_info["object_type"] = "object"
-                if "properties" in resolved_field_schema:
-                    validation_info["has_properties"] = True
-            
-            # Handle enum for any type
-            if "enum" in resolved_field_schema and "enum" not in validation_info:
-                validation_info["enum"] = resolved_field_schema["enum"]
+            # Extract type-specific validation constraints
+            validation_info.update(_extract_validation_constraints(resolved_field_schema, field_type, components))
             
             fields.append(validation_info)
         
@@ -1351,8 +1330,8 @@ def _extract_response_schema_fields(
 def _build_response_schema_tree(
     schema: dict[str, Any], 
     components: dict[str, Any], 
-    required_fields: set[str] = None,
-    visited_refs: set[str] = None,
+    required_fields: set[str] | None = None,
+    visited_refs: set[str] | None = None,
     depth: int = 0
 ) -> dict[str, Any]:
     """
@@ -1538,7 +1517,7 @@ def create_endpoint_page(
     # Build response schema tree (from first response with schema)
     response_schema_tree = None
     responses = endpoint_data.get("responses", {})
-    for status_code, response_data in responses.items():
+    for _status_code, response_data in responses.items():
         content = response_data.get("content", {})
         if not content:
             continue

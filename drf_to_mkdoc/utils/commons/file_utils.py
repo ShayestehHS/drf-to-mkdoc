@@ -1,6 +1,7 @@
 """File operation utilities."""
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -99,10 +100,10 @@ def merge_openapi_schemas(schemas: list[dict[str, Any]]) -> dict[str, Any]:
         raise ValueError("Cannot merge empty list of schemas")
     
     if len(schemas) == 1:
-        return schemas[0].copy()
+        return deepcopy(schemas[0])
     
     # Start with the first schema as the base
-    merged = schemas[0].copy()
+    merged = deepcopy(schemas[0])
     
     # Merge paths from all schemas
     merged_paths = merged.get("paths", {})
