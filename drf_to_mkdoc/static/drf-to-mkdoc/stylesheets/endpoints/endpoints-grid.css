@@ -74,10 +74,12 @@
     border-radius: 6px;
     border: 1px solid var(--border-color);
     margin-bottom: 0;
-    font-family: 'Monaco', 'Menlo', 'SF Mono', monospace;
-    font-weight: 500;
+    /* Modern cross-platform monospace font stack optimized for URLs/paths */
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-weight: 450;  /* Slightly lighter for better readability */
     color: var(--text-primary);
     font-size: 14px;
+    letter-spacing: 0.01em;  /* Slight spacing for better character distinction */
     transition: all 0.2s ease;
 }
 
@@ -90,6 +92,10 @@
     min-width: 0;
     /* Ensure text doesn't wrap */
     word-break: normal;
+    /* Inherit improved font styling from parent */
+    font-family: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
 }
 
 /* ===== ENDPOINT COPY BUTTON ===== */

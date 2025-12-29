@@ -118,9 +118,9 @@ def merge_openapi_schemas(schemas: list[dict[str, Any]]) -> dict[str, Any]:
                         # Path and method conflict - keep the first one
                         # Could be enhanced to merge operation details if needed
                         continue
-                    merged_methods[method] = operation
+                    merged_methods[method] = deepcopy(operation)
             else:
-                merged_paths[path] = methods
+                merged_paths[path] = deepcopy(methods)
     
     merged["paths"] = merged_paths
     
@@ -138,7 +138,7 @@ def merge_openapi_schemas(schemas: list[dict[str, Any]]) -> dict[str, Any]:
                     # Component name conflict - keep the first one
                     # Could be enhanced to merge definitions if needed
                     continue
-                merged_component[name] = definition
+                merged_component[name] = deepcopy(definition)
     
     merged["components"] = merged_components
     

@@ -78,6 +78,18 @@ null
                 </div>
                 {% endif %}
             </div>
+            
+            <!-- Schema Subtab Content -->
+            {% if example.schema_display and example.schema_display|length > 0 %}
+            <div 
+                id="response-schema-{{ response.status_code }}-{{ forloop.counter0 }}" 
+                class="response-subtab-content" 
+                role="tabpanel">
+                <div class="response-example">
+{{ example.schema_display }}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
@@ -126,6 +138,18 @@ null
         </div>
         {% endif %}
     </div>
+    
+    <!-- Schema Subtab Content -->
+    {% if example.schema_display and example.schema_display|length > 0 %}
+    <div 
+        id="response-schema-{{ response.status_code }}-0" 
+        class="response-subtab-content" 
+        role="tabpanel">
+        <div class="response-example">
+{{ example.schema_display }}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endwith %}
 {% endif %}

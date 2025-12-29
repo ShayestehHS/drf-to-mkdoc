@@ -813,23 +813,23 @@ def _get_typescript_type(schema: dict, components: dict, _components_cache: dict
     elif schema_type == "object":
         # Inline object type
         properties = schema.get("properties", {})
-            if not properties:
-                return "Record<string, any>"
-            
-            prop_lines = []
-            required = schema.get("required", [])
-            indent_str = "  " * (_indent + 1)
-            for prop_name, prop_schema in properties.items():
-                if prop_schema.get("writeOnly", False):
-                    continue
-                prop_ts_type = _get_typescript_type(prop_schema, components, _components_cache, _indent + 1)
-                optional = "" if prop_name in required else "?"
-                prop_lines.append(f"{indent_str}{prop_name}{optional}: {prop_ts_type};")
-            
-            if prop_lines:
-                outer_indent = "  " * _indent
-                return "{\n" + "\n".join(prop_lines) + f"\n{outer_indent}}}"
+        if not properties:
             return "Record<string, any>"
+        
+        prop_lines = []
+        required = schema.get("required", [])
+        indent_str = "  " * (_indent + 1)
+        for prop_name, prop_schema in properties.items():
+            if prop_schema.get("writeOnly", False):
+                continue
+            prop_ts_type = _get_typescript_type(prop_schema, components, _components_cache, _indent + 1)
+            optional = "" if prop_name in required else "?"
+            prop_lines.append(f"{indent_str}{prop_name}{optional}: {prop_ts_type};")
+        
+        if prop_lines:
+            outer_indent = "  " * _indent
+            return "{\n" + "\n".join(prop_lines) + f"\n{outer_indent}}}"
+        return "Record<string, any>"
     else:
         return "any"
 
@@ -900,8 +900,12 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
                     if schema_json_example is not None:
                         schema_json_example = json.dumps(schema_json_example, indent=2)
                 except Exception as e:
-                    # If generation fails, log error and fall back to null
-                    logger.warning(f"Failed to generate JSON example for operation {operation_id}: {e}")
+                    # If generation fails, log error with full traceback and fall back to null
+                    import traceback
+                    logger.warning(
+                        f"Failed to generate JSON example for operation {operation_id}: {e}\n"
+                        f"Traceback: {traceback.format_exc()}"
+                    )
                     schema_json_example = "null"
             
             # If we have generated examples, add them with schema (deduplicate by JSON string)
@@ -1460,10 +1464,6 @@ def _build_response_schema_tree(
                     child_node["name"] = prop_name
                     child_node["required"] = prop_name in required_at_level
                     node["children"].append(child_node)
-    
-    # Clean up visited refs if we added one
-    if ref_name and ref_name in visited_refs:
-        visited_refs.remove(ref_name)
     
     return node
 

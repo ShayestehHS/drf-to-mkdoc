@@ -1,9 +1,11 @@
 /* ===== ENDPOINT CONTENT ===== */
 .endpoint-path {
-    font-family: 'Monaco', 'Menlo', 'SF Mono', monospace;
+    /* Modern cross-platform monospace font stack optimized for URLs/paths */
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-weight: 600;
     color: var(--text-primary);
     font-size: 15px;
+    letter-spacing: 0.01em;  /* Slight spacing for better character distinction */
     margin-bottom: 8px;
     word-break: break-all;
     background: var(--bg-primary);
@@ -363,8 +365,8 @@ table tr:hover {
 .required-badge {
     display: inline-block;
     padding: 4px 8px;
-    background: #ef4444;
-    color: white;
+    background: var(--md-primary-fg-color, #ef4444);
+    color: var(--md-primary-bg-color, white);
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
@@ -430,6 +432,11 @@ table tr:hover {
 [data-md-color-scheme="slate"] .optional-badge {
     background: var(--md-default-fg-color--lightest, #404040);
     color: var(--md-default-fg-color--light, #cccccc);
+}
+
+[data-md-color-scheme="slate"] .required-badge {
+    background: var(--md-primary-fg-color, #ef4444);
+    color: var(--md-primary-bg-color, white);
 }
 
 [data-md-color-scheme="slate"] .validation-constraints .constraint {

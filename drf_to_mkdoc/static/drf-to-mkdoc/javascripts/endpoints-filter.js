@@ -531,29 +531,69 @@ function isSafeRegexPattern(pattern) {
     return true;
 }
 
+/**
+ * Executes a regex test with a timeout to prevent ReDoS attacks.
+ * @param {RegExp} regex - The regex to test
+ * @param {string} text - The text to test against
+ * @param {number} timeoutMs - Maximum execution time in milliseconds (default: 100ms)
+ * @returns {boolean|null} True if match, false if no match, null if timeout
+ */
+function regexTestWithTimeout(regex, text, timeoutMs = 100) {
+    let completed = false;
+    let result = false;
+    
+    const startTime = Date.now();
+    try {
+        result = regex.test(text);
+        completed = true;
+    } catch (e) {
+        // Regex execution error
+        return null;
+    }
+    
+    const elapsed = Date.now() - startTime;
+    if (elapsed > timeoutMs) {
+        console.warn(`Regex test exceeded timeout (${elapsed}ms > ${timeoutMs}ms). Pattern may be vulnerable to ReDoS.`);
+        return null;
+    }
+    
+    return result;
+}
+
 function matchesPathFilter(path, filterPattern) {
     if (!filterPattern) return true;
     
     // Convert wildcard patterns to regex
     let regexPattern = filterPattern;
-    if (isWildcardPattern(filterPattern)) {
+    const isWildcard = isWildcardPattern(filterPattern);
+    if (isWildcard) {
         regexPattern = wildcardToRegex(filterPattern);
     }
     
     // Validate pattern for ReDoS before attempting to compile
     if (!isSafeRegexPattern(regexPattern)) {
         // Unsafe pattern detected, fall back to simple text matching
+        console.warn(`Unsafe regex pattern detected, using substring matching: ${filterPattern}`);
         return path.toLowerCase().includes(filterPattern.toLowerCase());
     }
     
     // Try regex matching first
     try {
         const regex = new RegExp(regexPattern, 'i'); // Case-insensitive regex
-        if (regex.test(path)) {
+        
+        // Use timeout-protected regex test
+        const matchResult = regexTestWithTimeout(regex, path, 100);
+        if (matchResult === true) {
             return true;
+        } else if (matchResult === null) {
+            // Timeout or error occurred, fall back to substring matching
+            console.warn(`Regex test failed or timed out, falling back to substring matching for: ${filterPattern}`);
+            return path.toLowerCase().includes(filterPattern.toLowerCase());
         }
+        // matchResult === false, continue to fallback
     } catch (e) {
-        // Invalid regex, fall through to simple text matching
+        // Invalid regex compilation, log and fall through to simple text matching
+        console.warn(`Invalid regex pattern "${filterPattern}": ${e.message}. Falling back to substring matching.`);
     }
     
     // Fall back to case-insensitive simple text matching
