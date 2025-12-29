@@ -460,18 +460,59 @@ function updatePermissionsTriggerText() {
 }
 
 /**
- * Matches a path against a filter pattern, supporting both regex and simple text matching.
- * Tries regex first, falls back to case-insensitive simple text matching if regex fails.
+ * Converts a wildcard pattern (with * and ?) to a regex pattern.
+ * @param {string} pattern - The wildcard pattern
+ * @returns {string} The regex pattern
+ */
+function wildcardToRegex(pattern) {
+    // First, escape special regex characters except * and ?
+    // We need to escape: . + ^ $ { } ( ) | [ ] \
+    let regexPattern = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    // Now convert * to .* (any characters) - but we need to unescape * first if it was escaped
+    // Actually, since * is not in the escape list above, it won't be escaped
+    regexPattern = regexPattern.replace(/\*/g, '.*');
+    // Convert ? to . (single character) - same, ? won't be escaped
+    regexPattern = regexPattern.replace(/\?/g, '.');
+    return regexPattern;
+}
+
+/**
+ * Checks if a pattern looks like a wildcard pattern (contains * or ?).
+ * @param {string} pattern - The pattern to check
+ * @returns {boolean} True if it looks like a wildcard pattern
+ */
+function isWildcardPattern(pattern) {
+    // Check if pattern contains * or ? that aren't part of complex regex
+    if (!/[*?]/.test(pattern)) return false;
+    // If it starts with / or has ^ at start or $ at end, it's likely a regex pattern
+    if (pattern.startsWith('/') || pattern.startsWith('^') || pattern.endsWith('$')) return false;
+    // If it contains .* (regex equivalent of *), it's likely already a regex pattern
+    if (pattern.includes('.*')) return false;
+    return true;
+}
+
+/**
+ * Matches a path against a filter pattern, supporting regex, wildcard, and simple text matching.
+ * Supports:
+ * - Regex patterns (e.g., /ldap.*user/i)
+ * - Wildcard patterns (e.g., ldap*user -> matches ldap followed by any chars then user)
+ * - Simple text matching (case-insensitive substring)
  * @param {string} path - The path to match against
- * @param {string} filterPattern - The filter pattern (can be regex or simple text)
+ * @param {string} filterPattern - The filter pattern (can be regex, wildcard, or simple text)
  * @returns {boolean} True if the path matches the filter pattern
  */
 function matchesPathFilter(path, filterPattern) {
     if (!filterPattern) return true;
     
+    // Convert wildcard patterns to regex
+    let regexPattern = filterPattern;
+    if (isWildcardPattern(filterPattern)) {
+        regexPattern = wildcardToRegex(filterPattern);
+    }
+    
     // Try regex matching first
     try {
-        const regex = new RegExp(filterPattern, 'i'); // Case-insensitive regex
+        const regex = new RegExp(regexPattern, 'i'); // Case-insensitive regex
         if (regex.test(path)) {
             return true;
         }
