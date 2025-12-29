@@ -17,8 +17,8 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px 20px;
+    gap: 24px;
+    padding: 20px 28px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -26,7 +26,7 @@
     text-decoration: none;
     color: var(--text-primary);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
     box-sizing: border-box;
 }
@@ -64,8 +64,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
+    flex: 1 1 auto;  /* Allow to grow and take available space */
     min-width: 0;
+    max-width: calc(100% - 60px);  /* Reserve space for copy button */
     /* Restore box styling from endpoint-content.css but prevent wrapping */
     word-break: normal;
     background: var(--bg-primary);
@@ -97,7 +98,10 @@
 
 /* ===== ENDPOINT COPY BUTTON ===== */
 .endpoint-copy-btn {
-    margin-left: auto;
+    position: absolute;
+    right: 28px;  /* Match card padding */
+    top: 50%;
+    transform: translateY(-50%);
     padding: 6px;
     background: transparent;
     border: 1px solid var(--border-color);
@@ -112,6 +116,7 @@
     height: 28px;
     flex-shrink: 0;
     opacity: 0.6;
+    z-index: 10;
 }
 
 .endpoint-copy-btn:hover {
@@ -119,11 +124,11 @@
     color: white;
     border-color: var(--accent-primary);
     opacity: 1;
-    transform: scale(1.1);
+    transform: translateY(-50%) scale(1.1);
 }
 
 .endpoint-copy-btn:active {
-    transform: scale(0.95);
+    transform: translateY(-50%) scale(0.95);
 }
 
 .endpoint-copy-btn:focus-visible {
@@ -135,6 +140,7 @@
     font-size: 16px;
     line-height: 1;
     display: inline-block;
+    padding: 2px;
     transition: transform 0.2s ease;
 }
 
