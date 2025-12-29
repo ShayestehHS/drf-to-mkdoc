@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import re
+import traceback
 from collections import defaultdict
 from typing import Any
 
@@ -901,7 +902,6 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
                         schema_json_example = json.dumps(schema_json_example, indent=2)
                 except Exception as e:
                     # If generation fails, log error with full traceback and fall back to null
-                    import traceback
                     logger.warning(
                         f"Failed to generate JSON example for operation {operation_id}: {e}\n"
                         f"Traceback: {traceback.format_exc()}"
@@ -1197,7 +1197,7 @@ def _extract_validation_constraints(
 
 
 def _extract_request_body_fields_with_validation(
-    operation_id: str, request_body: dict[str, Any], components: dict[str, Any]
+    _operation_id: str, request_body: dict[str, Any], components: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """
     Extract request body fields with validation constraints for display.

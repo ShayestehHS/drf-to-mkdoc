@@ -532,28 +532,39 @@ function isSafeRegexPattern(pattern) {
 }
 
 /**
- * Executes a regex test with a timeout to prevent ReDoS attacks.
+ * Executes a regex test with timeout protection against ReDoS attacks.
+ * 
+ * NOTE: This function cannot actually interrupt a synchronous regex execution.
+ * It only detects if execution took too long after completion. For true protection,
+ * consider using a Web Worker or a safe-regex library.
+ * 
  * @param {RegExp} regex - The regex to test
  * @param {string} text - The text to test against
  * @param {number} timeoutMs - Maximum execution time in milliseconds (default: 100ms)
- * @returns {boolean|null} True if match, false if no match, null if timeout
+ * @returns {boolean|null} True if match, false if no match, null if timeout/error
  */
 function regexTestWithTimeout(regex, text, timeoutMs = 100) {
-    let completed = false;
+    // Since regex.test() is synchronous and cannot be interrupted,
+    // we can only detect slow execution after the fact.
+    // This provides limited protection but is better than nothing.
+    const startTime = Date.now();
     let result = false;
     
-    const startTime = Date.now();
     try {
         result = regex.test(text);
-        completed = true;
     } catch (e) {
         // Regex execution error
+        console.warn(`Regex execution error: ${e.message}`);
         return null;
     }
     
     const elapsed = Date.now() - startTime;
     if (elapsed > timeoutMs) {
-        console.warn(`Regex test exceeded timeout (${elapsed}ms > ${timeoutMs}ms). Pattern may be vulnerable to ReDoS.`);
+        console.warn(
+            `⚠️ ReDoS Warning: Regex test took ${elapsed}ms (limit: ${timeoutMs}ms). ` +
+            `Pattern may be vulnerable to catastrophic backtracking. ` +
+            `Consider using a simpler pattern or substring matching instead.`
+        );
         return null;
     }
     
@@ -898,27 +909,76 @@ function copyEndpointPath(event, button) {
     const pathTextElement = endpointPathElement.querySelector('.endpoint-path-text');
     const endpointPath = pathTextElement ? pathTextElement.textContent.trim() : endpointPathElement.textContent.trim();
     
-    // Copy to clipboard
-    navigator.clipboard.writeText(endpointPath).then(() => {
-        // Show success feedback
+    // Check if Clipboard API is available (requires secure context - HTTPS or localhost)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        // Use modern Clipboard API
+        navigator.clipboard.writeText(endpointPath).then(() => {
+            // Show success feedback
+            const originalIcon = button.innerHTML;
+            button.classList.add('copied');
+            button.innerHTML = '<span class="copy-icon">✓</span>';
+            
+            // Reset after 1 second
+            setTimeout(() => {
+                button.classList.remove('copied');
+                button.innerHTML = originalIcon;
+            }, 1000);
+        }).catch((err) => {
+            console.error('Failed to copy endpoint path:', err);
+            // Fallback to execCommand
+            fallbackCopyToClipboard(endpointPath, button);
+        });
+    } else {
+        // Clipboard API not available (insecure context), use fallback
+        fallbackCopyToClipboard(endpointPath, button);
+    }
+}
+
+/**
+ * Fallback copy method using document.execCommand for insecure contexts.
+ * @param {string} text - Text to copy
+ * @param {HTMLElement} button - Button element for feedback
+ */
+function fallbackCopyToClipboard(text, button) {
+    // Create a temporary textarea element
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-999999px';
+    textarea.style.top = '-999999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    
+    try {
+        // Use deprecated but widely supported execCommand
+        const successful = document.execCommand('copy');
+        if (successful) {
+            // Show success feedback
+            const originalIcon = button.innerHTML;
+            button.classList.add('copied');
+            button.innerHTML = '<span class="copy-icon">✓</span>';
+            
+            // Reset after 1 second
+            setTimeout(() => {
+                button.classList.remove('copied');
+                button.innerHTML = originalIcon;
+            }, 1000);
+        } else {
+            throw new Error('execCommand copy failed');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        // Show error feedback with user-friendly message
         const originalIcon = button.innerHTML;
-        button.classList.add('copied');
-        button.innerHTML = '<span class="copy-icon">✓</span>';
-        
-        // Reset after 1 second
-        setTimeout(() => {
-            button.classList.remove('copied');
-            button.innerHTML = originalIcon;
-        }, 1000);
-    }).catch((err) => {
-        console.error('Failed to copy endpoint path:', err);
-        // Fallback: show error feedback
-        const originalIcon = button.innerHTML;
-        button.innerHTML = '<span class="copy-icon">✕</span>';
+        button.innerHTML = '<span class="copy-icon" title="Copy requires HTTPS or use localhost">✕</span>';
         setTimeout(() => {
             button.innerHTML = originalIcon;
-        }, 1000);
-    });
+        }, 2000);
+    } finally {
+        // Clean up
+        document.body.removeChild(textarea);
+    }
 }
 
 // Make function globally available

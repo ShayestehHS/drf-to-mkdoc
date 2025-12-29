@@ -152,10 +152,10 @@ def merge_openapi_schemas(schemas: list[dict[str, Any]]) -> dict[str, Any]:
             if isinstance(tag, dict):
                 tag_name = tag.get("name")
                 if tag_name and tag_name not in tag_names:
-                    merged_tags.append(tag)
+                    merged_tags.append(deepcopy(tag))
                     tag_names.add(tag_name)
             elif tag not in merged_tags:
-                merged_tags.append(tag)
+                merged_tags.append(deepcopy(tag) if isinstance(tag, (dict, list)) else tag)
     
     merged["tags"] = merged_tags
     

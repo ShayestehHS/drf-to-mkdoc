@@ -40,6 +40,7 @@
         <div class="response-subtabs-container">
             <div class="response-subtabs" role="tablist">
                 <button 
+                    id="response-subtab-json-{{ response.status_code }}-{{ forloop.counter0 }}"
                     class="response-subtab active" 
                     role="tab" 
                     aria-selected="true"
@@ -49,6 +50,7 @@
                 </button>
                 {% if example.schema_display and example.schema_display|length > 0 %}
                 <button 
+                    id="response-subtab-schema-{{ response.status_code }}-{{ forloop.counter0 }}"
                     class="response-subtab" 
                     role="tab" 
                     aria-selected="false"
@@ -63,7 +65,8 @@
             <div 
                 id="response-json-{{ response.status_code }}-{{ forloop.counter0 }}" 
                 class="response-subtab-content active" 
-                role="tabpanel">
+                role="tabpanel"
+                aria-labelledby="response-subtab-json-{{ response.status_code }}-{{ forloop.counter0 }}">
                 {% if example.json and example.json != "null" %}
                 <div class="response-example">
 ```json
@@ -84,9 +87,10 @@ null
             <div 
                 id="response-schema-{{ response.status_code }}-{{ forloop.counter0 }}" 
                 class="response-subtab-content" 
-                role="tabpanel">
+                role="tabpanel"
+                aria-labelledby="response-subtab-schema-{{ response.status_code }}-{{ forloop.counter0 }}">
                 <div class="response-example">
-{{ example.schema_display }}
+{{ example.schema_display|escape }}
                 </div>
             </div>
             {% endif %}
@@ -100,6 +104,7 @@ null
 <div class="response-subtabs-container">
     <div class="response-subtabs" role="tablist">
         <button 
+            id="response-subtab-json-{{ response.status_code }}-0"
             class="response-subtab active" 
             role="tab" 
             aria-selected="true"
@@ -109,6 +114,7 @@ null
         </button>
         {% if example.schema_display and example.schema_display|length > 0 %}
         <button 
+            id="response-subtab-schema-{{ response.status_code }}-0"
             class="response-subtab" 
             role="tab" 
             aria-selected="false"
@@ -123,7 +129,8 @@ null
     <div 
         id="response-json-{{ response.status_code }}-0" 
         class="response-subtab-content active" 
-        role="tabpanel">
+        role="tabpanel"
+        aria-labelledby="response-subtab-json-{{ response.status_code }}-0">
         {% if example.json and example.json != "null" %}
         <div class="response-example">
 ```json
@@ -144,9 +151,10 @@ null
     <div 
         id="response-schema-{{ response.status_code }}-0" 
         class="response-subtab-content" 
-        role="tabpanel">
+        role="tabpanel"
+        aria-labelledby="response-subtab-schema-{{ response.status_code }}-0">
         <div class="response-example">
-{{ example.schema_display }}
+{{ example.schema_display|escape }}
         </div>
     </div>
     {% endif %}
