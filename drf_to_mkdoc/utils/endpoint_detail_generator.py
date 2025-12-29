@@ -1235,8 +1235,10 @@ def _extract_request_body_fields_with_validation(
     
     fields = []
     for field_name, field_schema in properties.items():
-        # Skip writeOnly fields for request body (they shouldn't be in request)
-        if field_schema.get("writeOnly", False):
+        # Note: writeOnly fields SHOULD be included in requests per OpenAPI spec
+        # (they're only excluded from responses). We don't skip them here.
+        # Skip readOnly fields for request body (they shouldn't be in request)
+        if field_schema.get("readOnly", False):
             continue
         
         # Resolve field schema reference if needed

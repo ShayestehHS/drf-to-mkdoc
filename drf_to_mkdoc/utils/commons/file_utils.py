@@ -70,7 +70,7 @@ def load_json_files_from_dir(dir_path: str, raise_not_found: bool = True) -> lis
                 if isinstance(data, dict):
                     loaded_data.append(data)
                 else:
-                    raise ValueError(f"JSON file {json_file} does not contain a JSON object (dict)")
+                    raise TypeError(f"JSON file {json_file} does not contain a JSON object (dict), got {type(data).__name__}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in {json_file}: {e}") from e
     

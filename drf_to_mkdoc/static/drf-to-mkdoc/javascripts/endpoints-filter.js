@@ -596,18 +596,22 @@ function matchesPathFilter(path, filterPattern) {
         const matchResult = regexTestWithTimeout(regex, path, 100);
         if (matchResult === true) {
             return true;
+        } else if (matchResult === false) {
+            // Valid regex that doesn't match - return false immediately
+            // Don't fall back to substring matching as this changes semantics
+            return false;
         } else if (matchResult === null) {
             // Timeout or error occurred, fall back to substring matching
             console.warn(`Regex test failed or timed out, falling back to substring matching for: ${filterPattern}`);
             return path.toLowerCase().includes(filterPattern.toLowerCase());
         }
-        // matchResult === false, continue to fallback
     } catch (e) {
         // Invalid regex compilation, log and fall through to simple text matching
         console.warn(`Invalid regex pattern "${filterPattern}": ${e.message}. Falling back to substring matching.`);
     }
     
     // Fall back to case-insensitive simple text matching
+    // (only reached if regex compilation failed or matchResult was null)
     return path.toLowerCase().includes(filterPattern.toLowerCase());
 }
 
