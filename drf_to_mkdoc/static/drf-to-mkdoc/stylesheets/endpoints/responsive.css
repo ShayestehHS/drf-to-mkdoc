@@ -22,10 +22,25 @@
         font-size: 14px;
         padding: 8px;
         width: 100%;
+        max-width: 100%;  /* Remove the space reservation for copy button on mobile */
     }
     
     .endpoint-path-text {
         font-size: 14px;
+    }
+
+    .endpoint-copy-btn {
+        right: 16px;  /* Match mobile padding */
+        top: 16px;  /* Position at top-right on mobile */
+        transform: none;  /* Remove vertical centering on mobile */
+    }
+
+    .endpoint-copy-btn:hover {
+        transform: scale(1.1);  /* Only scale on hover for mobile */
+    }
+
+    .endpoint-copy-btn:active {
+        transform: scale(0.95);  /* Only scale on active for mobile */
     }
 
     .method-badge {
@@ -45,10 +60,16 @@
         font-size: 13px;
         padding: 8px 12px;
         width: 100%;
+        max-width: 100%;  /* Remove the space reservation for copy button on mobile */
     }
     
     .endpoint-path-text {
         font-size: 13px;
+    }
+
+    .endpoint-copy-btn {
+        right: 16px;  /* Match mobile padding */
+        top: 12px;  /* Match mobile padding */
     }
 
     .method-badge {

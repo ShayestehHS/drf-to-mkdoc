@@ -811,18 +811,16 @@ function copyEndpointPath(event, button) {
     event.preventDefault();
     event.stopPropagation();
     
-    // Find the endpoint path element (parent of the button)
-    const endpointPathElement = button.closest('.endpoint-path');
+    // Find the endpoint path element (sibling of the button)
+    const endpointCard = button.closest('.endpoint-card');
+    if (!endpointCard) return;
+    
+    const endpointPathElement = endpointCard.querySelector('.endpoint-path');
     if (!endpointPathElement) return;
     
-    // Get the path text excluding the button content
-    // Clone the element, remove the button, then get textContent
-    const clone = endpointPathElement.cloneNode(true);
-    const buttonClone = clone.querySelector('.endpoint-copy-btn');
-    if (buttonClone) {
-        buttonClone.remove();
-    }
-    const endpointPath = clone.textContent.trim();
+    // Get the path text from the endpoint-path-text element
+    const pathTextElement = endpointPathElement.querySelector('.endpoint-path-text');
+    const endpointPath = pathTextElement ? pathTextElement.textContent.trim() : endpointPathElement.textContent.trim();
     
     // Copy to clipboard
     navigator.clipboard.writeText(endpointPath).then(() => {
