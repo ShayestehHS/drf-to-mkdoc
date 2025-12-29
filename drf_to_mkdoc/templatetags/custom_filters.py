@@ -151,7 +151,10 @@ def extract_json_from_markdown(value):
 @register.filter
 def escape_json_for_attr(value):
     """Escape JSON string for use in HTML data attributes"""
-    if not isinstance(value, str):
+    # Handle mark_safe objects by converting to string
+    if hasattr(value, '__html__'):
+        value = str(value)
+    elif not isinstance(value, str):
         return ""
     # Escape HTML entities and single quotes (since we use single quotes for attributes)
     # JSON uses double quotes, so we mainly need to escape &, <, >, and single quotes
@@ -247,3 +250,16 @@ def format_description(value):
     
     # Clean up excessive whitespace at start/end
     return formatted.strip()
+
+
+@register.filter
+def format_enum(value):
+    """
+    Format enum values for display in validation constraints.
+    Converts list of enum values to a comma-separated string.
+    """
+    if not isinstance(value, list):
+        return str(value) if value is not None else ""
+    
+    # Convert each value to string and join with commas
+    return ", ".join(str(v) for v in value)
