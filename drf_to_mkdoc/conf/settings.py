@@ -17,6 +17,8 @@ class DRFToMkDocSettings:
         "DJANGO_APPS": list,
         "ENABLE_AUTO_AUTH": bool,
         "AUTH_FUNCTION_JS": (str, type(None)),
+        "SCHEMA_JSON_FILE": (str, type(None)),
+        "SCHEMA_JSON_DIR": (str, type(None)),
     }
 
     settings_ranges: ClassVar[dict[str, tuple[int, int]]] = {
