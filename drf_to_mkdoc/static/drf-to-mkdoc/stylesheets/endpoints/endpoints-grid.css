@@ -77,11 +77,32 @@
 /* ===== ENDPOINT PATH WITH COPY BUTTON ===== */
 .endpoint-card .endpoint-path {
     position: relative;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 8px;
     flex: 1;
     min-width: 0;
+    /* Restore box styling from endpoint-content.css but prevent wrapping */
+    word-break: normal;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 0;
+    font-family: 'Monaco', 'Menlo', 'SF Mono', monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.endpoint-card .endpoint-path-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    /* Ensure text doesn't wrap */
+    word-break: normal;
 }
 
 /* ===== ENDPOINT COPY BUTTON ===== */

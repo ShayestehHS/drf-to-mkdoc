@@ -21,6 +21,11 @@
     .endpoint-path {
         font-size: 14px;
         padding: 8px;
+        width: 100%;
+    }
+    
+    .endpoint-path-text {
+        font-size: 14px;
     }
 
     .method-badge {
@@ -36,6 +41,11 @@
     .endpoint-path {
         font-size: 13px;
         padding: 6px;
+        width: 100%;
+    }
+    
+    .endpoint-path-text {
+        font-size: 13px;
     }
 
     .method-badge {
