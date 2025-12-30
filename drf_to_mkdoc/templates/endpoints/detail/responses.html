@@ -10,9 +10,157 @@
 {{ response.description }}
 {% endif %}
 
-{% for example in response.examples %}
-{{ example|format_json }}
-{% endfor %}
+{% if response.examples|length > 1 %}
+<!-- Multiple examples with tabs -->
+<div class="example-tabs-container">
+    <div class="example-tabs" role="tablist">
+        {% for example in response.examples %}
+        <button 
+            id="response-example-tab-{{ response.status_code }}-{{ forloop.counter0 }}"
+            class="example-tab {% if forloop.first %}active{% endif %}" 
+            role="tab" 
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-controls="response-example-{{ response.status_code }}-{{ forloop.counter0 }}"
+            data-example-index="{{ forloop.counter0 }}">
+            {% if example.summary %}{{ example.summary }}{% else %}Example {{ forloop.counter }}{% endif %}
+        </button>
+        {% endfor %}
+    </div>
+    
+    {% for example in response.examples %}
+    <div 
+        id="response-example-{{ response.status_code }}-{{ forloop.counter0 }}" 
+        class="example-tab-content {% if forloop.first %}active{% endif %}" 
+        role="tabpanel"
+        aria-labelledby="response-example-tab-{{ response.status_code }}-{{ forloop.counter0 }}">
+        {% if example.description %}
+        <p class="example-description">{{ example.description }}</p>
+        {% endif %}
+        <!-- Subtabs for JSON, Schema, TypeScript -->
+        <div class="response-subtabs-container">
+            <div class="response-subtabs" role="tablist">
+                <button 
+                    id="response-subtab-json-{{ response.status_code }}-{{ forloop.counter0 }}"
+                    class="response-subtab active" 
+                    role="tab" 
+                    aria-selected="true"
+                    aria-controls="response-json-{{ response.status_code }}-{{ forloop.counter0 }}"
+                    data-subtab="json">
+                    JSON
+                </button>
+                {% if example.schema_display and example.schema_display|length > 0 %}
+                <button 
+                    id="response-subtab-schema-{{ response.status_code }}-{{ forloop.counter0 }}"
+                    class="response-subtab" 
+                    role="tab" 
+                    aria-selected="false"
+                    aria-controls="response-schema-{{ response.status_code }}-{{ forloop.counter0 }}"
+                    data-subtab="schema">
+                    Schema
+                </button>
+                {% endif %}
+            </div>
+            
+            <!-- JSON Subtab Content -->
+            <div 
+                id="response-json-{{ response.status_code }}-{{ forloop.counter0 }}" 
+                class="response-subtab-content active" 
+                role="tabpanel"
+                aria-labelledby="response-subtab-json-{{ response.status_code }}-{{ forloop.counter0 }}">
+                {% if example.json and example.json != "null" %}
+                <div class="response-example">
+```json
+{{ example.json|json_for_display }}
+```
+                </div>
+                {% else %}
+                <div class="response-example">
+```json
+null
+```
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Schema Subtab Content -->
+            {% if example.schema_display and example.schema_display|length > 0 %}
+            <div 
+                id="response-schema-{{ response.status_code }}-{{ forloop.counter0 }}" 
+                class="response-subtab-content" 
+                role="tabpanel"
+                aria-labelledby="response-subtab-schema-{{ response.status_code }}-{{ forloop.counter0 }}">
+                <div class="response-example">
+{{ example.schema_display|escape }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif response.examples|length == 1 %}
+<!-- Single example, no main tabs but still show subtabs -->
+{% with example=response.examples.0 %}
+<div class="response-subtabs-container">
+    <div class="response-subtabs" role="tablist">
+        <button 
+            id="response-subtab-json-{{ response.status_code }}-0"
+            class="response-subtab active" 
+            role="tab" 
+            aria-selected="true"
+            aria-controls="response-json-{{ response.status_code }}-0"
+            data-subtab="json">
+            JSON
+        </button>
+        {% if example.schema_display and example.schema_display|length > 0 %}
+        <button 
+            id="response-subtab-schema-{{ response.status_code }}-0"
+            class="response-subtab" 
+            role="tab" 
+            aria-selected="false"
+            aria-controls="response-schema-{{ response.status_code }}-0"
+            data-subtab="schema">
+            Schema
+        </button>
+        {% endif %}
+    </div>
+    
+    <!-- JSON Subtab Content -->
+    <div 
+        id="response-json-{{ response.status_code }}-0" 
+        class="response-subtab-content active" 
+        role="tabpanel"
+        aria-labelledby="response-subtab-json-{{ response.status_code }}-0">
+        {% if example.json and example.json != "null" %}
+        <div class="response-example">
+```json
+{{ example.json|json_for_display }}
+```
+        </div>
+        {% else %}
+        <div class="response-example">
+```json
+null
+```
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Schema Subtab Content -->
+    {% if example.schema_display and example.schema_display|length > 0 %}
+    <div 
+        id="response-schema-{{ response.status_code }}-0" 
+        class="response-subtab-content" 
+        role="tabpanel"
+        aria-labelledby="response-subtab-schema-{{ response.status_code }}-0">
+        <div class="response-example">
+{{ example.schema_display|escape }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endwith %}
+{% endif %}
 
 {% endfor %}
 {% endif %}

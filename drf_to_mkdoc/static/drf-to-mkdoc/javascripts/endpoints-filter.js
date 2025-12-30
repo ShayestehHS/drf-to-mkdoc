@@ -75,7 +75,12 @@ function applyFilters(skipUpdateOptions = false) {
 
 function getValue(id) {
     const el = document.getElementById(id);
-    return el ? el.value.trim().toLowerCase() : '';
+    if (!el) return '';
+    // Don't lowercase path filter to preserve regex patterns
+    if (id === 'filter-path') {
+        return el.value.trim();
+    }
+    return el.value.trim().toLowerCase();
 }
 
 function getPermissionsCheckboxValue() {
@@ -454,12 +459,168 @@ function updatePermissionsTriggerText() {
     }
 }
 
+/**
+ * Converts a wildcard pattern (with * and ?) to a regex pattern.
+ * @param {string} pattern - The wildcard pattern
+ * @returns {string} The regex pattern
+ */
+function wildcardToRegex(pattern) {
+    // First, escape special regex characters except * and ?
+    // We need to escape: . + ^ $ { } ( ) | [ ] \
+    let regexPattern = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    // Now convert * to .* (any characters) - but we need to unescape * first if it was escaped
+    // Actually, since * is not in the escape list above, it won't be escaped
+    regexPattern = regexPattern.replace(/\*/g, '.*');
+    // Convert ? to . (single character) - same, ? won't be escaped
+    regexPattern = regexPattern.replace(/\?/g, '.');
+    return regexPattern;
+}
+
+/**
+ * Checks if a pattern looks like a wildcard pattern (contains * or ?).
+ * @param {string} pattern - The pattern to check
+ * @returns {boolean} True if it looks like a wildcard pattern
+ */
+function isWildcardPattern(pattern) {
+    // Check if pattern contains * or ? that aren't part of complex regex
+    if (!/[*?]/.test(pattern)) return false;
+    // If it starts with / or has ^ at start or $ at end, it's likely a regex pattern
+    if (pattern.startsWith('/') || pattern.startsWith('^') || pattern.endsWith('$')) return false;
+    // If it contains .* (regex equivalent of *), it's likely already a regex pattern
+    if (pattern.includes('.*')) return false;
+    return true;
+}
+
+/**
+ * Matches a path against a filter pattern, supporting regex, wildcard, and simple text matching.
+ * Supports:
+ * - Regex patterns (e.g., /ldap.*user/i)
+ * - Wildcard patterns (e.g., ldap*user -> matches ldap followed by any chars then user)
+ * - Simple text matching (case-insensitive substring)
+ * @param {string} path - The path to match against
+ * @param {string} filterPattern - The filter pattern (can be regex, wildcard, or simple text)
+ * @returns {boolean} True if the path matches the filter pattern
+ */
+/**
+ * Validates a regex pattern for potential ReDoS vulnerabilities.
+ * @param {string} pattern - The regex pattern to validate
+ * @returns {boolean} True if the pattern appears safe, false if potentially dangerous
+ */
+function isSafeRegexPattern(pattern) {
+    // Limit pattern length to prevent extremely long patterns
+    if (pattern.length > 1000) {
+        return false;
+    }
+    
+    // Check for nested quantifiers that can cause exponential backtracking
+    // Patterns like (a+)+, (a*)*, (a?)?, etc. are dangerous
+    const dangerousPatterns = [
+        /\([^)]*\+[^)]*\)\+/,  // (a+)+
+        /\([^)]*\*[^)]*\)\*/,  // (a*)*
+        /\([^)]*\?[^)]*\)\?/,  // (a?)?
+        /\([^)]*\+[^)]*\)\*/,  // (a+)*
+        /\([^)]*\*[^)]*\)\+/,  // (a*)+
+    ];
+    
+    for (const dangerousPattern of dangerousPatterns) {
+        if (dangerousPattern.test(pattern)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Executes a regex test with timeout protection against ReDoS attacks.
+ * 
+ * NOTE: This function cannot actually interrupt a synchronous regex execution.
+ * It only detects if execution took too long after completion. For true protection,
+ * consider using a Web Worker or a safe-regex library.
+ * 
+ * @param {RegExp} regex - The regex to test
+ * @param {string} text - The text to test against
+ * @param {number} timeoutMs - Maximum execution time in milliseconds (default: 100ms)
+ * @returns {boolean|null} True if match, false if no match, null if timeout/error
+ */
+function regexTestWithTimeout(regex, text, timeoutMs = 100) {
+    // Since regex.test() is synchronous and cannot be interrupted,
+    // we can only detect slow execution after the fact.
+    // This provides limited protection but is better than nothing.
+    const startTime = Date.now();
+    let result = false;
+    
+    try {
+        result = regex.test(text);
+    } catch (e) {
+        // Regex execution error
+        console.warn(`Regex execution error: ${e.message}`);
+        return null;
+    }
+    
+    const elapsed = Date.now() - startTime;
+    if (elapsed > timeoutMs) {
+        console.warn(
+            `⚠️ ReDoS Warning: Regex test took ${elapsed}ms (limit: ${timeoutMs}ms). ` +
+            `Pattern may be vulnerable to catastrophic backtracking. ` +
+            `Consider using a simpler pattern or substring matching instead.`
+        );
+        return null;
+    }
+    
+    return result;
+}
+
+function matchesPathFilter(path, filterPattern) {
+    if (!filterPattern) return true;
+    
+    // Convert wildcard patterns to regex
+    let regexPattern = filterPattern;
+    const isWildcard = isWildcardPattern(filterPattern);
+    if (isWildcard) {
+        regexPattern = wildcardToRegex(filterPattern);
+    }
+    
+    // Validate pattern for ReDoS before attempting to compile
+    if (!isSafeRegexPattern(regexPattern)) {
+        // Unsafe pattern detected, fall back to simple text matching
+        console.warn(`Unsafe regex pattern detected, using substring matching: ${filterPattern}`);
+        return path.toLowerCase().includes(filterPattern.toLowerCase());
+    }
+    
+    // Try regex matching first
+    try {
+        const regex = new RegExp(regexPattern, 'i'); // Case-insensitive regex
+        
+        // Use timeout-protected regex test
+        const matchResult = regexTestWithTimeout(regex, path, 100);
+        if (matchResult === true) {
+            return true;
+        } else if (matchResult === false) {
+            // Valid regex that doesn't match - return false immediately
+            // Don't fall back to substring matching as this changes semantics
+            return false;
+        } else if (matchResult === null) {
+            // Timeout or error occurred, fall back to substring matching
+            console.warn(`Regex test failed or timed out, falling back to substring matching for: ${filterPattern}`);
+            return path.toLowerCase().includes(filterPattern.toLowerCase());
+        }
+    } catch (e) {
+        // Invalid regex compilation, log and fall through to simple text matching
+        console.warn(`Invalid regex pattern "${filterPattern}": ${e.message}. Falling back to substring matching.`);
+    }
+    
+    // Fall back to case-insensitive simple text matching
+    // (only reached if regex compilation failed or matchResult was null)
+    return path.toLowerCase().includes(filterPattern.toLowerCase());
+}
+
 function matchesFilters(card) {
     const d = card.dataset;
     const f = currentFilters;
 
     if (f.method && d.method !== f.method) return false;
-    if (f.path && !d.path.includes(f.path)) return false;
+    if (f.path && !matchesPathFilter(d.path, f.path)) return false;
     if (f.app && d.app !== f.app) return false;
     if (f.auth && d.auth !== f.auth) return false;
     if (f.pagination && d.pagination !== f.pagination) return false;
@@ -734,3 +895,95 @@ function debounce(func, delay) {
         timeout = setTimeout(func, delay);
     };
 }
+
+// Copy endpoint path to clipboard
+function copyEndpointPath(event, button) {
+    // Prevent navigation when clicking the copy button
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Find the endpoint path element (sibling of the button)
+    const endpointCard = button.closest('.endpoint-card');
+    if (!endpointCard) return;
+    
+    const endpointPathElement = endpointCard.querySelector('.endpoint-path');
+    if (!endpointPathElement) return;
+    
+    // Get the path text from the endpoint-path-text element
+    const pathTextElement = endpointPathElement.querySelector('.endpoint-path-text');
+    const endpointPath = pathTextElement ? pathTextElement.textContent.trim() : endpointPathElement.textContent.trim();
+    
+    // Check if Clipboard API is available (requires secure context - HTTPS or localhost)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        // Use modern Clipboard API
+        navigator.clipboard.writeText(endpointPath).then(() => {
+            // Show success feedback
+            const originalIcon = button.innerHTML;
+            button.classList.add('copied');
+            button.innerHTML = '<span class="copy-icon">✓</span>';
+            
+            // Reset after 1 second
+            setTimeout(() => {
+                button.classList.remove('copied');
+                button.innerHTML = originalIcon;
+            }, 1000);
+        }).catch((err) => {
+            console.error('Failed to copy endpoint path:', err);
+            // Fallback to execCommand
+            fallbackCopyToClipboard(endpointPath, button);
+        });
+    } else {
+        // Clipboard API not available (insecure context), use fallback
+        fallbackCopyToClipboard(endpointPath, button);
+    }
+}
+
+/**
+ * Fallback copy method using document.execCommand for insecure contexts.
+ * @param {string} text - Text to copy
+ * @param {HTMLElement} button - Button element for feedback
+ */
+function fallbackCopyToClipboard(text, button) {
+    // Create a temporary textarea element
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-999999px';
+    textarea.style.top = '-999999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    
+    try {
+        // Use deprecated but widely supported execCommand
+        const successful = document.execCommand('copy');
+        if (successful) {
+            // Show success feedback
+            const originalIcon = button.innerHTML;
+            button.classList.add('copied');
+            button.innerHTML = '<span class="copy-icon">✓</span>';
+            
+            // Reset after 1 second
+            setTimeout(() => {
+                button.classList.remove('copied');
+                button.innerHTML = originalIcon;
+            }, 1000);
+        } else {
+            throw new Error('execCommand copy failed');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        // Show error feedback with user-friendly message
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<span class="copy-icon" title="Copy requires HTTPS or use localhost">✕</span>';
+        setTimeout(() => {
+            button.innerHTML = originalIcon;
+        }, 2000);
+    } finally {
+        // Clean up
+        document.body.removeChild(textarea);
+    }
+}
+
+// Make function globally available
+window.copyEndpointPath = copyEndpointPath;

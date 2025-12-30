@@ -190,11 +190,20 @@ const RequestExecutor = {
         };
     },
     async executeRequest() {
-        const executeBtn = document.querySelector('[data-action="send"], .primary-button, .primary-btn, #executeBtn');
+        // Find the send button - prioritize data-action="send" for more reliable selection
+        const executeBtn = document.querySelector('[data-action="send"]') || 
+                          document.querySelector('.modal-footer .primary-button') ||
+                          document.querySelector('.primary-button') ||
+                          document.querySelector('.primary-btn') ||
+                          document.querySelector('#executeBtn');
+        
         if (!executeBtn) {
             console.warn('Execute button not found');
             return;
         }
+
+        // Set loading state immediately to prevent multiple clicks
+        this.setLoadingState(executeBtn, true);
 
         // Ensure auto-auth header is added if needed (await to prevent race condition)
         if (window.FormManager && typeof window.FormManager.addAutoAuthHeader === 'function') {
@@ -215,11 +224,10 @@ const RequestExecutor = {
 
         if (emptyFields.length > 0) {
             this.showValidationError(`Please fill in required fields: ${emptyFields.join(', ')}`, 'parameters');
+            // Clear loading state if validation fails
+            this.setLoadingState(executeBtn, false);
             return;
         }
-
-        // Show loading state
-        this.setLoadingState(executeBtn, true);
 
         const startTime = Date.now();
         
@@ -281,19 +289,34 @@ const RequestExecutor = {
     },
 
     setLoadingState(button, loading) {
+        if (!button) return;
+        
+        // Disable/enable the button
         button.disabled = loading;
         
         if (loading) {
+            // Add loading class and show spinner
             button.classList.add('loading');
             const spinner = button.querySelector('.loading-spinner');
             if (spinner) {
                 spinner.style.display = 'inline-block';
             }
+            // Hide the icon when loading
+            const icon = button.querySelector('.icon');
+            if (icon) {
+                icon.style.display = 'none';
+            }
         } else {
+            // Remove loading class and hide spinner
             button.classList.remove('loading');
             const spinner = button.querySelector('.loading-spinner');
             if (spinner) {
                 spinner.style.display = 'none';
+            }
+            // Show the icon again
+            const icon = button.querySelector('.icon');
+            if (icon) {
+                icon.style.display = '';
             }
         }
     },

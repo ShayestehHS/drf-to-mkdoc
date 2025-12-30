@@ -118,6 +118,81 @@
     margin-bottom: var(--try-out-spacing-lg);
 }
 
+/* Method Badge - Matching list style without shadow effects */
+.try-out-form .method-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 1);
+    text-transform: uppercase;
+    width: 55px;
+    height: 26px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
+    box-sizing: border-box;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: none;
+    border: none;
+    box-shadow: none;
+    opacity: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+}
+
+/* Remove shadow effects (::before and ::after) */
+.try-out-form .method-badge::before,
+.try-out-form .method-badge::after {
+    display: none;
+}
+
+/* GET - Refined green gradient */
+.try-out-form .method-badge.method-get {
+    background: linear-gradient(120deg, 
+        rgba(34, 197, 94, 1) 0%, 
+        rgba(16, 185, 129, 0.95) 50%,
+        rgba(5, 150, 105, 1) 100%);
+}
+
+/* POST - Refined orange gradient */
+.try-out-form .method-badge.method-post {
+    background: linear-gradient(120deg, 
+        rgba(251, 146, 60, 1) 0%, 
+        rgba(245, 158, 11, 0.95) 50%,
+        rgba(217, 119, 6, 1) 100%);
+}
+
+/* PUT - Refined purple gradient */
+.try-out-form .method-badge.method-put {
+    background: linear-gradient(120deg, 
+        rgba(167, 139, 250, 1) 0%, 
+        rgba(139, 92, 246, 0.95) 50%,
+        rgba(124, 58, 237, 1) 100%);
+}
+
+/* PATCH - Refined cyan gradient */
+.try-out-form .method-badge.method-patch {
+    background: linear-gradient(120deg, 
+        rgba(34, 211, 238, 1) 0%, 
+        rgba(6, 182, 212, 0.95) 50%,
+        rgba(14, 116, 144, 1) 100%);
+}
+
+/* DELETE - Refined red gradient */
+.try-out-form .method-badge.method-delete {
+    background: linear-gradient(120deg, 
+        rgba(248, 113, 113, 1) 0%, 
+        rgba(239, 68, 68, 0.95) 50%,
+        rgba(220, 38, 38, 1) 100%);
+}
+
 /* Floating Label Input */
 .floating-label-group {
     position: relative;

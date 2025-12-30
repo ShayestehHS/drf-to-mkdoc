@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import re
+import traceback
 from collections import defaultdict
 from typing import Any
 
@@ -634,6 +635,206 @@ def _generate_examples(operation_id: str, schema: dict, components: dict) -> lis
     return examples
 
 
+def _format_schema_for_swagger_display(
+    schema: dict, components: dict, indent: int = 0, prefix: str = ""
+) -> str:
+    """Format schema in Swagger-style display format."""
+    if not schema:
+        return ""
+    
+    # Check for $ref before resolving to preserve reference name
+    has_ref = "$ref" in schema
+    ref_name = None
+    if has_ref:
+        ref_name = schema["$ref"].split("/")[-1]
+    
+    schema = _resolve_schema_reference(schema, components)
+    schema = _handle_all_of_schema(schema, components, True)
+    
+    lines = []
+    indent_str = "  " * indent
+    
+    schema_type = schema.get("type", "object")
+    title = schema.get("title", "")
+    read_only = schema.get("readOnly", False)
+    
+    # Format field name with prefix
+    field_display = prefix if prefix else "root"
+    
+    # Build type display
+    type_display = schema_type
+    is_object_type = False
+    has_properties = "properties" in schema and schema["properties"]
+    
+    if schema_type == "array":
+        items = schema.get("items", {})
+        if "$ref" in items:
+            ref_name = items["$ref"].split("/")[-1]
+            type_display = f"array[{ref_name}]"
+        elif "type" in items:
+            items_type = items.get("type", "string")
+            if items_type == "object":
+                items_title = items.get("title", "object")
+                type_display = f"array[{items_title}]"
+            else:
+                type_display = f"array[{items_type}]"
+    elif schema_type == "object":
+        if has_ref and ref_name:
+            # Use the reference name
+            type_display = ref_name
+            is_object_type = True
+        else:
+            schema_title = schema.get("title", "")
+            if schema_title and schema_title != "object":
+                type_display = schema_title
+                is_object_type = True
+            elif has_properties:
+                # Inline object with properties
+                type_display = "object"
+                is_object_type = True
+    
+    # Build the main line
+    if is_object_type and has_properties:
+        # For object types with properties, add opening brace
+        main_line = f"{field_display}\t{type_display}{{"
+    else:
+        main_line = f"{field_display}\t{type_display}"
+    
+    if title:
+        main_line += f"\n  title: {title}"
+    if read_only:
+        main_line += "\n  readOnly: true"
+    
+    # Add constraints
+    if "minLength" in schema:
+        main_line += f"\n  minLength: {schema['minLength']}"
+    if "maxLength" in schema:
+        main_line += f"\n  maxLength: {schema['maxLength']}"
+    if "minimum" in schema:
+        main_line += f"\n  minimum: {schema['minimum']}"
+    if "maximum" in schema:
+        main_line += f"\n  maximum: {schema['maximum']}"
+    if "pattern" in schema:
+        main_line += f"\n  pattern: {schema['pattern']}"
+    if "enum" in schema:
+        main_line += f"\n  Enum:\n    Array [ {len(schema['enum'])} ]"
+    
+    lines.append(indent_str + main_line)
+    
+    # Handle object properties
+    if schema_type == "object" and has_properties:
+        for prop_name, prop_schema in schema["properties"].items():
+            # Skip writeOnly fields for responses
+            if prop_schema.get("writeOnly", False):
+                continue
+            
+            prop_lines = _format_schema_for_swagger_display(
+                prop_schema, components, indent + 1, prop_name
+            )
+            if prop_lines:
+                lines.append(prop_lines)
+        
+        # Add closing brace for object types
+        if is_object_type:
+            lines.append(indent_str + "}")
+    
+    # Handle array items if it's an object
+    if schema_type == "array":
+        items = schema.get("items", {})
+        if items.get("type") == "object" or "$ref" in items:
+            items_lines = _format_schema_for_swagger_display(
+                items, components, indent + 1, "items"
+            )
+            if items_lines:
+                lines.append(items_lines)
+    
+    return "\n".join(lines)
+
+
+def _generate_typescript_type(
+    schema: dict, components: dict, indent: int = 0, interface_name: str = "Response"
+) -> str:
+    """Generate TypeScript type definition from schema."""
+    if not schema:
+        return ""
+    
+    schema = _resolve_schema_reference(schema, components)
+    schema = _handle_all_of_schema(schema, components, True)
+    
+    schema_type = schema.get("type", "object")
+    indent_str = "  " * indent
+    
+    if schema_type == "object":
+        properties = schema.get("properties", {})
+        if not properties:
+            return f"{indent_str}interface {interface_name} {{\n{indent_str}}}"
+        
+        lines = [f"{indent_str}interface {interface_name} {{"]
+        required = schema.get("required", [])
+        for prop_name, prop_schema in properties.items():
+            # Skip writeOnly fields for responses
+            if prop_schema.get("writeOnly", False):
+                continue
+            
+            prop_ts_type = _get_typescript_type(prop_schema, components, None, indent + 1)
+            optional = "" if prop_name in required else "?"
+            lines.append(f"{indent_str}  {prop_name}{optional}: {prop_ts_type};")
+        
+        lines.append(f"{indent_str}}}")
+        return "\n".join(lines)
+    elif schema_type == "array":
+        items = schema.get("items", {})
+        items_ts_type = _get_typescript_type(items, components, None, indent)
+        return f"{indent_str}type {interface_name} = {items_ts_type}[];"
+    else:
+        ts_type = _get_typescript_type(schema, components, None, indent)
+        return f"{indent_str}type {interface_name} = {ts_type};"
+
+
+def _get_typescript_type(schema: dict, components: dict, _components_cache: dict | None = None, _indent: int = 0) -> str:
+    """Get TypeScript type string for a schema."""
+    if not isinstance(schema, dict):
+        return "any"
+    
+    schema = _resolve_schema_reference(schema, components)
+    schema = _handle_all_of_schema(schema, components, True)
+    
+    schema_type = schema.get("type", "any")
+    
+    if schema_type == "string":
+        return "string"
+    elif schema_type == "integer" or schema_type == "number":
+        return "number"
+    elif schema_type == "boolean":
+        return "boolean"
+    elif schema_type == "array":
+        items = schema.get("items", {})
+        items_type = _get_typescript_type(items, components, _components_cache, _indent)
+        return f"{items_type}[]"
+    elif schema_type == "object":
+        # Inline object type
+        properties = schema.get("properties", {})
+        if not properties:
+            return "Record<string, any>"
+        
+        prop_lines = []
+        required = schema.get("required", [])
+        indent_str = "  " * (_indent + 1)
+        for prop_name, prop_schema in properties.items():
+            if prop_schema.get("writeOnly", False):
+                continue
+            prop_ts_type = _get_typescript_type(prop_schema, components, _components_cache, _indent + 1)
+            optional = "" if prop_name in required else "?"
+            prop_lines.append(f"{indent_str}{prop_name}{optional}: {prop_ts_type};")
+        
+        if prop_lines:
+            outer_indent = "  " * _indent
+            return "{\n" + "\n".join(prop_lines) + f"\n{outer_indent}}}"
+        return "Record<string, any>"
+    else:
+        return "any"
+
+
 def _prepare_response_data(operation_id: str, responses: dict, components: dict) -> list:
     """Prepare response data for template rendering."""
 
@@ -648,17 +849,98 @@ def _prepare_response_data(operation_id: str, responses: dict, components: dict)
                 "description": response_data.get("description", "") or 
                               "The request was successful. No content is returned in the response body.",
                 "examples": [],
+                "schema": None,
             }
             formatted_responses.append(formatted_response)
             continue
         
         schema = content.get("application/json", {}).get("schema", {})
-        examples = _generate_examples(operation_id, schema, components)
+        
+        # Extract examples from OpenAPI schema (like request body examples)
+        extracted_examples = _extract_response_examples(operation_id, response_data, components)
+        
+        # Build tree structure for schema
+        schema_tree = None
+        if schema:
+            # Resolve schema to get root-level required fields
+            resolved_schema = _resolve_schema_reference(schema, components)
+            resolved_schema = _handle_all_of_schema(resolved_schema, components, True)
+            required_fields = set(resolved_schema.get("required", []))
+            schema_tree = _build_response_schema_tree(resolved_schema, components, required_fields)
+        
+        # Prepare schema display for each example
+        formatted_examples = []
+        schema_display = _format_schema_for_swagger_display(schema, components) if schema else ""
+        
+        # If we have extracted examples from the schema, use them
+        if extracted_examples:
+            seen_json = set()
+            for example_obj in extracted_examples:
+                example_value = example_obj.get("value")
+                json_str = json.dumps(example_value, indent=2) if example_value is not None else "null"
+                # Skip if we've already seen this exact JSON
+                if json_str not in seen_json:
+                    seen_json.add(json_str)
+                    formatted_examples.append({
+                        "summary": example_obj.get("summary", "Example"),
+                        "description": example_obj.get("description", ""),
+                        "value": example_value,
+                        "json": json_str,
+                        "schema_display": schema_display,
+                        "schema_tree": schema_tree,
+                    })
+        else:
+            # Fallback: Generate examples from schema if no examples field exists
+            generated_examples = _generate_examples(operation_id, schema, components) if schema else []
+            
+            # Generate JSON example from schema if no generated examples exist
+            schema_json_example = None
+            if schema and not generated_examples:
+                try:
+                    schema_json_example = schema_to_example_json(operation_id, schema, components, for_response=True)
+                    if schema_json_example is not None:
+                        schema_json_example = json.dumps(schema_json_example, indent=2)
+                except Exception as e:
+                    # If generation fails, log error with full traceback and fall back to null
+                    logger.warning(
+                        f"Failed to generate JSON example for operation {operation_id}: {e}\n"
+                        f"Traceback: {traceback.format_exc()}"
+                    )
+                    schema_json_example = "null"
+            
+            # If we have generated examples, add them with schema (deduplicate by JSON string)
+            if generated_examples:
+                seen_json = set()
+                for example in generated_examples:
+                    json_str = json.dumps(example, indent=2) if example is not None else "null"
+                    # Skip if we've already seen this exact JSON
+                    if json_str not in seen_json:
+                        seen_json.add(json_str)
+                        formatted_examples.append({
+                            "summary": "Example",
+                            "description": "",
+                            "value": example,
+                            "json": json_str,
+                            "schema_display": schema_display,
+                            "schema_tree": schema_tree,
+                        })
+            # If no examples but we have a schema, create an example with JSON generated from schema
+            elif schema:
+                json_str = schema_json_example if schema_json_example else "null"
+                formatted_examples.append({
+                    "summary": "Example",
+                    "description": "",
+                    "value": schema_json_example if schema_json_example and schema_json_example != "null" else None,
+                    "json": json_str,
+                    "schema_display": schema_display,
+                    "schema_tree": schema_tree,
+                })
         
         formatted_response = {
             "status_code": status_code,
             "description": response_data.get("description", ""),
-            "examples": examples,
+            "examples": formatted_examples,
+            "schema": schema,
         }
         
         formatted_responses.append(formatted_response)
@@ -755,6 +1037,57 @@ def _extract_request_examples(
     return []
 
 
+def _extract_response_examples(
+    _operation_id: str, response_data: dict, _components: dict
+) -> list[dict[str, Any]]:
+    """
+    Extract all examples from response.content[mediaType].examples.
+    
+    Returns a list of example dictionaries with keys:
+    - summary: The example summary (or example key as fallback)
+    - value: The example value (dict/object)
+    - description: Optional description
+    - key: The example key
+    
+    Falls back to generating examples from schema if no examples field exists.
+    """
+    if not response_data:
+        return []
+    
+    content = response_data.get("content", {})
+    if not content:
+        return []
+    
+    # Check for examples in application/json (most common)
+    json_content = content.get("application/json", {})
+    examples_field = json_content.get("examples", {})
+    
+    # If examples field exists and is not empty, extract all examples
+    if examples_field and isinstance(examples_field, dict) and examples_field:
+        extracted_examples = []
+        for example_key, example_obj in examples_field.items():
+            if not isinstance(example_obj, dict):
+                continue
+            
+            # Extract value from example object
+            example_value = example_obj.get("value")
+            if example_value is None:
+                continue
+            
+            extracted_examples.append({
+                "summary": example_obj.get("summary", example_key),
+                "value": example_value,
+                "description": example_obj.get("description", ""),
+                "key": example_key,
+            })
+        
+        if extracted_examples:
+            return extracted_examples
+    
+    # Fallback: Return empty list - let _prepare_response_data generate from schema
+    return []
+
+
 def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Extract permissions data from endpoint for display in template.
@@ -802,6 +1135,341 @@ def _extract_permissions_data(operation_id: str, endpoint_data: dict[str, Any]) 
     return permissions
 
 
+def _extract_validation_constraints(
+    resolved_field_schema: dict[str, Any], field_type: str, components: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Extract validation constraints from a resolved field schema.
+    
+    Args:
+        resolved_field_schema: The resolved field schema dictionary
+        field_type: The type of the field (string, integer, number, array, object)
+        components: OpenAPI components dictionary for resolving references
+        
+    Returns:
+        Dictionary containing validation constraints
+    """
+    validation_info = {}
+    
+    # Type-specific validations
+    if field_type == "string":
+        if "minLength" in resolved_field_schema:
+            validation_info["minLength"] = resolved_field_schema["minLength"]
+        if "maxLength" in resolved_field_schema:
+            validation_info["maxLength"] = resolved_field_schema["maxLength"]
+        if "pattern" in resolved_field_schema:
+            validation_info["pattern"] = resolved_field_schema["pattern"]
+        if "format" in resolved_field_schema:
+            validation_info["format"] = resolved_field_schema["format"]
+        if "enum" in resolved_field_schema:
+            validation_info["enum"] = resolved_field_schema["enum"]
+    elif field_type in ("integer", "number"):
+        if "minimum" in resolved_field_schema:
+            validation_info["minimum"] = resolved_field_schema["minimum"]
+        if "maximum" in resolved_field_schema:
+            validation_info["maximum"] = resolved_field_schema["maximum"]
+        if "exclusiveMinimum" in resolved_field_schema:
+            validation_info["exclusiveMinimum"] = resolved_field_schema["exclusiveMinimum"]
+        if "exclusiveMaximum" in resolved_field_schema:
+            validation_info["exclusiveMaximum"] = resolved_field_schema["exclusiveMaximum"]
+        if "enum" in resolved_field_schema:
+            validation_info["enum"] = resolved_field_schema["enum"]
+    elif field_type == "array":
+        validation_info["array_type"] = "array"
+        items_schema = resolved_field_schema.get("items", {})
+        if "$ref" in items_schema:
+            items_schema = _resolve_schema_reference(items_schema, components)
+        validation_info["items_type"] = items_schema.get("type", "string")
+        if "minItems" in resolved_field_schema:
+            validation_info["minItems"] = resolved_field_schema["minItems"]
+        if "maxItems" in resolved_field_schema:
+            validation_info["maxItems"] = resolved_field_schema["maxItems"]
+    elif field_type == "object":
+        validation_info["object_type"] = "object"
+        if "properties" in resolved_field_schema:
+            validation_info["has_properties"] = True
+    
+    # Handle enum for any type
+    if "enum" in resolved_field_schema and "enum" not in validation_info:
+        validation_info["enum"] = resolved_field_schema["enum"]
+    
+    return validation_info
+
+
+def _extract_request_body_fields_with_validation(
+    _operation_id: str, request_body: dict[str, Any], components: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """
+    Extract request body fields with validation constraints for display.
+    
+    Args:
+        operation_id: Operation ID of the endpoint
+        request_body: Request body from OpenAPI schema
+        components: OpenAPI components dictionary
+        
+    Returns:
+        List of field dictionaries with validation information
+    """
+    if not request_body:
+        return []
+    
+    content = request_body.get("content", {})
+    if not content:
+        return []
+    
+    schema = content.get("application/json", {}).get("schema")
+    if not schema:
+        return []
+    
+    # Resolve schema reference if needed
+    schema = _resolve_schema_reference(schema, components)
+    schema = _handle_all_of_schema(schema, components, False)
+    
+    # Get required fields list
+    required_fields = set(schema.get("required", []))
+    
+    # Extract properties
+    properties = schema.get("properties", {})
+    if not properties:
+        return []
+    
+    fields = []
+    for field_name, field_schema in properties.items():
+        # Note: writeOnly fields SHOULD be included in requests per OpenAPI spec
+        # (they're only excluded from responses). We don't skip them here.
+        # Skip readOnly fields for request body (they shouldn't be in request)
+        if field_schema.get("readOnly", False):
+            continue
+        
+        # Resolve field schema reference if needed
+        resolved_field_schema = _resolve_schema_reference(field_schema, components)
+        resolved_field_schema = _handle_all_of_schema(resolved_field_schema, components, False)
+        
+        # Extract validation constraints
+        field_type = resolved_field_schema.get("type", "string")
+        validation_info = {
+            "name": field_name,
+            "type": field_type,
+            "required": field_name in required_fields,
+            "description": resolved_field_schema.get("description", ""),
+            "default": resolved_field_schema.get("default"),
+            "example": resolved_field_schema.get("example"),
+        }
+        
+        # Extract type-specific validation constraints
+        validation_info.update(_extract_validation_constraints(resolved_field_schema, field_type, components))
+        
+        fields.append(validation_info)
+    
+    return fields
+
+
+def _extract_response_schema_fields(
+    responses: dict[str, Any], components: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """
+    Extract response schema fields with validation constraints for display.
+    
+    Args:
+        responses: Responses dictionary from OpenAPI schema
+        components: OpenAPI components dictionary
+        
+    Returns:
+        List of field dictionaries with validation information from the first response with schema
+    """
+    if not responses:
+        return []
+    
+    # Get the first response with a schema (usually 200)
+    for _status_code, response_data in responses.items():
+        content = response_data.get("content", {})
+        if not content:
+            continue
+        
+        schema = content.get("application/json", {}).get("schema")
+        if not schema:
+            continue
+        
+        # Resolve schema reference if needed
+        schema = _resolve_schema_reference(schema, components)
+        schema = _handle_all_of_schema(schema, components, True)
+        
+        # Get required fields list
+        required_fields = set(schema.get("required", []))
+        
+        # Extract properties
+        properties = schema.get("properties", {})
+        if not properties:
+            return []
+        
+        fields = []
+        for field_name, field_schema in properties.items():
+            # Skip writeOnly fields for responses (they shouldn't be in response)
+            if field_schema.get("writeOnly", False):
+                continue
+            
+            # Resolve field schema reference if needed
+            resolved_field_schema = _resolve_schema_reference(field_schema, components)
+            resolved_field_schema = _handle_all_of_schema(resolved_field_schema, components, True)
+            
+            # Extract validation constraints
+            field_type = resolved_field_schema.get("type", "string")
+            validation_info = {
+                "name": field_name,
+                "type": field_type,
+                "required": field_name in required_fields,
+                "description": resolved_field_schema.get("description", ""),
+                "readOnly": resolved_field_schema.get("readOnly", False),
+                "example": resolved_field_schema.get("example"),
+            }
+            
+            # Extract type-specific validation constraints
+            validation_info.update(_extract_validation_constraints(resolved_field_schema, field_type, components))
+            
+            fields.append(validation_info)
+        
+        return fields
+    
+    return []
+
+
+def _build_response_schema_tree(
+    schema: dict[str, Any], 
+    components: dict[str, Any], 
+    required_fields: set[str] | None = None,
+    visited_refs: set[str] | None = None,
+    depth: int = 0
+) -> dict[str, Any]:
+    """
+    Recursively build a nested tree structure from OpenAPI schema.
+    
+    Args:
+        schema: OpenAPI schema dictionary
+        components: OpenAPI components dictionary for resolving references
+        required_fields: Set of required field names at current level
+        visited_refs: Set of visited $ref names to prevent circular references
+        depth: Current nesting depth (for preventing infinite recursion)
+        
+    Returns:
+        Tree structure dictionary with name, type, validation rules, and children
+    """
+    if not schema or not isinstance(schema, dict):
+        return None
+    
+    if visited_refs is None:
+        visited_refs = set()
+    if required_fields is None:
+        required_fields = set()
+    
+    # Prevent infinite recursion
+    if depth > 20:
+        return None
+    
+    # Check for $ref before resolving to preserve reference name
+    ref_name = None
+    if "$ref" in schema:
+        ref_path = schema["$ref"]
+        ref_name = ref_path.split("/")[-1]
+        # Prevent circular references
+        if ref_name in visited_refs:
+            return {
+                "name": ref_name,
+                "type": "object",
+                "ref": ref_name,
+                "circular": True,
+                "description": f"Circular reference to {ref_name}",
+            }
+        visited_refs.add(ref_name)
+        schema = _resolve_schema_reference(schema, components)
+        schema = _handle_all_of_schema(schema, components, True)
+    
+    schema_type = schema.get("type", "object")
+    title = schema.get("title", "")
+    description = schema.get("description", "")
+    read_only = schema.get("readOnly", False)
+    
+    # Build base node
+    node = {
+        "type": schema_type,
+        "description": description,
+        "readOnly": read_only,
+        "validation": {},
+    }
+    
+    if ref_name:
+        node["ref"] = ref_name
+    if title:
+        node["title"] = title
+    
+    # Extract validation rules
+    if "minLength" in schema:
+        node["validation"]["minLength"] = schema["minLength"]
+    if "maxLength" in schema:
+        node["validation"]["maxLength"] = schema["maxLength"]
+    if "pattern" in schema:
+        node["validation"]["pattern"] = schema["pattern"]
+    if "minimum" in schema:
+        node["validation"]["minimum"] = schema["minimum"]
+    if "maximum" in schema:
+        node["validation"]["maximum"] = schema["maximum"]
+    if "exclusiveMinimum" in schema:
+        node["validation"]["exclusiveMinimum"] = schema["exclusiveMinimum"]
+    if "exclusiveMaximum" in schema:
+        node["validation"]["exclusiveMaximum"] = schema["exclusiveMaximum"]
+    if "minItems" in schema:
+        node["validation"]["minItems"] = schema["minItems"]
+    if "maxItems" in schema:
+        node["validation"]["maxItems"] = schema["maxItems"]
+    if "enum" in schema:
+        node["validation"]["enum"] = schema["enum"]
+    if "format" in schema:
+        node["validation"]["format"] = schema["format"]
+    if "example" in schema:
+        node["example"] = schema["example"]
+    
+    # Handle array type
+    if schema_type == "array":
+        items = schema.get("items", {})
+        if items:
+            items_node = _build_response_schema_tree(
+                items, components, set(), visited_refs.copy(), depth + 1
+            )
+            if items_node:
+                node["items"] = items_node
+                node["itemsType"] = items_node.get("type", "string")
+            else:
+                node["itemsType"] = "string"
+        else:
+            node["itemsType"] = "string"
+    
+    # Handle object type with properties
+    elif schema_type == "object":
+        properties = schema.get("properties", {})
+        required_at_level = set(schema.get("required", []))
+        
+        if properties:
+            node["children"] = []
+            for prop_name, prop_schema in properties.items():
+                # Skip writeOnly fields for responses
+                if prop_schema.get("writeOnly", False):
+                    continue
+                
+                child_node = _build_response_schema_tree(
+                    prop_schema, 
+                    components, 
+                    required_at_level,
+                    visited_refs.copy(),
+                    depth + 1
+                )
+                
+                if child_node:
+                    child_node["name"] = prop_name
+                    child_node["required"] = prop_name in required_at_level
+                    node["children"].append(child_node)
+    
+    return node
+
+
 def create_endpoint_page(
     path: str, method: str, endpoint_data: dict[str, Any], components: dict[str, Any]
 ) -> str:
@@ -827,6 +1495,45 @@ def create_endpoint_page(
         # Set to empty string to avoid confusion
         request_example = ""
 
+    # Extract request body fields with validation
+    request_body_fields = _extract_request_body_fields_with_validation(
+        operation_id, request_body, components
+    )
+    
+    # Extract response schema fields
+    response_schema_fields = _extract_response_schema_fields(
+        endpoint_data.get("responses", {}), components
+    )
+    
+    # Build request schema tree
+    request_schema_tree = None
+    if request_schema:
+        # Get required fields for request schema
+        resolved_request_schema = _resolve_schema_reference(request_schema, components)
+        resolved_request_schema = _handle_all_of_schema(resolved_request_schema, components, False)
+        required_fields = set(resolved_request_schema.get("required", []))
+        request_schema_tree = _build_response_schema_tree(
+            request_schema, components, required_fields, set(), 0
+        )
+    
+    # Build response schema tree (from first response with schema)
+    response_schema_tree = None
+    responses = endpoint_data.get("responses", {})
+    for _status_code, response_data in responses.items():
+        content = response_data.get("content", {})
+        if not content:
+            continue
+        schema = content.get("application/json", {}).get("schema")
+        if schema:
+            # Get required fields for response schema
+            resolved_response_schema = _resolve_schema_reference(schema, components)
+            resolved_response_schema = _handle_all_of_schema(resolved_response_schema, components, True)
+            required_fields = set(resolved_response_schema.get("required", []))
+            response_schema_tree = _build_response_schema_tree(
+                schema, components, required_fields, set(), 0
+            )
+            break
+    
     # Prepare template context
     context = {
         "path": path,
@@ -839,11 +1546,16 @@ def create_endpoint_page(
             p for p in endpoint_data.get("parameters", []) if p.get("in") == "path"
         ],
         "request_body": request_body,
+        "request_body_fields": request_body_fields,
+        "request_schema_fields": request_body_fields,  # Alias for schema template
+        "request_schema_tree": request_schema_tree,
         "request_examples": request_examples,
         "request_example": request_example,  # Keep for backward compatibility
         "responses": _prepare_response_data(
             operation_id, endpoint_data.get("responses", {}), components
         ),
+        "response_schema_fields": response_schema_fields,
+        "response_schema_tree": response_schema_tree,
         "stylesheets": [
             "stylesheets/endpoints/endpoint-content.css",
             "stylesheets/endpoints/badges.css",
@@ -856,6 +1568,7 @@ def create_endpoint_page(
             "stylesheets/endpoints/accessibility.css",
             "stylesheets/endpoints/loading.css",
             "stylesheets/endpoints/query-parameters.css",
+            "stylesheets/endpoints/response-schema-tree.css",
             "stylesheets/try-out/main.css",
         ],
         "scripts": [
@@ -868,6 +1581,8 @@ def create_endpoint_page(
             "javascripts/try-out/suggestions.js",
             "javascripts/try-out/main.js",
             "javascripts/query-parameters.js",
+            "javascripts/response-schema-tree.js",  # Load before viewer (dependency)
+            "javascripts/response-schema-viewer.js",
         ],
         "prefix_path": f"{drf_to_mkdoc_settings.PROJECT_NAME}/",
         "auth_required": is_endpoint_secure(operation_id, endpoint_data),

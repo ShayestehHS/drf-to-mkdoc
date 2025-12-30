@@ -10,7 +10,11 @@ from typing import Any
 from drf_spectacular.generators import SchemaGenerator
 
 from drf_to_mkdoc.conf.settings import drf_to_mkdoc_settings
-from drf_to_mkdoc.utils.commons.file_utils import load_json_data
+from drf_to_mkdoc.utils.commons.file_utils import (
+    load_json_data,
+    load_json_files_from_dir,
+    merge_openapi_schemas,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -190,9 +194,50 @@ def _apply_custom_overrides(
                 target_schema[key] = custom_value
 
 
+def _load_base_schema() -> dict[str, Any]:
+    """
+    Load base OpenAPI schema from JSON file(s) if configured, otherwise generate it.
+    
+    Priority:
+    1. SCHEMA_JSON_FILE (single file) - if set, loads from this file
+    2. SCHEMA_JSON_DIR (directory) - if set, loads and merges all JSON files from directory
+    3. SchemaGenerator - fallback to generating schema dynamically
+    
+    Returns:
+        Base OpenAPI schema dictionary
+    """
+    # Try loading from single JSON file first
+    schema_json_file = drf_to_mkdoc_settings.SCHEMA_JSON_FILE
+    if schema_json_file:
+        logger.info(f"Loading schema from JSON file: {schema_json_file}")
+        base_schema = load_json_data(schema_json_file, raise_not_found=True)
+        if not isinstance(base_schema, dict):
+            raise SchemaValidationError(
+                f"Schema JSON file must contain a JSON object (dict), got {type(base_schema).__name__}"
+            )
+        return base_schema
+    
+    # Try loading from directory of JSON files
+    schema_json_dir = drf_to_mkdoc_settings.SCHEMA_JSON_DIR
+    if schema_json_dir:
+        logger.info(f"Loading and merging schemas from directory: {schema_json_dir}")
+        schemas = load_json_files_from_dir(schema_json_dir, raise_not_found=True)
+        if not schemas:
+            raise SchemaValidationError(
+                f"No valid JSON schema files found in directory: {schema_json_dir}"
+            )
+        logger.info(f"Merging {len(schemas)} schema files")
+        base_schema = merge_openapi_schemas(schemas)
+        return base_schema
+    
+    # Fallback to generating schema dynamically
+    logger.info("Generating schema dynamically using SchemaGenerator")
+    return SchemaGenerator().get_schema(request=None, public=True)
+
+
 @lru_cache(maxsize=1)
 def get_schema():
-    base_schema = SchemaGenerator().get_schema(request=None, public=True)
+    base_schema = _load_base_schema()
     custom_data = get_custom_schema()
     if not custom_data:
         return deepcopy(base_schema)

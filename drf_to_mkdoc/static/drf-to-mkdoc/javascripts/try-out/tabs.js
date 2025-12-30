@@ -30,6 +30,21 @@ const TabManager = {
                 }
             });
         });
+        
+        // Initialize response subtabs
+        document.querySelectorAll('.response-subtabs .response-subtab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchResponseSubtab(tab);
+            });
+            
+            // Add keyboard support
+            tab.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.switchResponseSubtab(tab);
+                }
+            });
+        });
     },
 
     switchTab: function(activeTab) {
@@ -99,6 +114,46 @@ const TabManager = {
         });
 
         // Add active class to clicked tab and its content
+        activeTab.classList.add('active');
+        activeTab.setAttribute('aria-selected', 'true');
+        
+        // Show corresponding content
+        const contentId = activeTab.getAttribute('aria-controls');
+        if (contentId) {
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.classList.add('active');
+                // Reset subtabs to show JSON first when switching examples
+                const subtabsContainer = content.querySelector('.response-subtabs-container');
+                if (subtabsContainer) {
+                    const firstSubtab = subtabsContainer.querySelector('.response-subtab');
+                    if (firstSubtab) {
+                        this.switchResponseSubtab(firstSubtab);
+                    }
+                }
+            }
+        }
+    },
+    
+    switchResponseSubtab: function(activeTab) {
+        const tabContainer = activeTab.closest('.response-subtabs');
+        if (!tabContainer) return;
+        
+        const container = tabContainer.closest('.response-subtabs-container');
+        if (!container) return;
+
+        // Remove active class from all subtabs in this container
+        tabContainer.querySelectorAll('.response-subtab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+        });
+
+        // Remove active class from all subtab content
+        container.querySelectorAll('.response-subtab-content').forEach(c => {
+            c.classList.remove('active');
+        });
+
+        // Add active class to clicked subtab and its content
         activeTab.classList.add('active');
         activeTab.setAttribute('aria-selected', 'true');
         

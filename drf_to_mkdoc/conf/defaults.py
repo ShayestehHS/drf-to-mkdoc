@@ -7,6 +7,8 @@ DEFAULTS = {
     "DOC_CONFIG_FILE": "docs/configs/doc_config.json",  # Path to documentation configuration file
     "CUSTOM_SCHEMA_FILE": "docs/configs/custom_schema.json",  # Path to custom schema file
     "REFERENCES_FILE": "docs/configs/references.json",  # Path to references file for reusable descriptions
+    "SCHEMA_JSON_FILE": None,  # Path to a single JSON schema file (optional, takes precedence over SCHEMA_JSON_DIR)
+    "SCHEMA_JSON_DIR": None,  # Path to directory containing multiple JSON schema files to merge (optional)
     "PATH_PARAM_SUBSTITUTE_FUNCTION": None,
     "PATH_PARAM_SUBSTITUTE_MAPPING": {},
     "FIELD_GENERATORS": {},

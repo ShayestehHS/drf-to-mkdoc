@@ -21,27 +21,62 @@
     .endpoint-path {
         font-size: 14px;
         padding: 8px;
+        width: 100%;
+        max-width: 100%;  /* Remove the space reservation for copy button on mobile */
+    }
+    
+    .endpoint-path-text {
+        font-size: 14px;
+    }
+
+    .endpoint-copy-btn {
+        right: 16px;  /* Match mobile padding */
+        top: 16px;  /* Position at top-right on mobile */
+        transform: none;  /* Remove vertical centering on mobile */
+    }
+
+    .endpoint-copy-btn:hover {
+        transform: scale(1.1);  /* Only scale on hover for mobile */
+    }
+
+    .endpoint-copy-btn:active {
+        transform: scale(0.95);  /* Only scale on active for mobile */
     }
 
     .method-badge {
         align-self: flex-start;
+        font-size: 10px;
+        padding: 4px 10px;
+        min-width: 52px;
     }
 }
 
 @media (max-width: 480px) {
     .endpoint-card {
-        padding: 12px;
+        padding: 12px 16px;
     }
 
     .endpoint-path {
         font-size: 13px;
-        padding: 6px;
+        padding: 8px 12px;
+        width: 100%;
+        max-width: 100%;  /* Remove the space reservation for copy button on mobile */
+    }
+    
+    .endpoint-path-text {
+        font-size: 13px;
+    }
+
+    .endpoint-copy-btn {
+        right: 16px;  /* Match mobile padding */
+        top: 12px;  /* Match mobile padding */
     }
 
     .method-badge {
-        font-size: 10px;
-        padding: 4px 6px;
-        min-width: 50px;
+        font-size: 9px;
+        padding: 4px 8px;
+        min-width: 48px;
+        letter-spacing: 0.2px;
     }
 }
 

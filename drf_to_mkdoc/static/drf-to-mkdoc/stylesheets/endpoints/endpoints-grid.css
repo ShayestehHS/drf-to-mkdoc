@@ -17,40 +17,24 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 20px;
+    gap: 24px;
+    padding: 20px 28px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    transition: all 0.3s ease;
+    border-radius: 8px;
+    transition: all 0.2s ease;
     text-decoration: none;
     color: var(--text-primary);
-    box-shadow: var(--shadow);
-    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: visible;
     width: 100%;
     box-sizing: border-box;
 }
 
-.endpoint-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 1;
-}
-
-.endpoint-card:hover::before {
-    opacity: 1;
-}
-
 .endpoint-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
 }
 
 .endpoint-card:focus {
@@ -72,6 +56,105 @@
 .endpoint-card > * {
     position: relative;
     z-index: 2;
+}
+
+/* ===== ENDPOINT PATH WITH COPY BUTTON ===== */
+.endpoint-card .endpoint-path {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;  /* Allow to grow and take available space */
+    min-width: 0;
+    max-width: calc(100% - 60px);  /* Reserve space for copy button */
+    /* Restore box styling from endpoint-content.css but prevent wrapping */
+    word-break: normal;
+    background: var(--bg-primary);
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 0;
+    /* Modern cross-platform monospace font stack optimized for URLs/paths */
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-weight: 450;  /* Slightly lighter for better readability */
+    color: var(--text-primary);
+    font-size: 14px;
+    letter-spacing: 0.01em;  /* Slight spacing for better character distinction */
+    transition: all 0.2s ease;
+}
+
+
+.endpoint-card .endpoint-path-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    /* Ensure text doesn't wrap */
+    word-break: normal;
+    /* Inherit improved font styling from parent */
+    font-family: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+}
+
+/* ===== ENDPOINT COPY BUTTON ===== */
+.endpoint-copy-btn {
+    position: absolute;
+    right: 28px;  /* Match card padding */
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    z-index: 10;
+}
+
+.endpoint-copy-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.endpoint-copy-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.endpoint-copy-btn:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.endpoint-copy-btn .copy-icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
+    padding: 2px;
+    transition: transform 0.2s ease;
+}
+
+.endpoint-copy-btn.copied .copy-icon {
+    transform: scale(1.2);
+}
+
+.endpoint-copy-btn.copied {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    opacity: 1;
 }
 
 /* ===== DJANGO MODELS CARD LAYOUT ===== */

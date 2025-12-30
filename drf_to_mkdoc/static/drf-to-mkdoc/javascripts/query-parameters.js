@@ -92,6 +92,15 @@
         
         // Add expanded class for additional styling if needed
         content.classList.add('expanded');
+        
+        // Re-initialize tabs inside expanded content (for schema sub-tabs, etc.)
+        // This ensures tabs are clickable after the section expands
+        if (window.TabManager && typeof window.TabManager.init === 'function') {
+            // Use setTimeout to ensure DOM is ready after expansion animation
+            setTimeout(() => {
+                window.TabManager.init();
+            }, 150);
+        }
     }
 
     /**
