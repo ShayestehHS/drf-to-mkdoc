@@ -81,6 +81,12 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Your API',
     'DESCRIPTION': 'Your API description',
     'VERSION': '1.0.0',
+    # Optional: Override enum names to resolve naming collisions
+    # If you see warnings about enum naming collisions (e.g., "Type909Enum"),
+    # add entries here to provide custom names for your enums
+    # 'ENUM_NAME_OVERRIDES': {
+    #     'Type909Enum': 'YourCustomEnumName',
+    # },
 }
 
 # DRF to MkDocs specific settings

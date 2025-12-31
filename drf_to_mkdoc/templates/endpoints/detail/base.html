@@ -32,7 +32,9 @@
 {% include "endpoints/detail/path_parameters.html" %}
 {% include "endpoints/detail/query_parameters.html" %}
 {% include "endpoints/detail/request_body.html" %}
+{% if request_schema_tree or response_schema_tree or request_schema_fields or response_schema_fields %}
 {% include "endpoints/detail/schema.html" %}
+{% endif %}
 {% include "endpoints/detail/responses.html" %}
 
 {% if enable_auto_auth %}
