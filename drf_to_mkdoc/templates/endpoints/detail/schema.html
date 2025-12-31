@@ -1,0 +1,113 @@
+{% load custom_filters %}
+{% comment %}
+Schema section with Request and Response schemas shown simultaneously
+{% endcomment %}
+
+{% if request_schema_tree or response_schema_tree or request_schema_fields or response_schema_fields %}
+
+<div class="query-params-container">
+    <div class="query-params-section">
+        <button class="query-params-header" type="button" aria-expanded="false" aria-controls="schema-content">
+            <span class="query-params-title">
+                <span class="query-params-icon">📋</span>
+                Schema
+            </span>
+            <span class="query-params-toggle">▼</span>
+        </button>
+        <div class="query-params-content" id="schema-content">
+            <!-- Schema Sub-tabs for Request and Response -->
+            {% if request_schema_tree or request_schema_fields %}
+                {% if response_schema_tree or response_schema_fields %}
+                <!-- Both schemas exist - show as tabs -->
+                <div class="response-subtabs-container">
+                    <div class="response-subtabs" role="tablist">
+                        <button 
+                            class="response-subtab active" 
+                            role="tab" 
+                            aria-selected="true"
+                            aria-controls="schema-request"
+                            data-subtab="request">
+                            Request Schema
+                        </button>
+                        <button 
+                            class="response-subtab" 
+                            role="tab" 
+                            aria-selected="false"
+                            aria-controls="schema-response"
+                            data-subtab="response">
+                            Response Schema
+                        </button>
+                    </div>
+                    
+                    <!-- Request Schema Subtab Content -->
+                    <div 
+                        id="schema-request" 
+                        class="response-subtab-content active" 
+                        role="tabpanel">
+                        <div class="schema-section">
+                            {% if request_schema_tree %}
+                            <div class="schema-tree-viewer-container"
+                                 data-schema-tree="{{ request_schema_tree|to_json|escape_json_for_attr }}">
+                            </div>
+                            {% elif request_schema_fields %}
+                            <div class="schema-view-empty">Schema tree not available. Please regenerate documentation.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Response Schema Subtab Content -->
+                    <div 
+                        id="schema-response" 
+                        class="response-subtab-content" 
+                        role="tabpanel">
+                        <div class="schema-section">
+                            {% if response_schema_tree %}
+                            <div class="schema-tree-viewer-container"
+                                 data-schema-tree="{{ response_schema_tree|to_json|escape_json_for_attr }}">
+                            </div>
+                            {% elif response_schema_fields %}
+                            <div class="schema-view-empty">Schema tree not available. Please regenerate documentation.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Only request schema exists - show without tabs -->
+                <div class="schema-section">
+                    <h3 class="schema-section-title">
+                        <span class="tab-icon">📤</span>
+                        Request Schema
+                    </h3>
+                    {% if request_schema_tree %}
+                    <div class="schema-tree-viewer-container"
+                         data-schema-tree="{{ request_schema_tree|to_json|escape_json_for_attr }}">
+                    </div>
+                    {% elif request_schema_fields %}
+                    <div class="schema-view-empty">Schema tree not available. Please regenerate documentation.</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% else %}
+                <!-- Only response schema exists - show without tabs -->
+                {% if response_schema_tree or response_schema_fields %}
+                <div class="schema-section">
+                    <h3 class="schema-section-title">
+                        <span class="tab-icon">📥</span>
+                        Response Schema
+                    </h3>
+                    {% if response_schema_tree %}
+                    <div class="schema-tree-viewer-container"
+                         data-schema-tree="{{ response_schema_tree|to_json|escape_json_for_attr }}">
+                    </div>
+                    {% elif response_schema_fields %}
+                    <div class="schema-view-empty">Schema tree not available. Please regenerate documentation.</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
